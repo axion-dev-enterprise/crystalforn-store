@@ -40,6 +40,8 @@ type CatalogAdminRow = {
   synced_at: Date;
   seller_hidden: boolean;
   item_hidden: boolean;
+  seller_feedback_total: string | null;
+  seller_feedback_positive_percentage: number | null;
 };
 
 function catalogQualityFlags(product: Pick<CatalogAdminRow, 'game' | 'source_title' | 'generated_title' | 'attributes' | 'price_brl_cents' | 'synced_at'>): string[] {
@@ -134,6 +136,7 @@ export class AdminService {
       FROM products p
       LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
       LEFT JOIN catalog_item_overrides o ON o.product_id=p.id
+      LEFT JOIN seller_feedback_cache sf ON sf.seller_id=p.seller_id AND sf.checked_at IS NOT NULL
       WHERE ($1::text IS NULL OR p.id::text ILIKE '%'||$1||'%' OR p.provider_item_id ILIKE '%'||$1||'%'
         OR COALESCE(p.source_title,'') ILIKE '%'||$1||'%' OR p.generated_title ILIKE '%'||$1||'%')
         AND ($2::text IS NULL OR p.game=$2)
@@ -160,6 +163,7 @@ export class AdminService {
       this.db.query<CatalogAdminRow>(
         `SELECT p.id,p.provider_item_id,p.seller_id,p.game,p.source_title,p.generated_title,p.source_currency,
           p.source_price::text,p.price_brl_cents::text,p.status,p.attributes,p.synced_at,
+          sf.feedback_total::text AS seller_feedback_total,sf.positive_percentage AS seller_feedback_positive_percentage,
           (b.seller_id IS NOT NULL) AS seller_hidden,COALESCE(o.hidden,false) AS item_hidden
          ${fromWhere}
          ORDER BY p.synced_at DESC,p.id DESC LIMIT $10 OFFSET $11`,

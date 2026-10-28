@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { CatalogProductCard } from './storefront';
 
 type InventoryAvailability = { total: number; visible: number; hidden: number; unavailable: number; needsReview: number; waitingSync: number; lastProductSyncedAt: string | null };
 type CatalogItem = {
@@ -14,6 +15,9 @@ type CatalogItem = {
   source_price: string;
   price_brl_cents: string | null;
   status: string;
+  attributes: Record<string, unknown>;
+  seller_feedback_total: string | null;
+  seller_feedback_positive_percentage: number | null;
   synced_at: string;
   hidden: boolean;
   seller_hidden: boolean;
@@ -241,7 +245,7 @@ export function AdminBacklogPanels({ inventoryAvailability, defaultMarkupPercent
             {item.seller_id && <button className="button-outline" type="button" disabled={busyTarget === `sellers:${item.seller_id}`} onClick={() => void setVisibility('sellers', item.seller_id!, !item.seller_hidden)}>{item.seller_hidden ? 'Reexibir vendedor' : 'Ocultar vendedor'}</button>}
             <button className="button-outline" type="button" disabled={busyTarget === `items:${item.id}`} onClick={() => void setVisibility('items', item.id, !item.item_hidden)}>{item.item_hidden ? 'Reexibir anúncio' : 'Ocultar anúncio'}</button>
           </div>
-          {previewItemId === item.id && <article className="admin-listing-preview" id={`listing-preview-${item.id}`} aria-label={`Prévia pública de ${item.generated_title}`}><p className="eyebrow">PRÉVIA DA VITRINE PÚBLICA</p><p>{gameName[item.game] ?? item.game}</p><h4>{item.generated_title}</h4><strong>{formatMoney(item.price_brl_cents ? Number(item.price_brl_cents) : null)}</strong><p className="fine-print">O anúncio público exibe os atributos disponíveis no catálogo. Credenciais de acesso não são incluídas nesta prévia.</p></article>}
+          {previewItemId === item.id && <div className="admin-listing-preview" id={`listing-preview-${item.id}`} aria-label={`Prévia pública de ${item.generated_title}`}><p className="eyebrow">PRÉVIA DA VITRINE PÚBLICA</p><CatalogProductCard product={{ id: item.id, game: item.game, generated_title: item.generated_title, price_brl_cents: item.price_brl_cents ?? 0, attributes: item.attributes, synced_at: item.synced_at, seller_feedback_total: item.seller_feedback_total ? Number(item.seller_feedback_total) : null, seller_feedback_positive_percentage: item.seller_feedback_positive_percentage }} demo={false} returnTo="/admin#catalogo-itens-admin" /><p className="fine-print">A prévia reutiliza o cartão da vitrine. Credenciais de acesso não são incluídas.</p></div>}
         </li>)}</ul>
         <div className="pagination" aria-label="Paginação do catálogo administrativo"><button className="button-outline" type="button" onClick={() => setCatalogPage((page) => Math.max(1, page - 1))} disabled={catalogPage <= 1 || catalogLoading}>Anterior</button><span>Página {catalog.page} de {catalog.totalPages}</span><button className="button-outline" type="button" onClick={() => setCatalogPage((page) => Math.min(catalog.totalPages, page + 1))} disabled={catalogLoading || catalogPage >= catalog.totalPages}>Próxima</button></div>
       </> : <div className="empty-inline"><p>{catalog?.total ? 'Nenhum anúncio nesta página.' : 'Nenhum anúncio corresponde aos filtros.'}</p>{(search || game || sellerId || status || minPrice || maxPrice || visibility !== 'all' || quality !== 'all' || freshness !== 'all') && <button className="text-link-button" type="button" onClick={() => { setSearch(''); setGame(''); setSellerId(''); setStatus(''); setMinPrice(''); setMaxPrice(''); setVisibilityFilter('all'); setQuality('all'); setFreshness('all'); setCatalogPage(1); }}>Limpar filtros</button>}</div>}

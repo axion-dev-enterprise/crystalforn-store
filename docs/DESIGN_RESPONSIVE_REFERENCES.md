@@ -36,6 +36,8 @@ O CSS centraliza as cores nesses tokens e nos seletores `data-theme`. A tipograf
 - Mantidos viewport dinâmico `100dvh`, breakpoints de conteúdo, navegação móvel com alvos de 44 px, foco visível e respeito a movimento reduzido.
 - Os detalhes identificam os itens como dados públicos fornecidos pelo catálogo e avisam que a cobertura pode ser parcial.
 - O inventário e a auditoria administrativas oferecem busca/filtro e navegação paginada em vez de limitar o histórico aos primeiros registros.
+- A prévia administrativa renderiza o mesmo cartão de produto usado na vitrine, com atributos, reputação agregada, atualização e preço em uma única fonte de interface.
+- Catálogo e detalhes sinalizam anúncios com sincronização acima de 24 horas ou sem data conhecida como dados cuja disponibilidade pode ter mudado.
 
 ## Escopo da verificação
 

@@ -81,7 +81,7 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
       if (!active) return;
       const images = Object.fromEntries(results.filter((entry): entry is NonNullable<typeof entry> => entry !== null)) as InventoryImages;
       setInventoryImages(images);
-      if (Object.keys(images).length === 0) setInventoryImageMessage('As prévias visuais do fornecedor não estão disponíveis agora; os dados completos continuam abaixo.');
+      if (Object.keys(images).length === 0) setInventoryImageMessage('As prévias visuais do fornecedor não estão disponíveis agora; os dados públicos informados continuam abaixo.');
     });
     return () => { active = false; };
   }, [product]);
@@ -135,7 +135,7 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
           <h1>Conta {gameLabel(product.game)}</h1>
           <p className="detail-lede">Explore os dados públicos do inventário e confira quando o anúncio foi sincronizado.</p>
           {highlights.length > 0 && <ul className="detail-highlights" aria-label="Destaques do anúncio">{highlights.map((highlight, index) => <li key={`${highlight}-${index}`}>{highlight}</li>)}</ul>}
-          {updatedAt && <p className={`detail-updated${isStaleSync(product.synced_at) ? ' is-stale' : ''}`}><span>{isStaleSync(product.synced_at) ? 'Disponibilidade pode ter mudado' : 'Última sincronização'}</span><time dateTime={product.synced_at ?? undefined}>{updatedAt}</time></p>}
+          {updatedAt ? <p className={`detail-updated${isStaleSync(product.synced_at) ? ' is-stale' : ''}`}><span>{isStaleSync(product.synced_at) ? 'Disponibilidade pode ter mudado' : 'Última sincronização'}</span><time dateTime={product.synced_at ?? undefined}>{updatedAt}</time></p> : <p className="detail-updated is-stale"><span>Data de sincronização indisponível</span><span>Disponibilidade não confirmada</span></p>}
         </header>
         {typeof product.seller_feedback_total === 'number' && product.seller_feedback_total > 0 && typeof product.seller_feedback_positive_percentage === 'number' && <section className="seller-feedback-summary" aria-label="Reputação do vendedor"><p className="eyebrow">AVALIAÇÕES DO VENDEDOR</p><strong>{product.seller_feedback_positive_percentage}% positivas</strong><p>De {product.seller_feedback_total.toLocaleString('pt-BR')} avaliações agregadas pela API do fornecedor.</p></section>}
       </article>

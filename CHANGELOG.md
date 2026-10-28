@@ -12,6 +12,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 - Acrescenta busca, filtro de estado/ação e paginação na auditoria e no histórico do sincronizador do painel.
 - Explicita que o inventário detalhado depende dos campos públicos disponíveis e pode ter cobertura parcial.
 - Sinaliza anúncios sincronizados há mais de 24 horas como potencialmente alterados.
+- Reutiliza o mesmo cartão público na prévia administrativa e inclui reputação agregada na consulta administrativa.
 - Adiciona tema claro/escuro com preferência persistida no navegador.
 - Amplia a prévia fictícia com League of Legends, filtros demonstrativos por personagem/skin, biblioteca Steam, rank e nível, e inventários textuais de exemplo.
 - Reduz gravações sequenciais do importador a um upsert PostgreSQL por lote interno de até 500 itens.

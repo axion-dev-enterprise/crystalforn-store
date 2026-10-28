@@ -293,10 +293,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .admin-catalog-actions{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:150px}
 .admin-catalog-actions button{min-height:44px}
 .admin-listing-preview{grid-column:1/-1;max-width:440px;padding:18px;border:1px solid var(--line);background:var(--soft)}
+.admin-listing-preview .product-card{min-height:0;margin:0}
 .admin-listing-preview .eyebrow{margin:0 0 12px;color:var(--muted);font:10px var(--mono);letter-spacing:.08em}
 .admin-listing-preview>p:not(.eyebrow):not(.fine-print){margin:0 0 7px;color:var(--muted);font-size:12px}
-.admin-listing-preview h4{margin:0 0 10px;font:500 24px var(--display);overflow-wrap:anywhere}
-.admin-listing-preview>strong{font:600 20px var(--mono)}
 .price-preview-controls{display:grid;grid-template-columns:minmax(130px,180px) minmax(130px,180px) auto;align-items:end;gap:12px;margin:18px 0}
 .admin-audit-list{display:grid;gap:10px;margin:0;padding:0;list-style:none}
 .admin-audit-list li{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:16px;padding:14px;border:1px solid var(--line);background:var(--surface)}
