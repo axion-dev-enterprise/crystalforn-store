@@ -383,7 +383,7 @@ export class CatalogService {
          WHERE seller_id ~ '^[0-9]{1,40}$' ON CONFLICT(seller_id) DO NOTHING`,
         [[...sellerIds]]);
     }
-    return rows.length;
+    return { imported: rows.length, discarded: Math.max(0, items.length - rows.length) };
   }
 
   async revalidateProviderItem(itemId: string, expectedGame?: string): Promise<Record<string, unknown> | null> {

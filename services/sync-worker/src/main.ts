@@ -178,7 +178,7 @@ async function synchronize(): Promise<void> {
     const run = await lockClient.query<{ id: string; started_at: Date }>('INSERT INTO catalog_sync_runs DEFAULT VALUES RETURNING id,started_at');
     runId = run.rows[0].id;
     const runStartedAt = run.rows[0].started_at;
-    let pages = 0; let itemsSeen = 0; let upserted = 0; let complete = false; let errorCode: string | null = null;
+    let pages = 0; let itemsSeen = 0; let upserted = 0; let discarded = 0; let complete = false; let errorCode: string | null = null;
     const releaseResponse = await fetch(`${internalOrigin}/api/v1/internal/catalog/sync-status`, {
       headers: { Authorization: `Bearer ${workerSecret}`, Accept: 'application/json' },
       signal: AbortSignal.timeout(timeoutMs),
@@ -357,12 +357,13 @@ async function synchronize(): Promise<void> {
             body, signal: AbortSignal.timeout(timeoutMs),
           });
           if (!imported.ok) { errorCode = `catalog_import_http_${imported.status}`; break; }
-          const result = await imported.json() as { imported?: number };
+          const result = await imported.json() as { imported?: number; discarded?: number };
           upserted += Number(result.imported ?? 0);
+          discarded += Number(result.discarded ?? 0);
         }
         await lockClient.query(
-          'UPDATE catalog_sync_runs SET pages_read=$2,items_seen=$3,items_upserted=$4 WHERE id=$1',
-          [runId, pages, itemsSeen, upserted]);
+          'UPDATE catalog_sync_runs SET pages_read=$2,items_seen=$3,items_upserted=$4,items_discarded=$5 WHERE id=$1',
+          [runId, pages, itemsSeen, upserted, discarded]);
         if (errorCode) break;
         if (apiProvider === 'lzt-market' && !stopping) await refreshOneSellerFeedback();
         genericItemsSeen += apiProvider === 'generic' ? payload.items.length : 0;
@@ -414,8 +415,8 @@ async function synchronize(): Promise<void> {
     if (!errorCode && feedsCompleted === feeds.length) { complete = true; nextFeedIndex = 0; }
     if (!errorCode && !complete && pages >= maxPages) errorCode = 'max_pages_reached';
     await lockClient.query(
-      'UPDATE catalog_sync_runs SET finished_at=now(),pages_read=$2,items_seen=$3,items_upserted=$4,complete=$5,error_code=$6 WHERE id=$1',
-      [runId, pages, itemsSeen, upserted, complete, errorCode]);
+      'UPDATE catalog_sync_runs SET finished_at=now(),pages_read=$2,items_seen=$3,items_upserted=$4,items_discarded=$5,complete=$6,error_code=$7 WHERE id=$1',
+      [runId, pages, itemsSeen, upserted, discarded, complete, errorCode]);
     if (!complete && !errorCode) await lockClient.query("UPDATE catalog_sync_runs SET error_code='unknown_incomplete' WHERE id=$1", [runId]);
   } catch (error) {
     const knownImportError = error instanceof Error

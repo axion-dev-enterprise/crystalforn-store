@@ -27,6 +27,6 @@ export class InternalCatalogController {
     this.authorize(authorization);
     requireCatalogSyncEnabled();
     if (!Array.isArray(items)) throw new UnauthorizedException('Lote do worker inválido.');
-    return { imported: await this.catalog.importProviderItems(items) };
+    return this.catalog.importProviderItems(items);
   }
 }

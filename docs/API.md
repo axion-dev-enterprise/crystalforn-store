@@ -55,6 +55,8 @@ As rotas `/admin/*` exigem sessão e papel administrativo. As rotas `/internal/c
 | `PATCH` | `/admin/catalog/items/:id/visibility` | Define `{ "hidden": true|false }` para um anúncio |
 | `PATCH` | `/admin/catalog/sellers/:sellerId/visibility` | Define `{ "hidden": true|false }` para todos os anúncios daquele vendedor |
 
+O histórico de sincronização informa duração, páginas, itens vistos, importados e descartados/duplicados, além do estado e da mensagem de erro quando houver. A importação interna retorna as contagens `imported` e `discarded`; descartados são registros inválidos, fora das categorias aceitas ou duplicados dentro do lote.
+
 Os controles de visibilidade também são aplicados nas consultas públicas e na última leitura de produto antes do checkout. A simulação de preço não salva alterações. A migração `011_admin_backlog_controls.sql` adiciona a tabela de exceções por anúncio e os detalhes de auditoria; o serviço da API aplica migrações versionadas no startup.
 
 Os parâmetros de busca dos históricos são limitados a 120 caracteres; `status` aceita apenas os estados documentados e `action` é comparado como valor literal. Os dois recursos mantêm ordenação mais recente primeiro e usam `pageSize` limitado pelo DTO administrativo.
