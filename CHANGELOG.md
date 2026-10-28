@@ -4,6 +4,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
+- Corrige a proporção dos wordmarks no cabeçalho usando as dimensões reais dos PNGs; inspeção local confirmou alternância persistente de tema e ausência de overflow horizontal nas larguras 390 e 1280 px.
 - Remove capas Steam externas dos exemplos e interrompe a geração automática de URLs de imagem por `appid` até a revisão de direitos; mantém nomes e tempo de jogo no inventário.
 - Acrescenta ao backlog os pedidos mais recentes do cliente sobre identidade e temas, filtros/títulos localizados, inventário por jogo, paginação em massa, concorrência e fluxo comercial futuro, com critérios de conclusão e limites da demonstração.
 - Informa no detalhe Roblox quando o payload não contém nomes individuais de gamepasses, sem inferir que a conta não tenha passes.

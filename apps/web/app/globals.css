@@ -387,12 +387,13 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .cancellation-request summary:focus-visible{outline-color:var(--focus-color)}
 @media(prefers-reduced-motion:reduce){.product-card:hover{transform:none}}
 
-.brand-wordmark{display:block;width:220px;height:60px;object-fit:cover;object-position:center}
+.brand-wordmark-window{position:relative;display:block;width:220px;height:60px;flex:0 0 auto;overflow:hidden}
+.brand-wordmark{position:absolute;top:50%;left:0;display:block;width:100%;height:auto;transform:translateY(-50%)}
 .brand-wordmark-light{display:none}
 :root[data-theme="light"] .brand-wordmark-dark{display:none}
 :root[data-theme="light"] .brand-wordmark-light{display:block}
-@media(max-width:700px){.brand-wordmark{width:190px;height:52px}}
-@media(max-width:380px){.brand-wordmark{width:164px;height:45px}}
+@media(max-width:700px){.brand-wordmark-window{width:190px;height:52px}}
+@media(max-width:380px){.brand-wordmark-window{width:164px;height:45px}}
 
 /* Keep demo labels legible over every game-art palette and preserve disabled-state contrast. */
 .game-art-caption{right:auto;left:10px;width:max-content;max-width:calc(100% - 20px);padding:4px 6px;border:1px solid rgba(244,241,236,.35);border-radius:2px;background:rgba(12,10,9,.94);color:#f4f1ec;line-height:1.3}

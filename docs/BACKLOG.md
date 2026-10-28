@@ -321,7 +321,7 @@ Registrar uma revisão do catálogo e dos títulos depois dos itens aplicáveis 
 
 ### BL-10 — Refazer responsividade e hierarquia das páginas de catálogo e produto
 
-**Estado:** Ajustado localmente após inspeção da página pública em modo demo: o H1 de produto deixou o limite estreito de `14ch`, ganhou largura fluida até `24ch` e teto menor no desktop; em telas de até 520 px há escala e largura próprias. A grade do detalhe já se reorganiza abaixo de 700 px, com filtros horizontais roláveis e navegação móvel. A URL de produto apontada anteriormente agora responde “Produto indisponível”; a inspeção atual usou somente a rota fictícia. Falta validar a aparência do título longo em larguras representativas e a leitura visual do inventário renderizado.
+**Estado:** Parcial, com inspeção local do branch atual. A URL de produto apontada anteriormente responde “Produto indisponível”; a revisão usou a rota fictícia `demo-steam-01` e a resposta pública da API em modo demo. Em 390 px e 1280 px, o documento não excedeu a largura do viewport (`375/390` e `1265/1280`); o título e os grupos de inventário foram inspecionados visualmente no celular e no desktop. A renderização detectou um aviso de proporção no wordmark; `Image` agora usa as dimensões reais dos PNGs e uma janela de recorte responsiva, preservando a marca sem distorção. Uma nova sessão de navegador após o ajuste não registrou avisos/erros. Catálogo, painel, área do cliente e demais detalhes ainda precisam de inspeção em larguras representativas; produção não recebeu este commit.
 
 Revisar os fluxos de catálogo, cartão, detalhe de produto e navegação em larguras móveis, tablet e desktop. Priorizar leitura do título e atributos, agrupamento do inventário, contexto de preço/estado e ação de retorno. Evitar overflow horizontal e conteúdo que obrigue rolagem excessiva antes de entender o produto.
 
@@ -338,7 +338,7 @@ Revisar os fluxos de catálogo, cartão, detalhe de produto e navegação em lar
 
 ### BL-11 — Consolidar identidade da Crystalforn, logo e alternância de tema
 
-**Estado:** A marca já está integrada no cabeçalho, rodapé e favicon, com wordmarks para fundos claro e escuro; o botão de tema SVG persiste a escolha em `localStorage`. Falta conferir renderização, contraste e persistência nos fluxos reais. Evidência estática não comprova aparência final em navegador.
+**Estado:** A marca está integrada no cabeçalho, rodapé e favicon, com wordmarks para fundos claro e escuro. Na versão local atual, a troca entre claro/escuro foi verificada no detalhe; após alternar e recarregar, a preferência escura permaneceu. As duas versões do cabeçalho foram visualmente conferidas e os PNGs mantêm a proporção correta. Auditoria completa de contraste, navegação por teclado e demais rotas continua pendente; esta revisão local não representa implantação em produção.
 
 Aplicar uma identidade escura, moderna e reconhecível da Crystalforn, preservando contraste e legibilidade. Usar a logo aprovada no cabeçalho, rodapé e contextos administrativos. A alternância entre tema escuro e claro deve manter a preferência do usuário e cobrir estados interativos, conteúdo e navegação.
 
