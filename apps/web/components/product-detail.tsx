@@ -250,7 +250,7 @@ function InventoryShowcase({ productId, game, demoOnly, attributes, images, sect
   }
   return <section ref={sectionRef} className={`inventory-showcase inventory-${game}`} aria-labelledby="inventory-showcase-title">
     <div className="inventory-showcase-heading"><div><p className="eyebrow">{demoOnly ? 'AMOSTRA FICTÍCIA · ITENS ILUSTRATIVOS' : 'ITENS INFORMADOS PELO FORNECEDOR'}</p><h2 id="inventory-showcase-title">{demoOnly ? 'Inventário do exemplo' : 'Itens do inventário'}</h2><p className="inventory-coverage-note">{demoOnly ? 'Esta prévia mostra alguns itens fictícios; não representa uma conta real nem um inventário completo.' : 'A lista depende dos campos públicos disponíveis para este anúncio e pode ser parcial.'}</p></div><span>{groups.reduce((total, group) => total + group.items.length, 0)} itens listados</span></div>
-    {game === 'roblox' && <RobloxProfile inventory={inventory} avatar={images.avatar} />}
+    {game === 'roblox' && <RobloxProfile inventory={inventory} avatar={images.avatar} demoOnly={demoOnly} />}
     {groups.map((group) => <section className="inventory-group" key={group.key}>
       <div className="inventory-group-heading"><h3>{group.title}</h3><span>{group.items.length}</span></div>
       {group.image && <img className="inventory-provider-image" src={`/api/v1/catalog/${encodeURIComponent(productId)}/inventory-image/${group.key}/640`} srcSet={imageSrcSet(productId, group.key)} sizes="(max-width: 700px) calc(100vw - 32px), 680px" alt={`Prévia visual do fornecedor: ${group.title.toLowerCase()}`} width={680} height={280} loading="lazy" decoding="async" />}
@@ -261,8 +261,8 @@ function InventoryShowcase({ productId, game, demoOnly, attributes, images, sect
   </section>;
 }
 
-function RobloxProfile({ inventory, avatar }: { inventory: Record<string, unknown>; avatar?: string }) {
-  return <div className="roblox-profile">{avatar ? <Image className="roblox-detail-avatar" src={avatar} alt={`Avatar Roblox de ${String(inventory.username ?? 'usuário')}`} width={64} height={64} sizes="64px" loading="lazy" /> : <div className="roblox-avatar-fallback" aria-hidden="true">R</div>}<div><p className="eyebrow">PERFIL ROBLOX</p><strong>{typeof inventory.username === 'string' ? inventory.username : 'Avatar da conta'}</strong><span>{typeof inventory.country === 'string' ? inventory.country : 'Miniatura pública do perfil consultada pelo ID Roblox.'}</span></div></div>;
+function RobloxProfile({ inventory, avatar, demoOnly }: { inventory: Record<string, unknown>; avatar?: string; demoOnly: boolean }) {
+  return <div className="roblox-profile">{avatar ? <Image className="roblox-detail-avatar" src={avatar} alt={`Avatar Roblox de ${String(inventory.username ?? 'usuário')}`} width={64} height={64} sizes="64px" loading="lazy" /> : <div className="roblox-avatar-fallback" aria-hidden="true">R</div>}<div><p className="eyebrow">PERFIL ROBLOX</p><strong>{typeof inventory.username === 'string' ? inventory.username : 'Avatar da conta'}</strong><span>{demoOnly ? 'Perfil fictício usado apenas nesta demonstração.' : typeof inventory.country === 'string' ? inventory.country : 'Miniatura pública do perfil consultada pelo ID Roblox.'}</span></div></div>;
 }
 
 function imageSrcSet(productId: string, type: string): string {
