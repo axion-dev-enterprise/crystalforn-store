@@ -157,7 +157,7 @@ input::placeholder,textarea::placeholder{color:#a5a19b;opacity:1}
 @media(max-width:420px){.admin-metrics article{min-height:92px;padding:12px}.admin-metrics span{font-size:9px}.admin-metrics strong{font-size:26px}}
 
 /* Responsive refresh: paper surfaces, clear controls, and compact-screen flow. */
-:root{color-scheme:light;--paper:#fafaf9;--surface:#fff;--ink:#17211d;--muted:#53615b;--line:#d8e0da;--green:#145d46;--green-dark:#0c4936;--soft:#edf3ef;--error:#a52d24}
+:root[data-theme="light"]{color-scheme:light;--paper:#fafaf9;--surface:#fff;--ink:#17211d;--muted:#53615b;--line:#d8e0da;--green:#145d46;--green-dark:#0c4936;--soft:#edf3ef;--error:#a52d24}
 body{background:var(--paper);color:var(--ink)}
 .site-header{position:sticky;top:0;z-index:20;height:auto;min-height:76px;background:rgba(250,250,249,.96);backdrop-filter:blur(12px)}
 .header-row{min-height:76px;flex-wrap:wrap;padding-block:10px}

@@ -43,6 +43,10 @@ export function Storefront() {
       if (appliedFilters.minPrice) params.set('minPrice', appliedFilters.minPrice);
       if (appliedFilters.maxPrice) params.set('maxPrice', appliedFilters.maxPrice);
       if (appliedFilters.minDaysOffline) params.set('minDaysOffline', appliedFilters.minDaysOffline);
+      if (appliedFilters.skinName) params.set('skinName', appliedFilters.skinName);
+      if (appliedFilters.steamGame) params.set('steamGame', appliedFilters.steamGame);
+      if (appliedFilters.rank) params.set('rank', appliedFilters.rank);
+      if (appliedFilters.minLevel) params.set('minLevel', appliedFilters.minLevel);
       const response = await fetch(`/api/v1/catalog?${params}`, { cache: 'no-store', signal: controller.signal });
       if (!response.ok) throw new Error('Não foi possível carregar o catálogo agora.');
       const catalog = await response.json() as Catalog;
@@ -100,12 +104,12 @@ export function Storefront() {
       <div className="filter-field"><label htmlFor="min-price">Preço mínimo</label><input id="min-price" type="number" min="0" step="0.01" inputMode="decimal" placeholder="R$ 0,00" value={filters.minPrice} onChange={(event) => setFilters((value) => ({ ...value, minPrice: event.target.value }))} /></div>
       <div className="filter-field"><label htmlFor="max-price">Preço máximo</label><input id="max-price" type="number" min="0" step="0.01" inputMode="decimal" placeholder="Sem limite" value={filters.maxPrice} onChange={(event) => setFilters((value) => ({ ...value, maxPrice: event.target.value }))} /></div>
       <div className="filter-field"><label htmlFor="offline-days">Inatividade</label><select id="offline-days" value={filters.minDaysOffline} onChange={(event) => setFilters((value) => ({ ...value, minDaysOffline: event.target.value }))}><option value="">Qualquer período</option><option value="30">30 dias ou mais</option><option value="60">60 dias ou mais</option><option value="90">90 dias ou mais</option></select></div>
-      {result?.demoOnly && <div className="demo-specific-filters" aria-label="Filtros específicos da demonstração">
-        {game === 'fortnite' && <div className="filter-field"><label htmlFor="skin-name">Personagem ou skin fictícia</label><input id="skin-name" type="search" placeholder="Ex.: Travis Scott" value={filters.skinName} onChange={(event) => setFilters((value) => ({ ...value, skinName: event.target.value }))} /></div>}
-        {game === 'steam' && <div className="filter-field"><label htmlFor="steam-game">Jogo fictício na biblioteca</label><input id="steam-game" type="search" placeholder="Ex.: Portal 2" value={filters.steamGame} onChange={(event) => setFilters((value) => ({ ...value, steamGame: event.target.value }))} /></div>}
+      {game && <div className="demo-specific-filters" aria-label="Filtros específicos do jogo">
+        {game === 'fortnite' && <div className="filter-field"><label htmlFor="skin-name">Personagem ou skin {result?.demoOnly ? 'fictícia' : ''}</label><input id="skin-name" type="search" placeholder="Ex.: Travis Scott" value={filters.skinName} onChange={(event) => setFilters((value) => ({ ...value, skinName: event.target.value }))} /></div>}
+        {game === 'steam' && <div className="filter-field"><label htmlFor="steam-game">Jogo na biblioteca {result?.demoOnly ? 'fictício' : ''}</label><input id="steam-game" type="search" placeholder="Ex.: Portal 2" value={filters.steamGame} onChange={(event) => setFilters((value) => ({ ...value, steamGame: event.target.value }))} /></div>}
         {(game === 'valorant' || game === 'lol') && <>
-          <div className="filter-field"><label htmlFor="account-rank">Rank fictício</label><select id="account-rank" value={filters.rank} onChange={(event) => setFilters((value) => ({ ...value, rank: event.target.value }))}><option value="">Qualquer rank</option>{(game === 'lol' ? ['Ouro', 'Esmeralda'] : ['Platina', 'Diamante']).map((rank) => <option key={rank} value={rank}>{rank}</option>)}</select></div>
-          <div className="filter-field"><label htmlFor="account-level">Nível mínimo fictício</label><input id="account-level" type="number" min="1" inputMode="numeric" placeholder="Qualquer nível" value={filters.minLevel} onChange={(event) => setFilters((value) => ({ ...value, minLevel: event.target.value }))} /></div>
+          <div className="filter-field"><label htmlFor="account-rank">Rank {result?.demoOnly ? 'fictício' : ''}</label><input id="account-rank" type="search" placeholder={game === 'lol' ? 'Ex.: Ouro II' : 'Ex.: Diamante'} value={filters.rank} onChange={(event) => setFilters((value) => ({ ...value, rank: event.target.value }))} /></div>
+          <div className="filter-field"><label htmlFor="account-level">Nível mínimo {result?.demoOnly ? 'fictício' : ''}</label><input id="account-level" type="number" min="1" inputMode="numeric" placeholder="Qualquer nível" value={filters.minLevel} onChange={(event) => setFilters((value) => ({ ...value, minLevel: event.target.value }))} /></div>
         </>}
       </div>}
       <button className="button-outline" type="submit">Aplicar filtros</button>

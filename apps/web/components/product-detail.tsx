@@ -166,6 +166,7 @@ function InventoryShowcase({ game, attributes, images }: { game: string; attribu
     { key: 'items', fallback: 'featured_items', title: 'Itens', image: undefined },
     { key: 'fruits', fallback: 'featured_fruits', title: 'Frutas', image: undefined },
   ] : game === 'steam' ? [
+    { key: 'games', fallback: 'game_names', title: 'Jogos na biblioteca', image: undefined },
     { key: 'gifts', fallback: 'featured_gifts', title: 'Presentes Steam', image: undefined },
   ] : [];
   const groups = definitions.flatMap((group) => {
@@ -221,7 +222,7 @@ function AttributeList({ attributes }: { attributes: Record<string, unknown> }) 
     rmax: 'Elo máximo Valorant', knife: 'Possui faca', valorant_knife_min: 'Facas Valorant',
     rp_min: 'Pontos radiantes', fa_min: 'Agentes gratuitos',
   };
-  const inventoryListKeys = new Set(['skins','featured_skins','pickaxes','featured_pickaxes','dances','featured_dances','gliders','featured_gliders','weapon_skins','agents','featured_agents','buddies','featured_buddies','champions','featured_champions','items','featured_items','fruits','featured_fruits','gifts','featured_gifts']);
+  const inventoryListKeys = new Set(['skins','featured_skins','pickaxes','featured_pickaxes','dances','featured_dances','gliders','featured_gliders','weapon_skins','agents','featured_agents','buddies','featured_buddies','champions','featured_champions','items','featured_items','fruits','featured_fruits','games','game_names','gifts','featured_gifts']);
   function displayValue(key: string, value: string | number | boolean): string {
     if (typeof value === 'boolean') return value ? 'Sim' : 'Não';
     if (typeof value !== 'string') return String(value);

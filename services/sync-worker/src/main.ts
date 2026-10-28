@@ -19,10 +19,11 @@ const internalOrigin = PUBLISHED_DEMO_ONLY ? '' : required('INTERNAL_API_ORIGIN'
 const workerSecret = PUBLISHED_DEMO_ONLY ? '' : required('SYNC_WORKER_SECRET');
 const intervalMs = integerEnv('API_SYNC_INTERVAL_SECONDS', 30, 30, 2_147_483) * 1000;
 const requestedDelayMs = integerEnv('API_RATE_DELAY_MS', 3000, 0, 60_000);
-const maxPages = integerEnv('API_MAX_SYNC_PAGES', 500, 1, 500);
+const maxPages = integerEnv('API_MAX_SYNC_PAGES', 1000, 1, 1000);
 const timeoutMs = integerEnv('API_REQUEST_TIMEOUT_MS', 10_000, 1000, 60_000);
 const importBatchMaxBytes = integerEnv('API_IMPORT_BATCH_MAX_BYTES', 1_500_000, 16_384, 1_900_000);
 let stopping = false;
+let nextRunDelayMs = intervalMs;
 const pool = new Pool({ connectionString: databaseUrl, max: 2, application_name: 'digital-store-inventory-worker', connectionTimeoutMillis: 5000 });
 const apiRoot = new URL(apiBase.endsWith('/') ? apiBase : `${apiBase}/`);
 if (apiRoot.username || apiRoot.password || (apiRoot.protocol !== 'https:' && process.env.NODE_ENV === 'production')) throw new Error('API_BASE_URL deve ser uma URL HTTPS sem credenciais.');
@@ -265,7 +266,7 @@ async function synchronize(): Promise<void> {
           for (const [key, value] of feed.params) requestUrl.searchParams.append(key, value);
           requestUrl.searchParams.set('order_by', 'pdate_to_down');
           requestUrl.searchParams.set('currency', 'rub');
-          requestUrl.searchParams.set('locale', 'pt-BR');
+          requestUrl.searchParams.set('i18n', 'pt-BR');
           requestUrl.searchParams.append('origin[]', 'personal');
         } else requestUrl.searchParams.set('page', String(feedPage + 1));
         if (apiProvider === 'lzt-market' && lastLztCategoryRequestAt !== null) {
@@ -278,6 +279,14 @@ async function synchronize(): Promise<void> {
           headers: { Authorization: `Bearer ${apiToken}`, Accept: 'application/json' },
           signal: AbortSignal.timeout(timeoutMs),
         });
+        if (response.status === 429) {
+          const retryAfterSeconds = Number(response.headers.get('retry-after'));
+          nextRunDelayMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+            ? Math.max(intervalMs, Math.ceil(retryAfterSeconds * 1000))
+            : Math.max(intervalMs, 60_000);
+          errorCode = 'provider_rate_limited';
+          break;
+        }
         if (!response.ok) {
           if (apiProvider === 'lzt-market' && lztPage > 1 && response.status === 400) {
             await lockClient.query('DELETE FROM store_settings WHERE setting_key=$1', [cursorKey]);
@@ -428,9 +437,10 @@ async function main(): Promise<void> {
   const stop = () => { stopping = true; };
   process.once('SIGTERM', stop); process.once('SIGINT', stop);
   do {
+    nextRunDelayMs = intervalMs;
     await synchronize();
     if (once || stopping) break;
-    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    await new Promise((resolve) => setTimeout(resolve, nextRunDelayMs));
   } while (true);
   await pool.end();
 }

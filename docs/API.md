@@ -7,7 +7,7 @@ Prefixo global: `/api/v1`. A lista abaixo descreve as rotas presentes no código
 | Método | Rota | Acesso | Comportamento atual |
 | --- | --- | --- | --- |
 | `GET` | `/health` | Público | Verifica conectividade PostgreSQL |
-| `GET` | `/catalog` | Público | Na demo retorna `items: []`, `demoOnly: true`; exemplos são renderizados pela web |
+| `GET` | `/catalog?game=&page=&pageSize=&minPrice=&maxPrice=&minDaysOffline=&skinName=&steamGame=&rank=&minLevel=` | Público | Na demo retorna `items: []`, `demoOnly: true`; exemplos são renderizados pela web |
 | `GET` | `/catalog/:id` | Público | Bloqueado pelo gate comercial na demo |
 | `GET` | `/catalog/:id/inventory-image?type=...` | Público | Bloqueado pelo gate comercial na demo |
 | `GET` | `/catalog/roblox-avatars?userIds=...` | Público | Bloqueado pelo gate comercial na demo |
@@ -46,3 +46,7 @@ As rotas `/admin/*` exigem sessão e papel administrativo. A rota `POST /interna
 ## Idempotência e erros
 
 Checkout e recargas exigem cabeçalho `Idempotency-Key` entre 16 e 128 caracteres do conjunto aceito pelo DTO. Erros de regra são respostas HTTP do NestJS; integrações desligadas retornam indisponibilidade explícita. Não interprete uma rota presente como autorização para cobrança.
+
+## Filtros de inventário
+
+`skinName` procura texto nas listas de skins Fortnite; `steamGame` procura títulos em `inventory.games`/`inventory.game_names`; `rank` pesquisa o rank de Valorant ou LoL; `minLevel` filtra o nível mínimo dessas contas. Cada campo tem limite validado no DTO e combina com jogo, preço, inatividade e paginação. Na demonstração, os filtros usam apenas os exemplos fictícios no cliente; a consulta de banco correspondente está pronta para catálogo habilitado.

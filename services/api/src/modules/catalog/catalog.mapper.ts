@@ -175,7 +175,7 @@ export function normalizeProduct(item: Record<string, unknown>): NormalizedProdu
     setArray(inventory, 'fruits', item.fruits, item.fruit, sourceInventory.fruits);
   } else if (game === 'steam') {
     inventory.level ??= item.steam_level;
-    inventory.games_count ??= item.steam_games_count ?? item.games_count;
+    inventory.games_count ??= item.steam_game_count ?? item.steam_games_count ?? item.totalGameCount ?? item.games_count;
     inventory.inventory_value ??= item.steam_inventory_value ?? item.inventory_value;
     inventory.balance ??= item.steam_balance ?? item.balance;
     inventory.vac_banned ??= item.steam_vac_banned ?? item.vac_banned;
@@ -184,6 +184,15 @@ export function normalizeProduct(item: Record<string, unknown>): NormalizedProdu
     inventory.trade_limited ??= item.steam_trade_limited ?? item.trade_limited ?? item.trade_limit;
     inventory.market_available ??= item.steam_market_available ?? item.market_available ?? item.market;
     inventory.guard_available ??= item.steam_guard_available ?? item.guard_available ?? item.mafile;
+    const fullGames = record(item.steam_full_games);
+    const fullGameList = Object.values(fullGames).flatMap((group) => Object.values(record(group)).flatMap((value) => {
+        const entry = record(value);
+        const title = text(entry.title);
+        return title ? [{ appid: numeric(entry.appid), title, playtime_forever: numeric(entry.playtime_forever) }] : [];
+      }))
+      .slice(0, 500);
+    setArray(inventory, 'games', item.steam_games, item.steam_game, item.games, item.game, sourceInventory.games, fullGameList);
+    setArray(inventory, 'game_names', item.game_names, sourceInventory.game_names, fullGameList.map((entry) => entry.title));
     setArray(inventory, 'gifts', item.gift, item.gifts, sourceInventory.gift, sourceInventory.gifts);
   }
   const platforms = record(item.platforms_linked);

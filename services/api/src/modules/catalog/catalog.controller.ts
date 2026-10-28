@@ -35,6 +35,10 @@ export class CatalogController {
       minPrice: query.minPrice,
       maxPrice: query.maxPrice,
       minDaysOffline: query.minDaysOffline,
+      skinName: query.skinName,
+      steamGame: query.steamGame,
+      rank: query.rank,
+      minLevel: query.minLevel,
     });
   }
   @Get(':id/inventory-image') async fortniteInventoryImage(@Req() request: RequestAddress, @Param('id') id: string, @Query('type') type = 'skins') {

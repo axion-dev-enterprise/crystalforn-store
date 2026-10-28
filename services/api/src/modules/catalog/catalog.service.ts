@@ -214,10 +214,14 @@ export class CatalogService {
     finally { if (imagePending.get(cacheKey) === request) imagePending.delete(cacheKey); }
   }
 
-  async list(game?: string, page = 1, pageSize = 24, filters: { minPrice?: number; maxPrice?: number; minDaysOffline?: number } = {}) {
+  async list(game?: string, page = 1, pageSize = 24, filters: { minPrice?: number; maxPrice?: number; minDaysOffline?: number; skinName?: string; steamGame?: string; rank?: string; minLevel?: number } = {}) {
     const minPriceCents = filters.minPrice === undefined ? null : Math.round(filters.minPrice * 100);
     const maxPriceCents = filters.maxPrice === undefined ? null : Math.round(filters.maxPrice * 100);
     const minDaysOffline = filters.minDaysOffline ?? null;
+    const skinName = filters.skinName?.trim() || null;
+    const steamGame = filters.steamGame?.trim() || null;
+    const rank = filters.rank?.trim() || null;
+    const minLevel = filters.minLevel ?? null;
     const result = await this.db.query(
       `SELECT p.id,p.provider_item_id,p.game,p.generated_title,p.price_brl_cents,p.attributes,p.synced_at,
          sf.feedback_total AS seller_feedback_total,sf.positive_count AS seller_feedback_positive_count,
@@ -230,14 +234,28 @@ export class CatalogService {
           AND p.game=ANY($7::text[])
          AND ($4::bigint IS NULL OR p.price_brl_cents >= $4)
          AND ($5::bigint IS NULL OR p.price_brl_cents <= $5)
-         AND ($6::integer IS NULL OR CASE WHEN p.attributes->>'days_offline' ~ '^[0-9]+$' THEN (p.attributes->>'days_offline')::integer ELSE NULL END >= $6)
+          AND ($6::integer IS NULL OR CASE WHEN p.attributes->>'days_offline' ~ '^[0-9]+$' THEN (p.attributes->>'days_offline')::integer ELSE NULL END >= $6)
+          AND ($8::text IS NULL OR (p.game='fortnite' AND (
+            EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p.attributes#>'{inventory,skins}')='array' THEN p.attributes#>'{inventory,skins}' ELSE '[]'::jsonb END) AS skin(value)
+              WHERE lower(COALESCE(skin.value->>'name',skin.value->>'title',skin.value#>>'{}','')) LIKE '%'||lower($8)||'%')
+            OR EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p.attributes#>'{inventory,featured_skins}')='array' THEN p.attributes#>'{inventory,featured_skins}' ELSE '[]'::jsonb END) AS skin(value)
+              WHERE lower(COALESCE(skin.value->>'name',skin.value->>'title',skin.value#>>'{}','')) LIKE '%'||lower($8)||'%')
+          )))
+          AND ($9::text IS NULL OR (p.game='steam' AND (
+            EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p.attributes#>'{inventory,games}')='array' THEN p.attributes#>'{inventory,games}' ELSE '[]'::jsonb END) AS game_entry(value)
+              WHERE lower(COALESCE(game_entry.value->>'name',game_entry.value->>'title',game_entry.value#>>'{}','')) LIKE '%'||lower($9)||'%')
+            OR EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p.attributes#>'{inventory,game_names}')='array' THEN p.attributes#>'{inventory,game_names}' ELSE '[]'::jsonb END) AS game_entry(value)
+              WHERE lower(COALESCE(game_entry.value->>'name',game_entry.value->>'title',game_entry.value#>>'{}','')) LIKE '%'||lower($9)||'%')
+          )))
+          AND ($10::text IS NULL OR (p.game IN ('valorant','lol') AND lower(COALESCE(p.attributes#>>'{inventory,rank}',p.attributes#>>'{inventory,lol_rank}','')) LIKE '%'||lower($10)||'%'))
+          AND ($11::integer IS NULL OR p.game IN ('valorant','lol') AND CASE WHEN COALESCE(p.attributes#>>'{inventory,level}',p.attributes#>>'{inventory,lol_level}') ~ '^[0-9]+$' THEN COALESCE(p.attributes#>>'{inventory,level}',p.attributes#>>'{inventory,lol_level}')::integer ELSE NULL END >= $11)
       ORDER BY p.price_brl_cents ASC,
          CASE WHEN sf.feedback_total > 0 THEN sf.positive_percentage END DESC NULLS LAST,
          sf.feedback_total DESC NULLS LAST,
          CASE WHEN p.attributes#>>'{seller_reputation,sold_items_count}' ~ '^[0-9]+$'
            THEN (p.attributes#>>'{seller_reputation,sold_items_count}')::numeric END DESC NULLS LAST,
          p.created_at DESC LIMIT $2 OFFSET $3`,
-       [game ?? null, pageSize, (page - 1) * pageSize, minPriceCents, maxPriceCents, minDaysOffline, [...STORE_CATALOG_GAMES]]);
+        [game ?? null, pageSize, (page - 1) * pageSize, minPriceCents, maxPriceCents, minDaysOffline, [...STORE_CATALOG_GAMES], skinName, steamGame, rank, minLevel]);
     const count = await this.db.query<{ total: string }>(
       `SELECT count(*)::text AS total FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
        WHERE p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL
@@ -245,8 +263,22 @@ export class CatalogService {
           AND p.game=ANY($5::text[])
          AND ($2::bigint IS NULL OR p.price_brl_cents >= $2)
          AND ($3::bigint IS NULL OR p.price_brl_cents <= $3)
-         AND ($4::integer IS NULL OR CASE WHEN p.attributes->>'days_offline' ~ '^[0-9]+$' THEN (p.attributes->>'days_offline')::integer ELSE NULL END >= $4)`,
-       [game ?? null, minPriceCents, maxPriceCents, minDaysOffline, [...STORE_CATALOG_GAMES]]);
+          AND ($4::integer IS NULL OR CASE WHEN p.attributes->>'days_offline' ~ '^[0-9]+$' THEN (p.attributes->>'days_offline')::integer ELSE NULL END >= $4)
+          AND ($6::text IS NULL OR (p.game='fortnite' AND (
+            EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p.attributes#>'{inventory,skins}')='array' THEN p.attributes#>'{inventory,skins}' ELSE '[]'::jsonb END) AS skin(value)
+              WHERE lower(COALESCE(skin.value->>'name',skin.value->>'title',skin.value#>>'{}','')) LIKE '%'||lower($6)||'%')
+            OR EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p.attributes#>'{inventory,featured_skins}')='array' THEN p.attributes#>'{inventory,featured_skins}' ELSE '[]'::jsonb END) AS skin(value)
+              WHERE lower(COALESCE(skin.value->>'name',skin.value->>'title',skin.value#>>'{}','')) LIKE '%'||lower($6)||'%')
+          )))
+          AND ($7::text IS NULL OR (p.game='steam' AND (
+            EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p.attributes#>'{inventory,games}')='array' THEN p.attributes#>'{inventory,games}' ELSE '[]'::jsonb END) AS game_entry(value)
+              WHERE lower(COALESCE(game_entry.value->>'name',game_entry.value->>'title',game_entry.value#>>'{}','')) LIKE '%'||lower($7)||'%')
+            OR EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p.attributes#>'{inventory,game_names}')='array' THEN p.attributes#>'{inventory,game_names}' ELSE '[]'::jsonb END) AS game_entry(value)
+              WHERE lower(COALESCE(game_entry.value->>'name',game_entry.value->>'title',game_entry.value#>>'{}','')) LIKE '%'||lower($7)||'%')
+          )))
+          AND ($8::text IS NULL OR (p.game IN ('valorant','lol') AND lower(COALESCE(p.attributes#>>'{inventory,rank}',p.attributes#>>'{inventory,lol_rank}','')) LIKE '%'||lower($8)||'%'))
+          AND ($9::integer IS NULL OR p.game IN ('valorant','lol') AND CASE WHEN COALESCE(p.attributes#>>'{inventory,level}',p.attributes#>>'{inventory,lol_level}') ~ '^[0-9]+$' THEN COALESCE(p.attributes#>>'{inventory,level}',p.attributes#>>'{inventory,lol_level}')::integer ELSE NULL END >= $9)`,
+        [game ?? null, minPriceCents, maxPriceCents, minDaysOffline, [...STORE_CATALOG_GAMES], skinName, steamGame, rank, minLevel]);
     return { items: result.rows, page, pageSize, total: Number(count.rows[0]?.total ?? 0), currency: 'BRL' };
   }
 

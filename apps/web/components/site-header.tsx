@@ -6,11 +6,11 @@ import { useEffect, useState } from 'react';
 type Theme = 'light' | 'dark';
 
 function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>('light');
+  const [theme, setTheme] = useState<Theme>('dark');
 
   useEffect(() => {
-    const savedTheme = window.localStorage.getItem('crystalforn-theme');
-    const initialTheme: Theme = savedTheme === 'dark' ? 'dark' : 'light';
+    let initialTheme: Theme = 'dark';
+    try { if (window.localStorage.getItem('crystalforn-theme') === 'light') initialTheme = 'light'; } catch { /* Keep the server-rendered default when storage is unavailable. */ }
     document.documentElement.dataset.theme = initialTheme;
     setTheme(initialTheme);
   }, []);
@@ -18,8 +18,8 @@ function ThemeToggle() {
   function toggleTheme() {
     const nextTheme: Theme = theme === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = nextTheme;
-    window.localStorage.setItem('crystalforn-theme', nextTheme);
     setTheme(nextTheme);
+    try { window.localStorage.setItem('crystalforn-theme', nextTheme); } catch { /* Theme remains active for this page view. */ }
   }
 
   return (
