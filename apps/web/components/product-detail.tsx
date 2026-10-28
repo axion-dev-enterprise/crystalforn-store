@@ -251,7 +251,8 @@ function InventoryShowcase({ productId, game, demoOnly, attributes, images, fail
   function itemCard(item: unknown, index: number, groupKey: string) {
     const record = item && typeof item === 'object' ? item as Record<string, unknown> : {};
     const title = typeof item === 'string' ? item : String(record.title ?? record.name ?? record.label ?? `Item ${index + 1}`);
-    const imageUrl = safeInventoryImageUrl(record.image_url ?? record.imageUrl ?? record.icon_url ?? record.iconUrl ?? record.thumbnail ?? record.image ?? record.icon);
+    // Steam artwork stays hidden until its source and display rights are reviewed.
+    const imageUrl = game === 'steam' ? null : safeInventoryImageUrl(record.image_url ?? record.imageUrl ?? record.icon_url ?? record.iconUrl ?? record.thumbnail ?? record.image ?? record.icon);
     const imageKey = `${groupKey}-${index}-${title}`;
     const imageFailed = failedImageKeys.has(imageKey);
     const rarity = typeof record.rarity === 'string' ? record.rarity : '';
@@ -285,7 +286,7 @@ function safeInventoryImageUrl(value: unknown): string | null {
     const url = new URL(value);
     if (url.protocol !== 'https:' || url.username || url.password) return null;
     const host = url.hostname.toLowerCase();
-    const trustedHosts = ['epicgames.com', 'epicgames.dev', 'fortnite-api.com', 'rbxcdn.com', 'roblox.com', 'steampowered.com', 'steamstatic.com', 'riotgames.com', 'leagueoflegends.com', 'valorant-api.com'];
+    const trustedHosts = ['epicgames.com', 'epicgames.dev', 'fortnite-api.com', 'rbxcdn.com', 'roblox.com', 'steampowered.com', 'riotgames.com', 'leagueoflegends.com', 'valorant-api.com'];
     return trustedHosts.some((domain) => host === domain || host.endsWith(`.${domain}`)) ? url.toString() : null;
   } catch { return null; }
 }

@@ -4,6 +4,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
+- Remove capas Steam externas dos exemplos e interrompe a geração automática de URLs de imagem por `appid` até a revisão de direitos; mantém nomes e tempo de jogo no inventário.
 - Acrescenta ao backlog os pedidos mais recentes do cliente sobre identidade e temas, filtros/títulos localizados, inventário por jogo, paginação em massa, concorrência e fluxo comercial futuro, com critérios de conclusão e limites da demonstração.
 - Informa no detalhe Roblox quando o payload não contém nomes individuais de gamepasses, sem inferir que a conta não tenha passes.
 - Expõe no detalhe Fortnite as contagens documentadas e os nomes em destaque separadamente; quando o exemplo não traz listas individuais, a interface informa essa ausência sem completar inventário por suposição.
