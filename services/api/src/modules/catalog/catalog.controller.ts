@@ -42,17 +42,17 @@ export class CatalogController {
       minLevel: query.minLevel,
     }, query.sort).then((catalog) => ({ ...catalog, demoOnly: false, catalogMode: PUBLISHED_CATALOG_MODE }));
   }
-  @Get(':id/inventory-image') async fortniteInventoryImage(@Req() request: RequestAddress, @Param('id') id: string, @Query('type') type = 'skins') {
+  @Get(':id/inventory-image') async inventoryImage(@Req() request: RequestAddress, @Param('id') id: string, @Query('type') type = 'skins') {
     requireCatalogReadEnabled();
-    this.enforceVisualReadLimit(request, 'fortnite-image', 30);
-    return this.catalog.fortniteInventoryImage(id, type);
+    this.enforceVisualReadLimit(request, 'inventory-image', 30);
+    return this.catalog.inventoryImage(id, type);
   }
-  @Get(':id/inventory-image/:type/:width') async fortniteInventoryImageVariant(@Req() request: RequestAddress, @Param('id') id: string, @Param('type') type: string, @Param('width') rawWidth: string, @Res({ passthrough: true }) response: Response) {
+  @Get(':id/inventory-image/:type/:width') async inventoryImageVariant(@Req() request: RequestAddress, @Param('id') id: string, @Param('type') type: string, @Param('width') rawWidth: string, @Res({ passthrough: true }) response: Response) {
     requireCatalogReadEnabled();
-    this.enforceVisualReadLimit(request, 'fortnite-image-variant', 30);
+    this.enforceVisualReadLimit(request, 'inventory-image-variant', 30);
     const width = Number(rawWidth);
     if (!Number.isInteger(width) || ![320, 640, 960].includes(width)) throw new BadRequestException('Largura de prévia inválida.');
-    const image = await this.catalog.fortniteInventoryImageVariant(id, type, width);
+    const image = await this.catalog.inventoryImageVariant(id, type, width);
     response.set({ 'Content-Type': 'image/webp', 'Cache-Control': 'public, max-age=3600, stale-while-revalidate=600', 'X-Content-Type-Options': 'nosniff' });
     return image;
   }

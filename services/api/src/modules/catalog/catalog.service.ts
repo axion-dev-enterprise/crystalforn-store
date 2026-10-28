@@ -9,6 +9,11 @@ const imageCache = new Map<string, CachedValue>();
 const imagePending = new Map<string, Promise<string>>();
 const imageVariantCache = new Map<string, { value: Buffer; expiresAt: number }>();
 const imageVariantPending = new Map<string, Promise<Buffer>>();
+const INVENTORY_IMAGE_TYPES_BY_GAME: Record<string, readonly string[]> = {
+  fortnite: ['skins', 'pickaxes', 'dances', 'gliders'],
+  valorant: ['weapons', 'agents', 'buddies'],
+  lol: ['skins'],
+};
 const avatarCache = new Map<string, CachedValue>();
 const storeGameSet: ReadonlySet<string> = new Set(STORE_CATALOG_GAMES);
 let providerImageWindowStartedAt = 0;
@@ -166,15 +171,16 @@ export class CatalogService {
     return { avatars };
   }
 
-  async fortniteInventoryImage(productId: string, type: string) {
-    if (!['skins', 'pickaxes', 'dances', 'gliders'].includes(type)) throw new NotFoundException('Prévia de inventário não encontrada.');
-    const result = await this.db.query<{ provider_item_id: string }>(
-      `SELECT p.provider_item_id FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
+  async inventoryImage(productId: string, type: string) {
+    if (!Object.values(INVENTORY_IMAGE_TYPES_BY_GAME).some((types) => types.includes(type))) throw new NotFoundException('Prévia de inventário não encontrada.');
+    const result = await this.db.query<{ provider_item_id: string; game: string }>(
+      `SELECT p.provider_item_id,p.game FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
        LEFT JOIN catalog_item_overrides o ON o.product_id=p.id
-       WHERE p.id=$1 AND p.game='fortnite' AND p.status='available' AND b.seller_id IS NULL AND COALESCE(o.hidden,false)=false`, [productId]);
-    const itemId = result.rows[0]?.provider_item_id;
-    if (!itemId || !/^\d+$/.test(itemId)) throw new NotFoundException('Prévia de inventário não encontrada.');
-    const cacheKey = `${itemId}:${type}`;
+       WHERE p.id=$1 AND p.status='available' AND b.seller_id IS NULL AND COALESCE(o.hidden,false)=false`, [productId]);
+    const product = result.rows[0];
+    const itemId = product?.provider_item_id;
+    if (!itemId || !/^\d+$/.test(itemId) || !INVENTORY_IMAGE_TYPES_BY_GAME[product.game]?.includes(type)) throw new NotFoundException('Prévia de inventário não encontrada.');
+    const cacheKey = `${product.game}:${itemId}:${type}`;
     const cached = imageCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) return { imageDataUrl: cached.value };
     let request = imagePending.get(cacheKey);
@@ -219,9 +225,9 @@ export class CatalogService {
     finally { if (imagePending.get(cacheKey) === request) imagePending.delete(cacheKey); }
   }
 
-  async fortniteInventoryImageVariant(productId: string, type: string, width: number): Promise<Buffer> {
+  async inventoryImageVariant(productId: string, type: string, width: number): Promise<Buffer> {
     if (![320, 640, 960].includes(width)) throw new NotFoundException('Prévia de inventário não encontrada.');
-    const source = await this.fortniteInventoryImage(productId, type);
+    const source = await this.inventoryImage(productId, type);
     const cacheKey = `${productId}:${type}:${width}`;
     const cached = imageVariantCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) return cached.value;

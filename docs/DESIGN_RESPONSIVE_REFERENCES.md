@@ -40,6 +40,7 @@ O CSS centraliza as cores e estados de foco nesses tokens e nos seletores `data-
 - Exemplos fictícios abrem uma página de detalhe própria, com valor e inventário identificados como demonstrativos; essa rota usa dados locais e não solicita imagens ou dados ao fornecedor.
 - A vitrine oferece ordenação por menor preço, maior preço e nome, remove filtros individualmente e mantém consulta e página na URL e no retorno dos detalhes.
 - Os filtros demonstrativos de skins Fortnite e jogos Steam usam os mesmos aliases e rótulos de listas/objetos do inventário que abastecem as sugestões, evitando resultados ausentes quando o formato fictício varia.
+- As páginas de catálogo em modo de leitura podem exibir prévias agregadas oficiais de skins/picaretas/emotes/asas-delta Fortnite e de armas/agentes/chaveiros Valorant, além de skins LoL; os nomes individuais continuam com miniatura própria somente quando o payload fornece uma URL permitida.
 - Cards e painéis usam escala tipográfica fluida e largura de leitura controlada para acomodar títulos longos sem dominar a tela.
 - Corrigido o contraste do texto em botões primários e filtros selecionados sobre a superfície azul-clara da marca.
 - Corrigida a cor do texto do rodapé sobre o fundo claro.

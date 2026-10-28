@@ -7,7 +7,7 @@ import { findDemoProduct } from '@/data/demo-products';
 
 type Product = { id: string; provider_item_id: string; game: string; generated_title: string; price_brl_cents: number; attributes: Record<string, unknown>; synced_at?: string | null; seller_feedback_total?: number | null; seller_feedback_positive_percentage?: number | null; demoOnly?: boolean };
 type CheckoutResult = { order: { id: string; status: string; total_cents: number }; pix?: { copyPaste?: string; qrCodeBase64?: string | null; expiresAt?: string } };
-type InventoryImages = Partial<Record<'skins' | 'pickaxes' | 'dances' | 'gliders' | 'avatar', string>>;
+type InventoryImages = Partial<Record<'skins' | 'pickaxes' | 'dances' | 'gliders' | 'weapons' | 'agents' | 'buddies' | 'avatar', string>>;
 const rarityLabelsPtBr: Record<string, string> = { common: 'Comum', uncommon: 'Incomum', rare: 'Rara', epic: 'Épica', legendary: 'Lendária', mythic: 'Mítica', icon: 'Série Ícones' };
 const orderStatusPtBr: Record<string, string> = { pending_payment: 'Aguardando pagamento', paid: 'Pagamento confirmado', delivery_required: 'Entrega em preparação', delivered: 'Entregue', cancelled: 'Cancelado', refunded: 'Valor devolvido ao saldo da carteira', review: 'Em análise' };
 const money = (cents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100);
@@ -68,6 +68,10 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
       .finally(() => setLoading(false));
   }, [id]);
   useEffect(() => {
+    setInventoryImages({});
+    setInventoryImageMessage('');
+  }, [product?.id]);
+  useEffect(() => {
     let active = true;
     fetch('/api/v1/legal/terms/status', { cache: 'no-store' })
       .then(async (response) => { if (!response.ok) throw new Error(); return response.json() as Promise<{ enabled?: boolean; catalogMode?: string; paymentProviders?: Partial<Record<'mercadopago' | 'pushinpay', boolean>> }>; })
@@ -96,9 +100,13 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
     return () => observer.disconnect();
   }, [inventorySection, product?.id]);
   useEffect(() => {
-    if (product?.game !== 'fortnite' || product.demoOnly || visibleInventoryProductId !== product.id) return;
+    if (!product || product.demoOnly || visibleInventoryProductId !== product.id) return;
+    const imageTypes = product.game === 'fortnite' ? ['skins', 'pickaxes', 'dances', 'gliders']
+      : product.game === 'valorant' ? ['weapons', 'agents', 'buddies']
+        : product.game === 'lol' ? ['skins'] : [];
+    if (imageTypes.length === 0) return;
     let active = true;
-    void Promise.all((['skins', 'pickaxes', 'dances', 'gliders'] as const).map(async (type) => {
+    void Promise.all(imageTypes.map(async (type) => {
       try {
         const response = await fetch(`/api/v1/catalog/${encodeURIComponent(product.id)}/inventory-image?type=${type}`, { cache: 'force-cache', signal: AbortSignal.timeout(15_000) });
         if (!response.ok) throw new Error();
@@ -210,17 +218,17 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
 
 function InventoryShowcase({ productId, game, demoOnly, attributes, images, sectionRef }: { productId: string; game: string; demoOnly: boolean; attributes: Record<string, unknown>; images: InventoryImages; sectionRef: (element: HTMLElement | null) => void }) {
   const inventory = attributes.inventory && typeof attributes.inventory === 'object' ? attributes.inventory as Record<string, unknown> : {};
-  const definitions: Array<{ key: string; fallback: string; aliases?: string[]; title: string; image?: string }> = game === 'fortnite' ? [
+  const definitions: Array<{ key: string; fallback: string; aliases?: string[]; title: string; image?: string; imageType?: string }> = game === 'fortnite' ? [
     { key: 'skins', fallback: 'featured_skins', aliases: ['skin_names'], title: 'Personagens e skins', image: images.skins },
     { key: 'pickaxes', fallback: 'featured_pickaxes', aliases: ['pickaxe_names'], title: 'Picaretas', image: images.pickaxes },
     { key: 'dances', fallback: 'featured_dances', aliases: ['emote_names'], title: 'Emotes', image: images.dances },
     { key: 'gliders', fallback: 'featured_gliders', aliases: ['glider_names'], title: 'Asas-delta', image: images.gliders },
   ] : game === 'valorant' ? [
-    { key: 'weapon_skins', fallback: 'featured_skins', title: 'Skins de armas', image: undefined },
-    { key: 'agents', fallback: 'featured_agents', title: 'Agentes', image: undefined },
-    { key: 'buddies', fallback: 'featured_buddies', title: 'Chaveiros', image: undefined },
+    { key: 'weapon_skins', fallback: 'featured_skins', title: 'Skins de armas', image: images.weapons, imageType: 'weapons' },
+    { key: 'agents', fallback: 'featured_agents', title: 'Agentes', image: images.agents, imageType: 'agents' },
+    { key: 'buddies', fallback: 'featured_buddies', title: 'Chaveiros', image: images.buddies, imageType: 'buddies' },
   ] : game === 'lol' ? [
-    { key: 'skins', fallback: 'featured_skins', title: 'Skins', image: undefined },
+    { key: 'skins', fallback: 'featured_skins', title: 'Skins', image: images.skins, imageType: 'skins' },
     { key: 'champions', fallback: 'featured_champions', title: 'Campeões', image: undefined },
   ] : game === 'roblox' ? [
     { key: 'items', fallback: 'featured_items', title: 'Itens', image: undefined },
@@ -256,7 +264,7 @@ function InventoryShowcase({ productId, game, demoOnly, attributes, images, sect
     {game === 'roblox' && <RobloxProfile inventory={inventory} avatar={images.avatar} demoOnly={demoOnly} />}
     {groups.map((group) => <section className="inventory-group" key={group.key}>
       <div className="inventory-group-heading"><h3>{group.title}</h3><span>{group.items.length}</span></div>
-      {group.image && <img className="inventory-provider-image" src={`/api/v1/catalog/${encodeURIComponent(productId)}/inventory-image/${group.key}/640`} srcSet={imageSrcSet(productId, group.key)} sizes="(max-width: 700px) calc(100vw - 32px), 680px" alt={`Prévia visual do fornecedor: ${group.title.toLowerCase()}`} width={680} height={280} loading="lazy" decoding="async" />}
+      {group.image && <img className="inventory-provider-image" src={`/api/v1/catalog/${encodeURIComponent(productId)}/inventory-image/${group.imageType ?? group.key}/640`} srcSet={imageSrcSet(productId, group.imageType ?? group.key)} sizes="(max-width: 700px) calc(100vw - 32px), 680px" alt={`Prévia visual do fornecedor: ${group.title.toLowerCase()}`} width={680} height={280} loading="lazy" decoding="async" />}
       <ul className="cosmetic-list">{group.items.slice(0, 36).map(itemCard)}</ul>
       {group.items.length > 36 && <details className="inventory-more"><summary>Ver os outros {group.items.length - 36} itens</summary><ul className="cosmetic-list">{group.items.slice(36).map((item, index) => itemCard(item, index + 36))}</ul></details>}
     </section>)}

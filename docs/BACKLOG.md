@@ -113,7 +113,7 @@ Gerar títulos em português e no padrão Crystalforn, sem copiar nomes vagos ou
 
 ### BL-04 — Melhorar a amostra visual de inventário por jogo
 
-**Estado:** Parcial. A página agora apresenta miniaturas por item quando o próprio registro fornece uma URL HTTPS de domínio oficial permitido e inclui a seção de gamepasses quando há uma lista retornada. O exemplo fornecido pelo cliente é apenas Fortnite e traz nomes em `featured_skins`, sem imagens/ícones por item ou listas detalhadas dos outros grupos; também não inclui gamepasses individuais Roblox. A cobertura efetiva dos payloads do fornecedor não está comprovada. A nova mensagem pede qualidade consistente nos catálogos e uma boa amostra do conteúdo, sem afirmar que todos os campos ou itens de cada anúncio devam ser reproduzidos.
+**Estado:** Parcial. A página apresenta miniaturas por item quando o registro fornece URL HTTPS de domínio oficial permitido; para Fortnite, Valorant e LoL, também solicita uma prévia agregada pelos tipos de imagem oficiais compatíveis com cada jogo. Inclui a seção de gamepasses quando há uma lista retornada. O exemplo fornecido pelo cliente é apenas Fortnite e traz nomes em `featured_skins`, sem imagens/ícones por item ou listas detalhadas dos outros grupos; também não inclui gamepasses individuais Roblox. A documentação não lista imagens de inventário Steam ou gamepasses Roblox, e a cobertura efetiva dos payloads ainda não está comprovada. A nova mensagem pede qualidade consistente nos catálogos e uma boa amostra do conteúdo, sem afirmar que todos os campos ou itens de cada anúncio devam ser reproduzidos.
 
 Mostrar imagens junto aos nomes das skins e ampliar os detalhes visuais do inventário. Para Roblox, investigar gamepasses e os demais itens efetivamente disponibilizados pelo Market API. Fornecer uma amostra organizada e representativa para cada jogo, deixando explícito quando a lista retornada for parcial; o cliente não exige copiar todos os campos do fórum ou da Legas.
 
@@ -128,7 +128,7 @@ Mostrar imagens junto aos nomes das skins e ampliar os detalhes visuais do inven
 
 **Dependências:** BL-02, licença/origem dos recursos de imagem, limites de payload e revisão de desempenho.
 
-**Limite de contrato:** a [documentação da categoria Roblox](https://lzt-market.readme.io/reference/categoryroblox) publica filtros `gamepass_min`/`gamepass_max` para o custo agregado de gamepasses, mas não documenta nesses parâmetros uma lista individual de passes. O detalhe individual continua condicionado a campos presentes em payloads autorizados.
+**Limite de contrato:** a [documentação da categoria Roblox](https://lzt-market.readme.io/reference/categoryroblox) publica filtros `gamepass_min`/`gamepass_max` para o custo agregado de gamepasses, mas não documenta nesses parâmetros uma lista individual de passes. O detalhe individual continua condicionado a campos presentes em payloads autorizados; o endpoint de imagem documentado não oferece tipo para passes Roblox.
 
 ### BL-08 — Usar anúncios do fórum como referência de qualidade e organização
 

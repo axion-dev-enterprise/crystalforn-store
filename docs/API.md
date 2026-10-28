@@ -9,7 +9,8 @@ Prefixo global: `/api/v1`. A lista abaixo descreve as rotas presentes no código
 | `GET` | `/health` | Público | Verifica conectividade PostgreSQL |
 | `GET` | `/catalog?game=&page=&pageSize=&sort=price_asc&minPrice=&maxPrice=&minDaysOffline=&skinName=&steamGame=&rank=&minLevel=` | Público | Nesta versão responde `demoOnly: true` sem anúncios reais; a prévia usa exemplos fictícios no frontend e filtros locais |
 | `GET` | `/catalog/:id` | Público | Responde `503` no modo demo; registros de fornecedor não são publicados |
-| `GET` | `/catalog/:id/inventory-image?type=...` | Público | Responde `503` no modo demo; não consulta imagens do fornecedor |
+| `GET` | `/catalog/:id/inventory-image?type=...` | Público | Responde `503` no modo demo; no catálogo de leitura, aceita somente tipos documentados para o jogo (Fortnite, Valorant e LoL) e aplica cache/limite por IP |
+| `GET` | `/catalog/:id/inventory-image/:type/:width` | Público | Variante WebP (320/640/960 px), com a mesma validação de categoria/tipo e limite por IP; bloqueada no modo demo |
 | `GET` | `/catalog/roblox-avatars?userIds=...` | Público | Responde `503` no modo demo; não consulta perfis do fornecedor |
 | `GET` | `/legal/terms/status` | Público | Informa modo do catálogo, estado de termos e gates comerciais |
 
@@ -70,3 +71,5 @@ Checkout e recargas exigem cabeçalho `Idempotency-Key` entre 16 e 128 caractere
 Na demonstração, os filtros usam apenas os exemplos fictícios no cliente. Os parâmetros de filtro e paginação são mantidos para a interface, mas não consultam registros reais. A ativação de catálogo da LZT exige uma revisão separada.
 
 Quando o catálogo real for autorizado em outra versão, a listagem deverá limitar `attributes` aos metadados usados pelos cards e manter inventários completos somente na rota de detalhes. Nesta versão demo nenhum atributo real do fornecedor é transferido.
+
+A API pública de imagem de conta documenta `skins`, `pickaxes`, `dances`, `gliders`, `weapons`, `agents` e `buddies`. As rotas só liberam os tipos mapeados para a categoria do anúncio; Steam não possui tipo documentado nessa operação e depende de URLs de imagem presentes no payload.

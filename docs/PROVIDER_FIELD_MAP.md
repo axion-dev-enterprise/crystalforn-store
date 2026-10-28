@@ -21,6 +21,12 @@ Atualizado em 28/10/2026. Este mapa diferencia filtros implementados na loja, no
 
 Referências oficiais: [Epic Games](https://lzt-market.readme.io/reference/categoryepicgames), [Steam](https://lzt-market.readme.io/reference/categorysteam), [Riot](https://lzt-market.readme.io/reference/categoryriot) e [Roblox](https://lzt-market.readme.io/reference/categoryroblox).
 
+## Prévias de imagem documentadas
+
+A operação oficial [Get Account Image](https://lzt-market.readme.io/reference/managingimage) lista os tipos `skins`, `pickaxes`, `dances`, `gliders`, `weapons`, `agents` e `buddies`. A aplicação agora permite as prévias Fortnite (`skins`, `pickaxes`, `dances`, `gliders`), Valorant (`weapons`, `agents`, `buddies`) e LoL (`skins`) quando o catálogo autorizado estiver em leitura. Cada pedido valida a categoria e o tipo antes de consultar o fornecedor, e a resposta passa por validação PNG, limite de bytes, transformação WebP e cache.
+
+A documentação consultada não define tipo de imagem para inventário de jogos Steam nem gamepasses Roblox. Steam continua dependendo de URL individual confiável no payload; Roblox mostra avatar público quando disponível e gamepasses como lista textual se houver dados. O modo demo não realiza essas consultas.
+
 ## Cobertura do exemplo fornecido pelo cliente
 
 O arquivo `exemplo_apijson (1).txt` representa uma resposta paginada com `status`, `endpoint`, `page`, `total_items` e `items`. O exemplo contém somente anúncio Fortnite e inclui `item_id`, `seller_id`, preços RUB/USD, título original, tipo de e-mail, dias sem atividade, atividade recente, dados do passe de batalha, contagens de skins/picaretas/emotes/asas-delta, `featured_skins` como lista de nomes e vínculo de plataformas.
