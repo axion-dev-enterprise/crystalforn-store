@@ -21,8 +21,16 @@ Pesquisa consultada em 27/10/2026. As recomendações abaixo foram usadas na rev
 | `--line` | `#45413F` | `#D8DED9` | Divisórias e bordas |
 | `--green` | `#8BD0D9` | `#145D46` | Ação e assinatura da marca |
 | `--soft` | `#252528` | `#EDF3EF` | Superfície secundária |
+| `--focus-color` | `#8BD0D9` | `#145D46` | Anel de foco por tema |
+| `--content-width` | `1160px` | `1160px` | Largura máxima do conteúdo |
+| `--shell-gutter` | `64px` desktop / `40px` tablet / `32px` celular | igual | Margens externas do shell |
+| `--space-1` a `--space-7` | `4, 8, 12, 16, 24, 32, 48px` | igual | Escala de espaçamento |
+| `--density-gap` | `15px` | `15px` | Intervalo entre cards do catálogo |
+| `--radius-control` / `--radius-panel` | `2px` / `8px` | igual | Controles / painéis |
+| `--control-min` | `44px` | `44px` | Alvo mínimo dos controles táteis |
+| `--motion-fast` | `160ms` | `160ms` | Transições curtas |
 
-O CSS centraliza as cores nesses tokens e nos seletores `data-theme`. A tipografia combina serifa editorial para títulos, sans-serif para leitura contínua e monoespaçada para rótulos operacionais. A largura geral é limitada a 1160 px; título de produto e descrição usam limites próprios; o espaçamento é fluido com `clamp()` e os grids mudam de composição em 900, 700 e 520 px. Cards sem imagem usam a sigla do jogo como fallback estável.
+O CSS centraliza as cores e estados de foco nesses tokens e nos seletores `data-theme`. A tipografia combina serifa editorial para títulos, sans-serif para leitura contínua e monoespaçada para rótulos operacionais. A largura geral é limitada a 1160 px; título de produto e descrição usam limites próprios; a escala de espaçamento usa os valores acima e títulos/áreas principais usam `clamp()`; os grids mudam de composição em 900, 850, 700, 600 e 520 px conforme o componente. Cards sem imagem usam a sigla do jogo como fallback estável.
 
 ## Ajustes desta revisão
 
@@ -35,6 +43,7 @@ O CSS centraliza as cores nesses tokens e nos seletores `data-theme`. A tipograf
 - O grupo de filtros agora tem papel acessível explícito, com botões de estado `aria-pressed`.
 - Mantidos viewport dinâmico `100dvh`, breakpoints de conteúdo, navegação móvel com alvos de 44 px, foco visível e respeito a movimento reduzido.
 - Os detalhes identificam os itens como dados públicos fornecidos pelo catálogo e avisam que a cobertura pode ser parcial.
+- A biblioteca Steam apresenta o tempo jogado quando a API fornece `playtime_forever`; a ausência do campo não cria um valor fictício.
 - O inventário e a auditoria administrativas oferecem busca/filtro e navegação paginada em vez de limitar o histórico aos primeiros registros.
 - A prévia administrativa renderiza o mesmo cartão de produto usado na vitrine, com atributos, reputação agregada, atualização e preço em uma única fonte de interface.
 - Catálogo e detalhes sinalizam anúncios com sincronização acima de 24 horas ou sem data conhecida como dados cuja disponibilidade pode ter mudado.

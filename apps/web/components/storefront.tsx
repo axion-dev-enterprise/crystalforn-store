@@ -19,8 +19,8 @@ const DEMO_PRODUCTS: StoreProduct[] = [
   { id: 'demo-lol-02', game: 'lol', generated_title: 'League of Legends · Esmeralda · nível 184', price_brl_cents: 18990, attributes: { days_offline: 101, inventory: { rank: 'Esmeralda', lol_rank: 'Esmeralda III', level: 184, skins_count: 68 } } },
   { id: 'demo-roblox-01', game: 'roblox', generated_title: 'Roblox · nível 82 · 16 itens', price_brl_cents: 6990, attributes: { days_offline: 35, inventory: { level: 82, items_count: 16, robux_balance: 800 } } },
   { id: 'demo-roblox-02', game: 'roblox', generated_title: 'Roblox · nível 146 · 32 itens', price_brl_cents: 12990, attributes: { days_offline: 75, inventory: { level: 146, items_count: 32, robux_balance: 2100 } } },
-  { id: 'demo-steam-01', game: 'steam', generated_title: 'Steam · biblioteca com 38 jogos', price_brl_cents: 7990, attributes: { days_offline: 40, inventory: { level: 21, games_count: 38, game_names: ['Portal 2', 'Hades', 'Stardew Valley'], vac_banned: false } } },
-  { id: 'demo-steam-02', game: 'steam', generated_title: 'Steam · biblioteca com 112 jogos', price_brl_cents: 18990, attributes: { days_offline: 100, inventory: { level: 54, games_count: 112, game_names: ['Cyberpunk 2077', 'Elden Ring', 'Portal 2'], vac_banned: false } } },
+  { id: 'demo-steam-01', game: 'steam', generated_title: 'Steam · biblioteca com 38 jogos', price_brl_cents: 7990, attributes: { days_offline: 40, inventory: { level: 21, games_count: 38, game_names: ['Portal 2', 'Hades', 'Stardew Valley'], games: [{ title: 'Portal 2', playtime_forever: 4500 }, { title: 'Hades', playtime_forever: 1280 }, { title: 'Stardew Valley', playtime_forever: 0 }], vac_banned: false } } },
+  { id: 'demo-steam-02', game: 'steam', generated_title: 'Steam · biblioteca com 112 jogos', price_brl_cents: 18990, attributes: { days_offline: 100, inventory: { level: 54, games_count: 112, game_names: ['Cyberpunk 2077', 'Elden Ring', 'Portal 2'], games: [{ title: 'Cyberpunk 2077', playtime_forever: 3040 }, { title: 'Elden Ring', playtime_forever: 8950 }, { title: 'Portal 2', playtime_forever: 240 }], vac_banned: false } } },
 ];
 const DEMO_PAGE_SIZE = 6;
 

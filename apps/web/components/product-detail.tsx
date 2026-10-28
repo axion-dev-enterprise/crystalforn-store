@@ -210,8 +210,14 @@ function InventoryShowcase({ game, attributes, images }: { game: string; attribu
     const title = typeof item === 'string' ? item : String(record.title ?? record.name ?? record.label ?? `Item ${index + 1}`);
     const rarity = typeof record.rarity === 'string' ? record.rarity : '';
     const translatedRarity = rarityLabelsPtBr[rarity.toLowerCase()] ?? rarity;
+    const playtimeMinutes = game === 'steam' ? Number(record.playtime_forever ?? record.playtime_minutes) : Number.NaN;
+    const playtimeLabel = Number.isFinite(playtimeMinutes) && playtimeMinutes >= 0
+      ? playtimeMinutes < 60
+        ? `${Math.floor(playtimeMinutes)} min de jogo`
+        : `${Math.floor(playtimeMinutes / 60).toLocaleString('pt-BR')} h jogadas`
+      : '';
     const tone = /mythic|icon/i.test(rarity) ? 'cosmetic-mythic' : /legendary/i.test(rarity) ? 'cosmetic-legendary' : /epic/i.test(rarity) ? 'cosmetic-epic' : 'cosmetic-standard';
-    return <li className="cosmetic-card" key={`${title}-${index}`}><span className={`cosmetic-mark ${tone}`} aria-hidden="true">{title.slice(0, 2).toUpperCase()}</span><span className="cosmetic-copy"><strong>{title}</strong>{translatedRarity && <small>{translatedRarity}</small>}</span></li>;
+    return <li className="cosmetic-card" key={`${title}-${index}`}><span className={`cosmetic-mark ${tone}`} aria-hidden="true">{title.slice(0, 2).toUpperCase()}</span><span className="cosmetic-copy"><strong>{title}</strong>{translatedRarity && <small>{translatedRarity}</small>}{playtimeLabel && <small>{playtimeLabel}</small>}</span></li>;
   }
   return <section className={`inventory-showcase inventory-${game}`} aria-labelledby="inventory-showcase-title">
     <div className="inventory-showcase-heading"><div><p className="eyebrow">ITENS INFORMADOS PELO FORNECEDOR</p><h2 id="inventory-showcase-title">Itens do inventário</h2><p className="inventory-coverage-note">A lista depende dos campos públicos disponíveis para este anúncio e pode ser parcial.</p></div><span>{groups.reduce((total, group) => total + group.items.length, 0)} itens listados</span></div>
