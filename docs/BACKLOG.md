@@ -22,6 +22,18 @@ A versão permanece **demonstração somente**: sem estoque LZT publicado, venda
 | P2 | Completar operações do painel administrativo | Parcial: resumo, catálogo, regras e histórico têm estrutura; métricas e ações autenticadas não foram verificadas nesta revisão. | Priorizar rastreabilidade de sincronização, pedidos, falhas e ações; identificar origem demo/real; validar permissões no servidor e não oferecer controles que abram vendas ou integração real enquanto o gate estiver fechado. |
 | P3 | Gateway, checkout, entrega e reembolso reais | Bloqueado pela decisão atual de manter demonstração e pela revisão comercial pendente. | Só iniciar após revisão independente que autorize o modelo comercial, confirme compatibilidade dos provedores e aprove identidade, termos, segurança, entrega e testes isolados. Este item não autoriza transações. |
 
+### Registro da releitura atual da conversa — 28/10/2026
+
+Mateus avaliou positivamente a direção da API e disse que ela está próxima do esperado, mas listou lacunas que ainda impedem considerar essa etapa pronta. Esta leitura atualiza o contexto dos itens BL-02 a BL-09; os critérios detalhados permanecem nas seções correspondentes abaixo.
+
+- **Volume e paginação:** o cliente relata que as consultas terminam na primeira página, normalmente com 10–30 anúncios e até 120 na Steam. Pede capacidade na faixa de 20 mil a 40 mil. Esses números e a expectativa de atualização em tempo real são relatos/metas do cliente; não foram medidos contra o fornecedor.
+- **Conteúdo visual:** ele confirma que nomes de skins aparecem, mas as imagens individuais não. Considera boas as imagens de contas Roblox e pede gamepasses e mais detalhes visuais nas categorias. Exibir apenas campos e imagens disponibilizados por fontes utilizáveis; indicar amostra parcial e dados ausentes.
+- **Filtros e referência:** usar as seções do fórum como referência para mapear filtros essenciais, sem reproduzir o fórum inteiro. Priorizar personagens Fortnite, jogos Steam e rank/nível em LoL e Valorant quando existirem no payload.
+- **Ranks e títulos:** ranks/divisões seguem a matriz informada por Mateus; o destaque de rank nos títulos vale somente para LoL e Valorant. Valores ausentes ou desconhecidos não devem ser inferidos.
+- **Próxima fase:** gateway e testes de entrega são apresentados pelo cliente como etapa posterior. Permanecem bloqueados enquanto a decisão vigente de demonstração não for revista.
+
+O comentário positivo é feedback de progresso, não confirmação de aceite técnico ou formal.
+
 ### Sequência de trabalho
 
 1. Fechar a matriz de campos e filtros por categoria a partir do contrato/documentação oficial, distinguindo dados do exemplo, fixtures e dados efetivamente fornecidos.
