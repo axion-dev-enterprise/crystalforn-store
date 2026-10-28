@@ -8,6 +8,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 - Amplia a prévia fictícia com League of Legends, filtros demonstrativos por personagem/skin, biblioteca Steam, rank e nível, e inventários textuais de exemplo.
 - Reduz gravações sequenciais do importador a um upsert PostgreSQL por lote interno de até 500 itens.
 - Divide páginas grandes da sincronização em requisições internas limitadas por quantidade e bytes, abaixo do limite do parser JSON da API.
+- Documenta o limite oficial de busca LZT, a paginação por cursor e a latência não determinística da reconciliação após uma varredura completa.
 - Mantém os filtros específicos limitados a dados de demonstração; catálogo real, sincronização e pagamentos continuam bloqueados.
 
 ## 0.1.3 — 2026-10-27
