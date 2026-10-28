@@ -1,0 +1,29 @@
+{
+  "name": "@digital-store/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/operations/migrate.js && node dist/src/main.js",
+    "migrate": "npm run build && node dist/src/operations/migrate.js",
+    "start:dev": "ts-node-dev --respawn --transpile-only src/main.ts",
+    "provision-admin": "node dist/operations/provision-admin.js"
+  },
+  "dependencies": {
+    "@nestjs/common": "12.1.2",
+    "@nestjs/core": "12.1.2",
+    "@nestjs/platform-express": "12.1.2",
+    "class-transformer": "0.5.1",
+    "class-validator": "0.15.1",
+    "pg": "8.23.1",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.0",
+    "@types/node": "24.0.0",
+    "@types/pg": "8.23.1",
+    "ts-node-dev": "2.0.0",
+    "typescript": "5.5.4"
+  }
+}

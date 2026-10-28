@@ -1,0 +1,187 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Configure POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?Configure POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD}
+    volumes:
+      - digital-store-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    networks: [store-private]
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 4000
+      DATABASE_URL: ${DATABASE_URL:?Configure DATABASE_URL}
+      DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-10}
+      APP_ORIGIN: ${APP_ORIGIN:?Configure APP_ORIGIN}
+      PURCHASE_TERMS_APPROVED: ${PURCHASE_TERMS_APPROVED:-false}
+      PURCHASE_TERMS_VERSION: ${PURCHASE_TERMS_VERSION:-}
+      STORE_AUTHORIZATION_REFERENCE: ${STORE_AUTHORIZATION_REFERENCE:-}
+      STORE_AUTH_CENTER_URL: ${STORE_AUTH_CENTER_URL:-}
+      STORE_AUTH_CLIENT_SECRET: ${STORE_AUTH_CLIENT_SECRET:-}
+      MARKETPLACE_COMPLIANCE_REFERENCE: ${MARKETPLACE_COMPLIANCE_REFERENCE:-}
+      MERCADOPAGO_CATEGORY_APPROVAL_REFERENCE: ${MERCADOPAGO_CATEGORY_APPROVAL_REFERENCE:-}
+      PUSHINPAY_CATEGORY_APPROVAL_REFERENCE: ${PUSHINPAY_CATEGORY_APPROVAL_REFERENCE:-}
+      SESSION_PEPPER: ${SESSION_PEPPER:?Configure SESSION_PEPPER}
+      DELIVERY_ENCRYPTION_KEY: ${DELIVERY_ENCRYPTION_KEY:?Configure DELIVERY_ENCRYPTION_KEY}
+      SYNC_WORKER_SECRET: ${SYNC_WORKER_SECRET:?Configure SYNC_WORKER_SECRET}
+      API_BASE_URL: ${API_BASE_URL:-}
+      API_TOKEN: ${API_TOKEN:-}
+      LZT_MARKET_API_TOKEN: ${LZT_MARKET_API_TOKEN:-}
+      API_PROVIDER: ${API_PROVIDER:-lzt-market}
+      API_REQUEST_TIMEOUT_MS: ${API_REQUEST_TIMEOUT_MS:-10000}
+      API_REVALIDATE_MAX_PAGES: ${API_REVALIDATE_MAX_PAGES:-100}
+      API_RATE_DELAY_MS: ${API_RATE_DELAY_MS:-3000}
+      MERCADOPAGO_ACCESS_TOKEN: ${MERCADOPAGO_ACCESS_TOKEN:-}
+      MERCADOPAGO_WEBHOOK_SECRET: ${MERCADOPAGO_WEBHOOK_SECRET:-}
+      MERCADOPAGO_NOTIFICATION_URL: ${MERCADOPAGO_NOTIFICATION_URL:-}
+      PUSHINPAY_ACCESS_TOKEN: ${PUSHINPAY_ACCESS_TOKEN:-}
+      PUSHINPAY_WEBHOOK_SECRET: ${PUSHINPAY_WEBHOOK_SECRET:-}
+      PUSHINPAY_NOTIFICATION_URL: ${PUSHINPAY_NOTIFICATION_URL:-}
+      PUSHINPAY_API_BASE_URL: ${PUSHINPAY_API_BASE_URL:-https://api.pushinpay.com.br}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose: ["4000"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    networks: [store-private]
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+      INTERNAL_API_ORIGIN: http://api:4000
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    networks: [store-private]
+
+  sync-worker:
+    profiles: [inventory]
+    build:
+      context: .
+      dockerfile: services/sync-worker/Dockerfile
+    restart: unless-stopped
+    stop_grace_period: 150s
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DATABASE_URL: ${DATABASE_URL:?Configure DATABASE_URL}
+      INTERNAL_API_ORIGIN: http://api:4000
+      SYNC_WORKER_SECRET: ${SYNC_WORKER_SECRET:?Configure SYNC_WORKER_SECRET}
+      API_BASE_URL: ${API_BASE_URL:-}
+      API_TOKEN: ${API_TOKEN:-}
+      LZT_MARKET_API_TOKEN: ${LZT_MARKET_API_TOKEN:-}
+      API_PROVIDER: ${API_PROVIDER:-lzt-market}
+      API_SYNC_INTERVAL_SECONDS: ${API_SYNC_INTERVAL_SECONDS:-30}
+      API_RATE_DELAY_MS: ${API_RATE_DELAY_MS:-3000}
+      API_MAX_SYNC_PAGES: ${API_MAX_SYNC_PAGES:-500}
+      API_REQUEST_TIMEOUT_MS: ${API_REQUEST_TIMEOUT_MS:-10000}
+    depends_on:
+      api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    networks: [store-private]
+
+  supplier-fulfillment:
+    profiles: [fulfillment]
+    build:
+      context: .
+      dockerfile: services/sync-worker/Dockerfile
+    command: ["npm", "run", "start:fulfillment", "--workspace", "@digital-store/sync-worker"]
+    restart: unless-stopped
+    stop_grace_period: 11m
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DATABASE_URL: ${DATABASE_URL:?Configure DATABASE_URL}
+      API_PROVIDER: ${API_PROVIDER:-lzt-market}
+      API_BASE_URL: ${API_BASE_URL:-}
+      LZT_MARKET_API_TOKEN: ${LZT_MARKET_API_TOKEN:-}
+      LZT_FULFILLMENT_TIMEOUT_MS: ${LZT_FULFILLMENT_TIMEOUT_MS:-300000}
+      LZT_BALANCE_ID: ${LZT_BALANCE_ID:-}
+      LZT_BALANCE_CURRENCY: ${LZT_BALANCE_CURRENCY:-}
+      DELIVERY_ENCRYPTION_KEY: ${DELIVERY_ENCRYPTION_KEY:-}
+    depends_on:
+      api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    networks: [store-private]
+
+volumes:
+  digital-store-postgres:
+
+networks:
+  store-private:
+    driver: bridge

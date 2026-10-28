@@ -1,0 +1,17 @@
+node_modules/
+**/node_modules/
+**/.next/
+**/dist/
+.env
+.env.*
+!.env.example
+coverage/
+*.log
+.DS_Store
+docs/WORKANA_ENTREGA_STATUS.md
+docs/VPS_DEPLOY.md
+docs/GOVERNANCA_AUTENTICACAO.md
+docs/TERMOS_DE_COMPRA_MINUTA.md
+docs/REFRESH_UI_RESPONSIVE_*.md
+backups/
+releases/

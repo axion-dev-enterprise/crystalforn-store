@@ -1,0 +1,20 @@
+{
+  "name": "digital-accounts-store",
+  "version": "0.1.0",
+  "private": true,
+  "engines": { "node": ">=24.15 <25" },
+  "workspaces": ["apps/web", "services/api", "services/sync-worker"],
+  "overrides": {
+    "@nestjs/platform-express": {
+      "multer": "2.5.0"
+    }
+  },
+  "scripts": {
+    "dev:web": "npm run dev --workspace @digital-store/web",
+    "dev:api": "npm run start:dev --workspace @digital-store/api",
+    "dev:worker": "npm run start --workspace @digital-store/sync-worker",
+    "dev:fulfillment": "npm run start:fulfillment --workspace @digital-store/sync-worker",
+    "build": "npm run build --workspace @digital-store/api && npm run build --workspace @digital-store/sync-worker && npm run build --workspace @digital-store/web",
+    "start:admin-provision": "node services/api/dist/operations/provision-admin.js"
+  }
+}

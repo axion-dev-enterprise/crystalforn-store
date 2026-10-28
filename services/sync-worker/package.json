@@ -1,0 +1,8 @@
+{
+  "name": "@digital-store/sync-worker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": { "build": "tsc -p tsconfig.json", "start": "node dist/main.js", "sync:once": "node dist/main.js --once", "start:fulfillment": "node dist/fulfillment.js", "fulfill:once": "node dist/fulfillment.js --once" },
+  "dependencies": { "pg": "8.23.1" },
+  "devDependencies": { "@types/node": "24.0.0", "@types/pg": "8.23.1", "typescript": "5.5.4" }
+}
