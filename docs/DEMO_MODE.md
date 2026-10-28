@@ -6,7 +6,7 @@ Esta revisão apresenta dez exemplos fictícios no frontend, com páginas de det
 
 Os exemplos Steam usam capas públicas da loja Steam para mostrar como as imagens do inventário aparecem na interface. Nomes, valores e bibliotecas continuam fictícios; as capas são ilustrativas e não comprovam titularidade ou conteúdo de qualquer conta real. Se a imagem externa não carregar, o cartão mantém o fallback textual acessível.
 
-Na promoção de 28/10/2026, a web foi atualizada para `e4ccc91` e a API permaneceu em `f4e8e13`. Os endpoints públicos de saúde e de estado de liberação confirmaram que catálogo, sincronização e pagamentos continuam desligados.
+Na promoção de 28/10/2026, a web foi atualizada para `c2185da` e a API permaneceu em `f4e8e13`. Os endpoints públicos de saúde e de estado de liberação confirmaram que catálogo, sincronização e pagamentos continuam desligados.
 
 O backend informa `catalogMode: demo`. A página de detalhes e a vitrine deixam claro que os itens são fictícios. Compra, cobrança Pix, saldo da carteira e entrega automática permanecem desativados.
 

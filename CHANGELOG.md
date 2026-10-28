@@ -4,7 +4,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
-- Adiciona fallback acessível quando uma URL de imagem individual do inventário falha ao carregar; as capas Steam dos exemplos demo deixam de exibir imagem quebrada.
+- Adiciona fallback acessível quando uma URL de imagem individual do inventário falha ao carregar; promove a web `c2185da` após CI Build 40783977644 aprovado.
 - Acrescenta capas oficiais da biblioteca Steam aos exemplos demonstrativos, verifica as cinco URLs (`200 image/jpeg`) e promove a web `e4ccc91` à VPS; a inspeção da página Steam encontrou imagens para Portal 2, Hades e Stardew Valley. As capas ilustram a interface e não comprovam que uma conta real possua esses jogos.
 - Expande as sugestões de rank no catálogo demonstrativo para incluir as divisões de LoL e Valorant informadas pelo cliente; opções sem fixture continuam retornando estado vazio e não representam estoque.
 - Confirma no Build 40781639640 a compilação atual de web/API/workers e o benchmark sintético após a ampliação do filtro; não valida visualização do filtro no navegador nem consulta real à LZT.
