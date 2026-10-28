@@ -2,14 +2,14 @@
 
 Loja de inventário de contas digitais, construída com Next.js, NestJS e PostgreSQL. O repositório contém a vitrine, API, painel administrativo, área do cliente, migrações, worker e configuração de contêineres.
 
-> **Estado desta versão: catálogo real em leitura.** A vitrine pode apresentar anúncios pessoais sincronizados da LZT. Compras, recargas, entrega automática e webhooks de pagamento continuam bloqueados por gates independentes no código. Não use esta versão para processar vendas.
+> **Estado desta versão: demonstração somente.** A vitrine usa oito exemplos fictícios; a API não publica anúncios reais e o worker não consulta nem sincroniza a LZT. Compras, recargas, entrega automática e webhooks de pagamento estão bloqueados.
 
 ## O que funciona
 
 - Vitrine responsiva em pt-BR com filtros por jogo, atributos de conta, faixa de preço, dias sem atividade, ordenação e paginação; o modo demo usa oito exemplos fictícios.
 - Páginas de entrada, detalhes, área do cliente, painel e termos, com estados de carregamento, erro e listas vazias.
 - API NestJS versionada sob `/api/v1`, PostgreSQL com migrações SQL numeradas e worker de sincronização separado.
-- Catálogo LZT paginado e sincronizado em background quando `live_read_only` está autorizado; o fluxo comercial e a entrega continuam desligados.
+- API pública em modo `demoOnly`; registros de fornecedor eventualmente presentes no banco não são exibidos pela vitrine.
 - Compose para desenvolvimento e operação em contêineres, com serviços privados em rede interna e portas da loja limitadas a loopback.
 
 Consulte [docs/DEMO_MODE.md](docs/DEMO_MODE.md) para os limites exatos desta versão e [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) para os componentes e fluxos.
@@ -48,7 +48,7 @@ Execute os processos em terminais separados e configure `DATABASE_URL`, `APP_ORI
 npm run migrate --workspace @digital-store/api
 ```
 
-O worker de inventário e o worker de entrega estão desativados no código desta versão. Os comandos `dev:worker` e `dev:fulfillment` não devem ser usados para ativar integração comercial.
+O worker de inventário e o worker de entrega estão desativados no código desta versão. Os comandos `dev:worker` e `dev:fulfillment` não devem ser usados para ativar integração comercial ou consulta à LZT.
 
 ## Mapa do repositório
 
@@ -56,7 +56,7 @@ O worker de inventário e o worker de entrega estão desativados no código dest
 | --- | --- |
 | `apps/web` | Aplicação Next.js, rotas e componentes da interface |
 | `services/api` | API NestJS, módulos, migrações e provisionamento administrativo |
-| `services/sync-worker` | Worker de catálogo live-read-only; entrega permanece bloqueada |
+| `services/sync-worker` | Worker de catálogo e entrega; ambos inativos nesta versão |
 | `infra/nginx` | Exemplo de proxy reverso para uma instalação própria |
 | `docs` | Arquitetura, desenvolvimento, operações, segurança e contratos |
 | `docker-compose.yml` | PostgreSQL, API, web e perfis opcionais desativados por padrão |
@@ -66,7 +66,7 @@ O worker de inventário e o worker de entrega estão desativados no código dest
 - [Arquitetura e fluxos](docs/ARCHITECTURE.md)
 - [Desenvolvimento local](docs/DEVELOPMENT.md)
 - [API HTTP](docs/API.md)
-- [Catálogo em leitura e limites comerciais](docs/DEMO_MODE.md)
+- [Modo de demonstração e limites comerciais](docs/DEMO_MODE.md)
 - [Operação e implantação](docs/OPERATIONS.md)
 - [Segurança e gestão de segredos](docs/SECURITY.md)
 - [Compatibilidade comercial](docs/COMPATIBILIDADE_COMERCIAL.md)
@@ -81,6 +81,6 @@ Cada push para `main` e pull request executa o workflow de build do web, API e w
 
 ## Estado e próximos passos
 
-O catálogo e o comércio têm gates separados. O catálogo pode ser publicado em leitura para manter anúncios e status atualizados; checkout, gateway e entrega só podem ser habilitados em outra revisão após validar o modelo comercial, identidade, termos e provedores.
+O catálogo e o comércio têm gates separados, ambos fechados nesta versão. Qualquer ativação de consulta à LZT, checkout, gateway ou entrega exige outra revisão após validar o modelo comercial, identidade, termos e provedores.
 
 Este repositório não inclui dumps de banco, credenciais, chaves, arquivos `.env`, registros de cliente ou detalhes de uma instalação privada. Nunca coloque esses dados em issues, commits ou logs públicos.

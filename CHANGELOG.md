@@ -4,6 +4,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
+- Reverte a publicação de anúncios reais para o modo demo aprovado: API sem catálogo real e worker LZT inativo; pagamentos e entrega continuam bloqueados.
 - Adiciona o símbolo facetado Crystalforn ao cabeçalho e ao rodapé.
 - Atualiza o símbolo para o cristal geométrico gerado nesta revisão; o wordmark permanece como texto HTML nítido no cabeçalho e rodapé.
 - Reduz os atributos da listagem pública aos metadados necessários nos cards; arrays completos permanecem disponíveis somente no endpoint de detalhes.
@@ -28,7 +29,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 - Divide páginas grandes da sincronização em requisições internas limitadas por quantidade e bytes, abaixo do limite do parser JSON da API.
 - Documenta o limite oficial de busca LZT, a paginação por cursor e a latência não determinística da reconciliação após uma varredura completa.
 - Atualiza contadores da sincronização após cada página para mostrar progresso no painel durante varreduras longas.
-- Mantém compras, pagamentos e entrega bloqueados; o catálogo real e a sincronização permanecem em modo de consulta, sujeitos à disponibilidade do fornecedor.
+- Mantém compras, pagamentos, entrega e sincronização com fornecedor desativados; esta versão demo usa somente exemplos fictícios.
 
 ## 0.1.3 — 2026-10-27
 

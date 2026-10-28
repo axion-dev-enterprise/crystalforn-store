@@ -1,9 +1,9 @@
 import { Pool, PoolClient } from 'pg';
 import { integerEnv } from './config';
 
-// Source-controlled release switch for a live, read-only public catalog.
-// Supplier fulfillment remains disabled in fulfillment.ts.
-const PUBLISHED_CATALOG_SYNC_ENABLED = true;
+// Demo release: never connect to or import from the supplier.
+// Live catalog access needs a separate reviewed release decision.
+const PUBLISHED_CATALOG_SYNC_ENABLED = false;
 
 const required = (name: string): string => {
   const value = process.env[name];

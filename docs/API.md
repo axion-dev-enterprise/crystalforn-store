@@ -7,10 +7,10 @@ Prefixo global: `/api/v1`. A lista abaixo descreve as rotas presentes no código
 | Método | Rota | Acesso | Comportamento atual |
 | --- | --- | --- | --- |
 | `GET` | `/health` | Público | Verifica conectividade PostgreSQL |
-| `GET` | `/catalog?game=&page=&pageSize=&sort=price_asc&minPrice=&maxPrice=&minDaysOffline=&skinName=&steamGame=&rank=&minLevel=` | Público | Retorna anúncios reais paginados em `live_read_only`, com atributos reduzidos aos campos usados nos cards; filtros usam dados completos no servidor; `sort` aceita `price_asc`, `price_desc` ou `title_asc`; compras seguem desativadas |
-| `GET` | `/catalog/:id` | Público | Retorna somente campos normalizados de anúncio disponível |
-| `GET` | `/catalog/:id/inventory-image?type=...` | Público | Busca prévias visuais Fortnite com limite por IP |
-| `GET` | `/catalog/roblox-avatars?userIds=...` | Público | Busca avatares públicos com limite por IP |
+| `GET` | `/catalog?game=&page=&pageSize=&sort=price_asc&minPrice=&maxPrice=&minDaysOffline=&skinName=&steamGame=&rank=&minLevel=` | Público | Nesta versão responde `demoOnly: true` sem anúncios reais; a prévia usa exemplos fictícios no frontend e filtros locais |
+| `GET` | `/catalog/:id` | Público | Responde `503` no modo demo; registros de fornecedor não são publicados |
+| `GET` | `/catalog/:id/inventory-image?type=...` | Público | Responde `503` no modo demo; não consulta imagens do fornecedor |
+| `GET` | `/catalog/roblox-avatars?userIds=...` | Público | Responde `503` no modo demo; não consulta perfis do fornecedor |
 | `GET` | `/legal/terms/status` | Público | Informa modo do catálogo, estado de termos e gates comerciais |
 
 ## Identidade e sessão
@@ -67,6 +67,6 @@ Checkout e recargas exigem cabeçalho `Idempotency-Key` entre 16 e 128 caractere
 
 ## Filtros de inventário
 
-`skinName` procura texto nas listas de skins Fortnite; `steamGame` procura títulos em `inventory.games`/`inventory.game_names`; `rank` pesquisa o rank de Valorant ou LoL; `minLevel` filtra o nível mínimo dessas contas. Cada campo tem limite validado no DTO e combina com jogo, preço, inatividade e paginação. Na demonstração, os filtros usam apenas os exemplos fictícios no cliente; a consulta de banco correspondente está pronta para catálogo habilitado.
+Na demonstração, os filtros usam apenas os exemplos fictícios no cliente. Os parâmetros de filtro e paginação são mantidos para a interface, mas não consultam registros reais. A ativação de catálogo da LZT exige uma revisão separada.
 
-Na listagem pública, `attributes` contém somente os metadados usados pelos cards, incluindo contagens, rank, nível, saldos, dados públicos de avatar Roblox e reputação agregada. Arrays de inventário, jogos e skins não são transferidos nessa rota. Os detalhes do produto consultam o registro completo, mas a camada de apresentação continua omitindo credenciais, campos internos e valores sem suporte no modelo público.
+Quando o catálogo real for autorizado em outra versão, a listagem deverá limitar `attributes` aos metadados usados pelos cards e manter inventários completos somente na rota de detalhes. Nesta versão demo nenhum atributo real do fornecedor é transferido.

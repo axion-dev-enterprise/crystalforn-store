@@ -4,7 +4,7 @@ export type StorePaymentProvider = 'mercadopago' | 'pushinpay';
 
 // Catalog reads and commerce are independent release capabilities. This release
 // publishes supplier inventory read-only; checkout and fulfillment remain gated.
-export const PUBLISHED_CATALOG_MODE: 'demo' | 'live_read_only' = 'live_read_only';
+export const PUBLISHED_CATALOG_MODE: 'demo' | 'live_read_only' = 'demo';
 export const PUBLISHED_COMMERCE_MODE = 'demo' as const;
 
 // Keep these blank until the approved operating model and provider category are documented.
