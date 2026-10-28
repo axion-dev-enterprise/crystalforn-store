@@ -36,7 +36,7 @@ As rotas a seguir exigem sessão de cliente válida e usam respostas privadas se
 | `GET` | `/orders?page=&pageSize=` | Histórico paginado |
 | `POST` | `/checkout` | Exige `Idempotency-Key`; indisponível no modo demo |
 | `POST` | `/wallet/topups` | Exige `Idempotency-Key`; indisponível no modo demo |
-| `GET` | `/orders/:id/delivery` | Dados de entrega do próprio pedido |
+| `GET` | `/orders/:id/delivery` | Dados de entrega do próprio pedido; exige gate comercial liberado e retorna indisponibilidade no modo demo |
 | `GET` | `/orders/:id/cancellation-request` | Solicitação do próprio pedido |
 | `POST` | `/orders/:id/cancellation-request` | Registra solicitação do cliente |
 

@@ -233,6 +233,7 @@ export class CommerceService {
   }
 
   async saveDelivery(orderId: string, credentials: string, adminId: string) {
+    requireMarketplaceCompliance();
     if (!credentials.trim()) throw new ConflictException('Informe as credenciais de entrega.');
     const key = deliveryKey();
     const nonce = randomBytes(12);
@@ -263,6 +264,7 @@ export class CommerceService {
   }
 
   async deliveryForCustomer(orderId: string, userId: string) {
+    requireMarketplaceCompliance();
     return this.db.transaction(async (client: PoolClient) => {
       const result = await client.query<{ status: string; ciphertext: Buffer; nonce: Buffer; auth_tag: Buffer }>(
         `SELECT o.status,d.ciphertext,d.nonce,d.auth_tag FROM orders o JOIN account_deliveries d ON d.order_id=o.id

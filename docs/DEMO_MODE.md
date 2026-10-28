@@ -20,6 +20,7 @@ O backend informa `catalogMode: demo`. A página de detalhes e a vitrine deixam 
 - `services/sync-worker/src/fulfillment.ts` continua inativo; não há checkout nem compra automática no fornecedor.
 - O worker de entrega também não processa pedidos nesta versão.
 - Checkout, recarga de carteira, webhooks e imagens do catálogo passam por gates de liberação comercial.
+- As rotas que salvam ou recuperam credenciais de pedidos também passam pelo gate comercial: `POST /api/v1/admin/orders/:id/delivery` e `GET /api/v1/orders/:id/delivery` retornam indisponibilidade no modo demo, inclusive para registros antigos no banco.
 - Variáveis de ambiente e tokens não substituem a revisão de código que controla o modo.
 
 As rotas de cliente e administração ainda requerem sessões válidas. A ausência de credenciais de identidade deve resultar em indisponibilidade ou não autenticado; não existe login de exemplo, usuário padrão ou atalho de autenticação.

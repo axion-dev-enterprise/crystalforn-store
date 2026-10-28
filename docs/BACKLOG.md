@@ -203,6 +203,7 @@ Preservar a loja sem anúncios reais, checkout, gateway, entrega e reembolso at�
 **Critérios de aceite**
 
 - As rotas e interfaces públicas continuam incapazes de iniciar cobranças ou entregar credenciais enquanto o gate de demonstração estiver ativo.
+- As rotas privadas de salvar e consultar credenciais (`POST /api/v1/admin/orders/:id/delivery` e `GET /api/v1/orders/:id/delivery`) também falham fechadas em demo, inclusive quando existirem registros antigos.
 - Uma eventual ativação exige revisão de compatibilidade comercial, termos, autenticação, segurança, gateway e operação, com decisão registrada separadamente.
 - A documentação e a interface deixam claro quando exibem somente dados fictícios ou uma prévia não comercial.
 
