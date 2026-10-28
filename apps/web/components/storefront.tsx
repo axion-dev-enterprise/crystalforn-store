@@ -151,8 +151,8 @@ export function Storefront() {
     const rank = typeof inventory?.lol_rank === 'string' ? inventory.lol_rank : typeof inventory?.rank === 'string' ? inventory.rank : '';
     const level = Number(inventory?.level ?? 0);
     return (!game || product.game === game)
-      && (!appliedFilters.minPrice || product.price_brl_cents >= Number(appliedFilters.minPrice) * 100)
-      && (!appliedFilters.maxPrice || product.price_brl_cents <= Number(appliedFilters.maxPrice) * 100)
+      && (!appliedFilters.minPrice || Number(product.price_brl_cents) >= Number(appliedFilters.minPrice) * 100)
+      && (!appliedFilters.maxPrice || Number(product.price_brl_cents) <= Number(appliedFilters.maxPrice) * 100)
       && (!appliedFilters.minDaysOffline || offlineDays >= Number(appliedFilters.minDaysOffline))
       && (!appliedFilters.skinName || game !== 'fortnite' || skinNames.some((name) => name.toLocaleLowerCase('pt-BR').includes(appliedFilters.skinName.toLocaleLowerCase('pt-BR'))))
       && (!appliedFilters.steamGame || game !== 'steam' || steamGames.some((name) => name.toLocaleLowerCase('pt-BR').includes(appliedFilters.steamGame.toLocaleLowerCase('pt-BR'))))
