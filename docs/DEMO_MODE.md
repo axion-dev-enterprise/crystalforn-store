@@ -4,13 +4,15 @@
 
 Esta revisão apresenta dez exemplos fictícios no frontend, com páginas de detalhe demonstrativas disponíveis em `/produto/demo-*`. Os detalhes usam os mesmos dados locais do catálogo, não consultam o fornecedor e não oferecem compra ou entrega. A API responde `demoOnly: true`, não serve anúncios de fornecedor e o worker não faz chamadas à LZT nem importa inventário. Registros antigos de fornecedor podem permanecer no banco para retenção operacional, mas não são publicados pela API ou pela vitrine.
 
-Os exemplos Steam usam capas públicas da loja Steam para mostrar como as imagens do inventário aparecem na interface. Nomes, valores e bibliotecas continuam fictícios; as capas são ilustrativas e não comprovam titularidade ou conteúdo de qualquer conta real. Se a imagem externa não carregar, o cartão mantém o fallback textual acessível.
+Os exemplos Steam mostram nomes e tempo de jogo em cartões tipográficos; a demonstração não deriva capas externas de IDs de jogos. Nomes, valores e bibliotecas são fictícios.
 
 O primeiro exemplo Fortnite usa somente a forma dos campos do JSON de referência: duas skins em destaque, contagens de inventário, vinculações e passe de batalha. O detalhe separa os nomes destacados da contagem total e informa quando a amostra não contém nomes individuais. Esses valores são fictícios; não representam uma conta ou anúncio do fornecedor.
 
 Na promoção de 28/10/2026, a web está em `c2185da` e a API em `f8b271b`. Os endpoints públicos de saúde e de estado de liberação confirmaram que catálogo, sincronização e pagamentos continuam desligados.
 
 O backend informa `catalogMode: demo`. A página de detalhes e a vitrine deixam claro que os itens são fictícios. Compra, cobrança Pix, saldo da carteira e entrega automática permanecem desativados.
+
+As consultas principais da vitrine e do detalhe de produto têm limite de 15 segundos. Se a API não responder a tempo, a vitrine mostra um erro com opção de nova tentativa e a página do produto informa que a consulta expirou, sem manter o skeleton indefinidamente. Cancelar uma consulta por navegação ou mudança de filtro não apresenta erro ao usuário.
 
 ## Travas efetivas
 

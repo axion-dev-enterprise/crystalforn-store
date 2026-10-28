@@ -56,17 +56,42 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
   const [paymentProviderApproval, setPaymentProviderApproval] = useState<Record<'mercadopago' | 'pushinpay', boolean>>({ mercadopago: false, pushinpay: false });
   const [termsStatusLoading, setTermsStatusLoading] = useState(true);
   useEffect(() => {
+    let active = true;
     const demo = findDemoProduct(id);
     if (demo) {
+      setError('');
       setProduct({ ...demo, provider_item_id: demo.id, demoOnly: true });
       setLoading(false);
-      return;
+      return () => { active = false; };
     }
     setLoading(true);
-    fetch(`/api/v1/catalog/${encodeURIComponent(id)}`, { cache: 'no-store' })
-      .then(async (response) => { if (!response.ok) throw new Error('Esta conta não está mais disponível.'); setProduct(await response.json() as Product); })
-      .catch((reason) => { setProduct(null); setError(reason instanceof Error ? reason.message : 'Erro ao carregar o produto.'); })
-      .finally(() => setLoading(false));
+    setError('');
+    const controller = new AbortController();
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 15_000);
+    fetch(`/api/v1/catalog/${encodeURIComponent(id)}`, { cache: 'no-store', signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Esta conta não está mais disponível.');
+        const body = await response.json() as Product;
+        if (active) setProduct(body);
+      })
+      .catch((reason) => {
+        if (!active || (controller.signal.aborted && !timedOut)) return;
+        setProduct(null);
+        setError(timedOut ? 'A consulta do produto excedeu 15 segundos. Volte ao catálogo e tente novamente.' : reason instanceof Error ? reason.message : 'Erro ao carregar o produto.');
+      })
+      .finally(() => {
+        window.clearTimeout(timeoutId);
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [id]);
   useEffect(() => {
     setInventoryImages({});

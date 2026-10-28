@@ -115,6 +115,11 @@ export function Storefront() {
     catalogRequest.current?.abort();
     const controller = new AbortController();
     catalogRequest.current = controller;
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 15_000);
     setLoading(true); setError('');
     try {
       const params = new URLSearchParams({ page: String(page), pageSize: '24', sort }); if (game) params.set('game', game);
@@ -130,13 +135,16 @@ export function Storefront() {
       const catalog = await response.json() as Catalog;
       setResult(catalog.demoOnly ? { ...catalog, items: DEMO_PRODUCTS, total: DEMO_PRODUCTS.length, pageSize: DEMO_PAGE_SIZE, totalPages: Math.ceil(DEMO_PRODUCTS.length / DEMO_PAGE_SIZE), message: 'Itens e preços fictícios para demonstrar a navegação. Não são anúncios reais e não podem ser comprados.' } : catalog);
     } catch (reason) {
-      if (!controller.signal.aborted) {
-        setError(reason instanceof Error ? reason.message : 'Erro ao carregar o catálogo.');
+      if (!controller.signal.aborted || timedOut) {
+        setError(timedOut ? 'A consulta do catálogo excedeu 15 segundos. Tente novamente.' : reason instanceof Error ? reason.message : 'Erro ao carregar o catálogo.');
         setResult(null);
       }
     } finally {
-      if (catalogRequest.current === controller) catalogRequest.current = null;
-      if (!controller.signal.aborted) setLoading(false);
+      window.clearTimeout(timeoutId);
+      if (catalogRequest.current === controller) {
+        catalogRequest.current = null;
+        if (!controller.signal.aborted || timedOut) setLoading(false);
+      }
     }
   }, [game, page, appliedFilters, sort]);
   useEffect(() => {
