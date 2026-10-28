@@ -320,7 +320,11 @@ async function synchronize(): Promise<void> {
         }
         let payload: { status?: unknown; items?: unknown[]; total_items?: number; totalItems?: number; hasNextPage?: unknown; page?: unknown; perPage?: unknown };
         try { payload = await response.json() as { status?: unknown; items?: unknown[]; total_items?: number; totalItems?: number; hasNextPage?: unknown; page?: unknown; perPage?: unknown }; }
-        catch { errorCode = 'invalid_json'; break; }
+        catch {
+          if (apiProvider === 'lzt-market') await resetLztPagination();
+          errorCode = 'invalid_json';
+          break;
+        }
         if (apiProvider === 'generic' && payload.status !== undefined
           && (typeof payload.status !== 'string' || payload.status.trim().toLowerCase() !== 'success')) {
           errorCode = 'provider_status_not_success';
@@ -334,6 +338,7 @@ async function synchronize(): Promise<void> {
             || (payload.perPage !== undefined && (typeof payload.perPage !== 'number' || !Number.isSafeInteger(payload.perPage) || payload.perPage < 1))
             || (payload.hasNextPage === undefined && typeof totalItems !== 'number')
           ))) {
+          if (apiProvider === 'lzt-market') await resetLztPagination();
           errorCode = 'invalid_contract';
           break;
         }
