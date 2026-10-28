@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 
 export type StoreProduct = { id: string; game: string; generated_title: string; price_brl_cents: number | string; attributes: Record<string, unknown>; synced_at?: string | null; seller_feedback_total?: number | null; seller_feedback_positive_percentage?: number | null };
 type Catalog = { items: StoreProduct[]; page: number; pageSize: number; total: number; totalPages?: number; demoOnly?: boolean; catalogMode?: string; message?: string };
@@ -276,7 +277,7 @@ function RobloxCardPreview({ userId, username }: { userId: string; username: str
       .catch(() => undefined);
     return () => { active = false; };
   }, [userId, visible]);
-  return <span className="roblox-card-frame" ref={frame}>{avatar ? <img className="roblox-card-avatar" src={avatar} alt={`Avatar Roblox de ${username}`} width={400} height={150} loading="lazy" decoding="async" /> : <span className="game-art-mark" aria-hidden="true">R</span>}</span>;
+  return <span className="roblox-card-frame" ref={frame}>{avatar ? <Image className="roblox-card-avatar" src={avatar} alt={`Avatar Roblox de ${username}`} width={400} height={150} sizes="(max-width: 520px) calc(100vw - 32px), (max-width: 700px) calc((100vw - 44px) / 2), 400px" loading="lazy" /> : <span className="game-art-mark" aria-hidden="true">R</span>}</span>;
 }
 
 function FortniteCardPreview({ productId, title, fallback }: { productId: string; title: string; fallback: string }) {
@@ -305,7 +306,11 @@ function FortniteCardPreview({ productId, title, fallback }: { productId: string
       }).catch(() => undefined);
     return () => { active = false; };
   }, [visible, productId]);
-  return <span className="fortnite-card-frame" ref={frame}>{image ? <img className="fortnite-card-preview" src={image} alt={`Prévia do inventário Fortnite: ${title}`} width={400} height={150} loading="lazy" decoding="async" /> : <span className="game-art-mark" aria-hidden="true">{fallback}</span>}</span>;
+  return <span className="fortnite-card-frame" ref={frame}>{image ? <img className="fortnite-card-preview" src={image} srcSet={imageSrcSet(productId, 'skins')} sizes="(max-width: 520px) calc(100vw - 32px), (max-width: 700px) calc((100vw - 44px) / 2), 400px" alt={`Prévia do inventário Fortnite: ${title}`} width={400} height={150} loading="lazy" decoding="async" /> : <span className="game-art-mark" aria-hidden="true">{fallback}</span>}</span>;
+}
+
+function imageSrcSet(productId: string, type: string): string {
+  return [320, 640, 960].map((width) => `/api/v1/catalog/${encodeURIComponent(productId)}/inventory-image/${type}/${width} ${width}w`).join(', ');
 }
 
 function ProductHighlights({ attributes, feedbackTotal, positivePercentage }: { attributes: Record<string, unknown>; feedbackTotal?: number | null; positivePercentage?: number | null }) {

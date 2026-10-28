@@ -1,4 +1,5 @@
-import { Controller, Get, HttpException, HttpStatus, NotFoundException, Param, Query, Req } from '@nestjs/common';
+import { BadRequestException, Controller, Get, HttpException, HttpStatus, NotFoundException, Param, Query, Req, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { CatalogQueryDto } from './catalog.dto';
 import { CatalogService } from './catalog.service';
 import { PUBLISHED_CATALOG_MODE, requireCatalogReadEnabled } from '../legal/commerce-release-status';
@@ -45,6 +46,15 @@ export class CatalogController {
     requireCatalogReadEnabled();
     this.enforceVisualReadLimit(request, 'fortnite-image', 30);
     return this.catalog.fortniteInventoryImage(id, type);
+  }
+  @Get(':id/inventory-image/:type/:width') async fortniteInventoryImageVariant(@Req() request: RequestAddress, @Param('id') id: string, @Param('type') type: string, @Param('width') rawWidth: string, @Res({ passthrough: true }) response: Response) {
+    requireCatalogReadEnabled();
+    this.enforceVisualReadLimit(request, 'fortnite-image-variant', 30);
+    const width = Number(rawWidth);
+    if (!Number.isInteger(width) || ![320, 640, 960].includes(width)) throw new BadRequestException('Largura de prévia inválida.');
+    const image = await this.catalog.fortniteInventoryImageVariant(id, type, width);
+    response.set({ 'Content-Type': 'image/webp', 'Cache-Control': 'public, max-age=3600, stale-while-revalidate=600', 'X-Content-Type-Options': 'nosniff' });
+    return image;
   }
   @Get(':id') async detail(@Param('id') id: string) {
     requireCatalogReadEnabled();

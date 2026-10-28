@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
 type Product = { id: string; provider_item_id: string; game: string; generated_title: string; price_brl_cents: number; attributes: Record<string, unknown>; synced_at?: string | null; seller_feedback_total?: number | null; seller_feedback_positive_percentage?: number | null };
@@ -188,13 +189,13 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
         </form>}
       </aside>
       {inventoryImageMessage && <p className="inventory-image-note" role="status">{inventoryImageMessage}</p>}
-      <InventoryShowcase game={product.game} attributes={product.attributes} images={inventoryImages} sectionRef={setInventorySection} />
+      <InventoryShowcase productId={product.id} game={product.game} attributes={product.attributes} images={inventoryImages} sectionRef={setInventorySection} />
       <div className="attributes-panel"><h2>Outros dados da conta</h2><AttributeList attributes={product.attributes} /></div>
     </div>
   </section>;
 }
 
-function InventoryShowcase({ game, attributes, images, sectionRef }: { game: string; attributes: Record<string, unknown>; images: InventoryImages; sectionRef: (element: HTMLElement | null) => void }) {
+function InventoryShowcase({ productId, game, attributes, images, sectionRef }: { productId: string; game: string; attributes: Record<string, unknown>; images: InventoryImages; sectionRef: (element: HTMLElement | null) => void }) {
   const inventory = attributes.inventory && typeof attributes.inventory === 'object' ? attributes.inventory as Record<string, unknown> : {};
   const definitions = game === 'fortnite' ? [
     { key: 'skins', fallback: 'featured_skins', title: 'Personagens e skins', image: images.skins },
@@ -239,7 +240,7 @@ function InventoryShowcase({ game, attributes, images, sectionRef }: { game: str
     {game === 'roblox' && <RobloxProfile inventory={inventory} avatar={images.avatar} />}
     {groups.map((group) => <section className="inventory-group" key={group.key}>
       <div className="inventory-group-heading"><h3>{group.title}</h3><span>{group.items.length}</span></div>
-      {group.image && <img className="inventory-provider-image" src={group.image} alt={`Prévia visual do fornecedor: ${group.title.toLowerCase()}`} width={680} height={280} loading="lazy" decoding="async" />}
+      {group.image && <img className="inventory-provider-image" src={`/api/v1/catalog/${encodeURIComponent(productId)}/inventory-image/${group.key}/640`} srcSet={imageSrcSet(productId, group.key)} sizes="(max-width: 700px) calc(100vw - 32px), 680px" alt={`Prévia visual do fornecedor: ${group.title.toLowerCase()}`} width={680} height={280} loading="lazy" decoding="async" />}
       <ul className="cosmetic-list">{group.items.slice(0, 36).map(itemCard)}</ul>
       {group.items.length > 36 && <details className="inventory-more"><summary>Ver os outros {group.items.length - 36} itens</summary><ul className="cosmetic-list">{group.items.slice(36).map((item, index) => itemCard(item, index + 36))}</ul></details>}
     </section>)}
@@ -248,7 +249,11 @@ function InventoryShowcase({ game, attributes, images, sectionRef }: { game: str
 }
 
 function RobloxProfile({ inventory, avatar }: { inventory: Record<string, unknown>; avatar?: string }) {
-  return <div className="roblox-profile">{avatar ? <img className="roblox-detail-avatar" src={avatar} alt={`Avatar Roblox de ${String(inventory.username ?? 'usuário')}`} width={64} height={64} loading="lazy" decoding="async" /> : <div className="roblox-avatar-fallback" aria-hidden="true">R</div>}<div><p className="eyebrow">PERFIL ROBLOX</p><strong>{typeof inventory.username === 'string' ? inventory.username : 'Avatar da conta'}</strong><span>{typeof inventory.country === 'string' ? inventory.country : 'Miniatura pública do perfil consultada pelo ID Roblox.'}</span></div></div>;
+  return <div className="roblox-profile">{avatar ? <Image className="roblox-detail-avatar" src={avatar} alt={`Avatar Roblox de ${String(inventory.username ?? 'usuário')}`} width={64} height={64} sizes="64px" loading="lazy" /> : <div className="roblox-avatar-fallback" aria-hidden="true">R</div>}<div><p className="eyebrow">PERFIL ROBLOX</p><strong>{typeof inventory.username === 'string' ? inventory.username : 'Avatar da conta'}</strong><span>{typeof inventory.country === 'string' ? inventory.country : 'Miniatura pública do perfil consultada pelo ID Roblox.'}</span></div></div>;
+}
+
+function imageSrcSet(productId: string, type: string): string {
+  return [320, 640, 960].map((width) => `/api/v1/catalog/${encodeURIComponent(productId)}/inventory-image/${type}/${width} ${width}w`).join(', ');
 }
 
 function AttributeList({ attributes }: { attributes: Record<string, unknown> }) {

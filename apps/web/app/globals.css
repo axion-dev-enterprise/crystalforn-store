@@ -214,6 +214,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
 .theme-toggle{display:inline-flex;min-height:44px;align-items:center;justify-content:center;gap:8px;padding:8px 11px;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--ink);font-size:12px;font-weight:650;cursor:pointer}
+.theme-toggle{min-width:44px}
+.footer-row a{display:inline-flex;min-height:44px;align-items:center}
 .demo-specific-filters{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;padding-top:4px}
 .demo-inventory{margin:8px 0 16px;border:1px solid var(--line);background:var(--paper);color:var(--ink)}
 .demo-inventory summary{display:flex;min-height:44px;align-items:center;padding:9px 12px;color:var(--green);font-size:12px;font-weight:700;cursor:pointer}

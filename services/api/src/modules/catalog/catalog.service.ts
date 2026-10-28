@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import sharp from 'sharp';
 import { DatabaseService } from '../../database/database.service';
 import { integerEnv } from '../../common/config';
 import { normalizeProduct, STORE_CATALOG_GAMES } from './catalog.mapper';
@@ -6,6 +7,8 @@ import { normalizeProduct, STORE_CATALOG_GAMES } from './catalog.mapper';
 type CachedValue = { value: string; expiresAt: number };
 const imageCache = new Map<string, CachedValue>();
 const imagePending = new Map<string, Promise<string>>();
+const imageVariantCache = new Map<string, { value: Buffer; expiresAt: number }>();
+const imageVariantPending = new Map<string, Promise<Buffer>>();
 const avatarCache = new Map<string, CachedValue>();
 const storeGameSet: ReadonlySet<string> = new Set(STORE_CATALOG_GAMES);
 let providerImageWindowStartedAt = 0;
@@ -214,6 +217,33 @@ export class CatalogService {
     }
     try { return { imageDataUrl: await request }; }
     finally { if (imagePending.get(cacheKey) === request) imagePending.delete(cacheKey); }
+  }
+
+  async fortniteInventoryImageVariant(productId: string, type: string, width: number): Promise<Buffer> {
+    if (![320, 640, 960].includes(width)) throw new NotFoundException('Prévia de inventário não encontrada.');
+    const source = await this.fortniteInventoryImage(productId, type);
+    const cacheKey = `${productId}:${type}:${width}`;
+    const cached = imageVariantCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.value;
+    let request = imageVariantPending.get(cacheKey);
+    if (!request) {
+      const base64 = source.imageDataUrl.slice('data:image/png;base64,'.length);
+      request = sharp(Buffer.from(base64, 'base64'), { limitInputPixels: 16_000_000 })
+        .resize({ width, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 78, effort: 4 })
+        .toBuffer()
+        .then((value) => {
+          imageVariantCache.set(cacheKey, { value, expiresAt: Date.now() + 60 * 60_000 });
+          for (const [key, entry] of imageVariantCache) {
+            if (entry.expiresAt <= Date.now()) imageVariantCache.delete(key);
+            if (imageVariantCache.size > 64) imageVariantCache.delete(imageVariantCache.keys().next().value!);
+          }
+          return value;
+        });
+      imageVariantPending.set(cacheKey, request);
+    }
+    try { return await request; }
+    finally { if (imageVariantPending.get(cacheKey) === request) imageVariantPending.delete(cacheKey); }
   }
 
   async list(game?: string, page = 1, pageSize = 24, filters: { minPrice?: number; maxPrice?: number; minDaysOffline?: number; skinName?: string; steamGame?: string; rank?: string; minLevel?: number } = {}, sort: 'price_asc' | 'price_desc' | 'title_asc' = 'price_asc') {
