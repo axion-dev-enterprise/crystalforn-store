@@ -5,6 +5,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 ## Não lançado
 
 - Expande as sugestões de rank no catálogo demonstrativo para incluir as divisões de LoL e Valorant informadas pelo cliente; opções sem fixture continuam retornando estado vazio e não representam estoque.
+- Confirma no Build 40781639640 a compilação atual de web/API/workers e o benchmark sintético após a ampliação do filtro; não valida visualização do filtro no navegador nem consulta real à LZT.
 - Extrai o particionador de lotes do worker para um módulo reutilizável e adiciona ao CI um benchmark sintético de 20 mil/40 mil registros, validando contagem, limite de 500 itens e bytes por lote sem acessar LZT ou banco.
 - Corrige o título do exemplo LoL de Esmeralda III para preservar a divisão fictícia exibida no inventário.
 - Registra no mapa do fornecedor a diferença entre filtros locais da loja e parâmetros LZT relacionados; acrescenta evidência pública dos filtros de demonstração e do inventário textual por categoria.

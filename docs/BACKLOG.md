@@ -10,7 +10,7 @@ Atualizado em 28/10/2026 após nova leitura da conversa de Mateus Alves Fernande
 - As quantidades de 20 mil a 40 mil anúncios são metas solicitadas pelo cliente, ainda sem validação de limites, cotas, custo ou garantias do fornecedor.
 - Nesta revisão, a vitrine pública foi conferida em modo demo: `skinName=Travis Scott` retornou 1 exemplo Fortnite, `steamGame=Portal 2` retornou 2 exemplos Steam e `rank=Ouro&minLevel=1` retornou 1 exemplo LoL. Esses resultados provam somente a filtragem das fixtures fictícias; nenhuma consulta autenticada ao fornecedor ocorreu.
 - A página pública de detalhe Fortnite foi inspecionada: mostra seis itens textuais em quatro grupos (skins, picaretas, emotes e asas-delta) e avisa que a amostra é fictícia e incompleta. Não há URLs de imagem nos dados demonstrativos, portanto miniaturas reais ainda não foram verificadas.
-- Verificação da revisão atual: GitHub Actions Build [40780762919](https://github.com/axion-dev-enterprise/crystalforn-store/actions/runs/40780762919) passou para `3a43044`, compilando web, API e workers e executando o benchmark sintético. A revisão de interface `55323b9` também passou no auditor anti-slop (15 arquivos, 0 problemas) e em `git diff --check`. O benchmark mede serialização e divisão local de lotes; não comprova escala do fornecedor, cobertura de payloads reais, autenticação em runtime ou operação comercial.
+- Verificação da revisão atual: GitHub Actions Build [40781639640](https://github.com/axion-dev-enterprise/crystalforn-store/actions/runs/40781639640) passou para `7f34190`, compilando web, API e workers e executando o benchmark sintético. A revisão de interface `55323b9` também passou no auditor anti-slop (15 arquivos, 0 problemas) e em `git diff --check`. A execução atual confirma a compilação da lista demonstrativa de ranks/divisões; não verifica sua renderização em navegador. O benchmark mede serialização e divisão local de lotes; não comprova escala do fornecedor, cobertura de payloads reais, autenticação em runtime ou operação comercial.
 
 ## Delta das mensagens mais recentes do cliente — 28/10/2026
 
@@ -49,7 +49,7 @@ Este recorte incorpora as mensagens mais novas da conversa. A coluna de estado d
 - O fluxo futuro pedido pelo cliente inclui revalidar disponibilidade antes da cobrança/entrega, evitar entregar item indisponível e creditar eventual reembolso no saldo. A alegação de remoção instantânea depende de capacidades documentadas e medidas do fornecedor.
 - Os dados de entrega citados pelo cliente (login, senha, e-mail, senha do e-mail e link de acesso) são altamente sensíveis e não devem aparecer em fixtures, logs ou demonstrações. A entrega real permanece desligada.
 
-## Novo backlog — próximo ciclo de entrega
+## Execução priorizada — recorte anterior
 
 Este recorte transforma as mensagens mais recentes em tarefas executáveis. A sequência abaixo vale para a demonstração atual e não autoriza consultas autenticadas ao fornecedor, venda, pagamento ou entrega real.
 
