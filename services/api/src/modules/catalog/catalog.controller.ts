@@ -1,7 +1,7 @@
 import { Controller, Get, HttpException, HttpStatus, NotFoundException, Param, Query, Req } from '@nestjs/common';
 import { CatalogQueryDto } from './catalog.dto';
 import { CatalogService } from './catalog.service';
-import { PUBLISHED_COMMERCE_MODE, requireMarketplaceCompliance } from '../legal/commerce-release-status';
+import { PUBLISHED_CATALOG_MODE, requireCatalogReadEnabled } from '../legal/commerce-release-status';
 
 type RequestAddress = { ip?: string; socket?: { remoteAddress?: string } };
 
@@ -22,15 +22,15 @@ export class CatalogController {
     if (window.count > limit) throw new HttpException('Muitas consultas de imagem. Tente novamente em instantes.', HttpStatus.TOO_MANY_REQUESTS);
   }
   @Get('roblox-avatars') robloxAvatars(@Req() request: RequestAddress, @Query('userIds') userIds = '') {
-    requireMarketplaceCompliance();
+    requireCatalogReadEnabled();
     this.enforceVisualReadLimit(request, 'roblox-avatar', 30);
     return this.catalog.robloxAvatars(userIds.split(',').slice(0, 24));
   }
   @Get() list(@Query() query: CatalogQueryDto) {
-    if (PUBLISHED_COMMERCE_MODE === 'demo') {
+    if (PUBLISHED_CATALOG_MODE === 'demo') {
       return { items: [], page: query.page, pageSize: query.pageSize, total: 0, totalPages: 0, demoOnly: true, message: 'A Crystalforn está em prévia visual, sem anúncios reais.' };
     }
-    requireMarketplaceCompliance();
+    requireCatalogReadEnabled();
     return this.catalog.list(query.game, query.page, query.pageSize, {
       minPrice: query.minPrice,
       maxPrice: query.maxPrice,
@@ -39,15 +39,15 @@ export class CatalogController {
       steamGame: query.steamGame,
       rank: query.rank,
       minLevel: query.minLevel,
-    });
+    }).then((catalog) => ({ ...catalog, demoOnly: false, catalogMode: PUBLISHED_CATALOG_MODE }));
   }
   @Get(':id/inventory-image') async fortniteInventoryImage(@Req() request: RequestAddress, @Param('id') id: string, @Query('type') type = 'skins') {
-    requireMarketplaceCompliance();
+    requireCatalogReadEnabled();
     this.enforceVisualReadLimit(request, 'fortnite-image', 30);
     return this.catalog.fortniteInventoryImage(id, type);
   }
   @Get(':id') async detail(@Param('id') id: string) {
-    requireMarketplaceCompliance();
+    requireCatalogReadEnabled();
     const product = await this.catalog.detail(id);
     if (!product) throw new NotFoundException('Produto indisponível.');
     return product;

@@ -1,8 +1,9 @@
 import { Pool, PoolClient } from 'pg';
 import { integerEnv } from './config';
 
-// A runtime env var cannot activate supplier access in this demo release.
-const PUBLISHED_DEMO_ONLY = true;
+// Source-controlled release switch for a live, read-only public catalog.
+// Supplier fulfillment remains disabled in fulfillment.ts.
+const PUBLISHED_CATALOG_SYNC_ENABLED = true;
 
 const required = (name: string): string => {
   const value = process.env[name];
@@ -10,13 +11,13 @@ const required = (name: string): string => {
   return value;
 };
 
-const databaseUrl = PUBLISHED_DEMO_ONLY ? undefined : required('DATABASE_URL');
-const apiBase = PUBLISHED_DEMO_ONLY ? 'https://example.invalid/' : required('API_BASE_URL');
+const databaseUrl = PUBLISHED_CATALOG_SYNC_ENABLED ? required('DATABASE_URL') : undefined;
+const apiBase = PUBLISHED_CATALOG_SYNC_ENABLED ? required('API_BASE_URL') : 'https://example.invalid/';
 const apiProvider = process.env.API_PROVIDER ?? 'lzt-market';
 if (!['lzt-market', 'generic'].includes(apiProvider)) throw new Error('API_PROVIDER não reconhecido.');
-const apiToken = PUBLISHED_DEMO_ONLY ? '' : required(apiProvider === 'lzt-market' ? 'LZT_MARKET_API_TOKEN' : 'API_TOKEN');
-const internalOrigin = PUBLISHED_DEMO_ONLY ? '' : required('INTERNAL_API_ORIGIN').replace(/\/$/, '');
-const workerSecret = PUBLISHED_DEMO_ONLY ? '' : required('SYNC_WORKER_SECRET');
+const apiToken = PUBLISHED_CATALOG_SYNC_ENABLED ? required(apiProvider === 'lzt-market' ? 'LZT_MARKET_API_TOKEN' : 'API_TOKEN') : '';
+const internalOrigin = PUBLISHED_CATALOG_SYNC_ENABLED ? required('INTERNAL_API_ORIGIN').replace(/\/$/, '') : '';
+const workerSecret = PUBLISHED_CATALOG_SYNC_ENABLED ? required('SYNC_WORKER_SECRET') : '';
 const intervalMs = integerEnv('API_SYNC_INTERVAL_SECONDS', 30, 30, 2_147_483) * 1000;
 const requestedDelayMs = integerEnv('API_RATE_DELAY_MS', 3000, 0, 60_000);
 const maxPages = integerEnv('API_MAX_SYNC_PAGES', 1000, 1, 1000);
@@ -184,8 +185,8 @@ async function synchronize(): Promise<void> {
     });
     if (!releaseResponse.ok) errorCode = `catalog_release_status_http_${releaseResponse.status}`;
     else {
-      const release = await releaseResponse.json() as { marketplaceEnabled?: boolean };
-      if (release.marketplaceEnabled !== true) errorCode = 'marketplace_not_approved';
+      const release = await releaseResponse.json() as { catalogSyncEnabled?: boolean };
+      if (release.catalogSyncEnabled !== true) errorCode = 'catalog_sync_not_enabled';
     }
     const feeds = apiProvider === 'lzt-market' ? lztFeeds : [{ key: 'generic', path: 'get_last_accounts', params: [] as string[][] }];
     const savedFeed = await lockClient.query<{ setting_value: unknown }>("SELECT setting_value FROM store_settings WHERE setting_key='lzt_sync_feed_index'");
@@ -428,8 +429,8 @@ async function synchronize(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  if (PUBLISHED_DEMO_ONLY) {
-    process.stdout.write('Worker de inventário inativo: versão publicada em modo demonstração.\n');
+  if (!PUBLISHED_CATALOG_SYNC_ENABLED) {
+    process.stdout.write('Worker de inventário inativo: sincronização não publicada nesta versão.\n');
     await pool.end();
     return;
   }

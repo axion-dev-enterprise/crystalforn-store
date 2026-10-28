@@ -1,17 +1,17 @@
 # Referência da API
 
-Prefixo global: `/api/v1`. A lista abaixo descreve as rotas presentes no código e os requisitos gerais; autenticação, gates de demonstração e validação DTO podem alterar a resposta. Consulte os controllers em `services/api/src/modules/` para contratos completos de cada campo.
+Prefixo global: `/api/v1`. A lista abaixo descreve as rotas presentes no código e os requisitos gerais; autenticação, gates de comércio e validação DTO podem alterar a resposta. Consulte os controllers em `services/api/src/modules/` para contratos completos de cada campo.
 
 ## Catálogo e status
 
 | Método | Rota | Acesso | Comportamento atual |
 | --- | --- | --- | --- |
 | `GET` | `/health` | Público | Verifica conectividade PostgreSQL |
-| `GET` | `/catalog?game=&page=&pageSize=&minPrice=&maxPrice=&minDaysOffline=&skinName=&steamGame=&rank=&minLevel=` | Público | Na demo retorna `items: []`, `demoOnly: true`; exemplos são renderizados pela web |
-| `GET` | `/catalog/:id` | Público | Bloqueado pelo gate comercial na demo |
-| `GET` | `/catalog/:id/inventory-image?type=...` | Público | Bloqueado pelo gate comercial na demo |
-| `GET` | `/catalog/roblox-avatars?userIds=...` | Público | Bloqueado pelo gate comercial na demo |
-| `GET` | `/legal/terms/status` | Público | Informa estado de termos e gates de comércio |
+| `GET` | `/catalog?game=&page=&pageSize=&minPrice=&maxPrice=&minDaysOffline=&skinName=&steamGame=&rank=&minLevel=` | Público | Retorna anúncios reais paginados em `live_read_only`; compras seguem desativadas |
+| `GET` | `/catalog/:id` | Público | Retorna somente campos normalizados de anúncio disponível |
+| `GET` | `/catalog/:id/inventory-image?type=...` | Público | Busca prévias visuais Fortnite com limite por IP |
+| `GET` | `/catalog/roblox-avatars?userIds=...` | Público | Busca avatares públicos com limite por IP |
+| `GET` | `/legal/terms/status` | Público | Informa modo do catálogo, estado de termos e gates comerciais |
 
 ## Identidade e sessão
 
@@ -41,11 +41,11 @@ As rotas a seguir exigem sessão de cliente válida e usam respostas privadas se
 
 ## Administração e integrações internas
 
-As rotas `/admin/*` exigem sessão e papel administrativo. A rota `POST /internal/catalog/items` exige credencial worker e não deve ser exposta a usuários finais. Webhooks de pagamento exigem assinatura/segredo do provedor, além do gate comercial.
+As rotas `/admin/*` exigem sessão e papel administrativo. A rota `POST /internal/catalog/items` exige credencial worker e o modo de sincronização publicado; não deve ser exposta a usuários finais. Webhooks de pagamento exigem assinatura/segredo do provedor, além do gate comercial.
 
 ## Idempotência e erros
 
-Checkout e recargas exigem cabeçalho `Idempotency-Key` entre 16 e 128 caracteres do conjunto aceito pelo DTO. Erros de regra são respostas HTTP do NestJS; integrações desligadas retornam indisponibilidade explícita. Não interprete uma rota presente como autorização para cobrança.
+Checkout e recargas exigem cabeçalho `Idempotency-Key` entre 16 e 128 caracteres do conjunto aceito pelo DTO. O catálogo pode estar ativo em modo somente leitura enquanto compras, recargas e entrega permanecem desligadas. Erros de regra são respostas HTTP do NestJS; integrações desligadas retornam indisponibilidade explícita. Não interprete uma rota presente como autorização para cobrança.
 
 ## Filtros de inventário
 

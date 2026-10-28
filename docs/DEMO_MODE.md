@@ -1,16 +1,17 @@
-# Modo demonstração
+# Catálogo em leitura e gates comerciais
 
 ## Estado atual
 
-Esta revisão publica somente uma prévia da experiência visual. A página inicial fornece dez itens fictícios para permitir navegação, filtragem por jogo, preço, inatividade, skins/personagens Fortnite, jogos na biblioteca Steam e rank/nível de Valorant e LoL, além de paginação. A prévia de inventário é textual e também usa dados fictícios. Os nomes, inventários, vendedores e valores de apresentação não representam produtos existentes.
+Esta revisão publica anúncios pessoais reais recebidos da API LZT em modo somente leitura. A vitrine permite navegar, filtrar, paginar e consultar atributos normalizados e prévias de inventário. Os dados privados de acesso do fornecedor não são armazenados nos registros públicos.
 
-O backend devolve `demoOnly: true` e uma lista comercial vazia. O frontend usa os exemplos locais identificados como fictícios. Portanto, os cards não abrem uma página de produto e não têm ação de compra.
+O backend informa `catalogMode: live_read_only`. As páginas de detalhe exibem os campos públicos normalizados, mas informam que compra, cobrança Pix, saldo da carteira e entrega automática estão desativados.
 
 ## Travas efetivas
 
-- `services/api/src/modules/legal/commerce-release-status.ts` declara o modo publicado como `demo` e recusa operações comerciais.
-- `services/api/src/modules/catalog/catalog.controller.ts` não serve anúncios reais enquanto o modo publicado for demo.
-- `services/sync-worker/src/main.ts` encerra sem conectar ao banco ou ao fornecedor quando a versão está em demonstração.
+- `services/api/src/modules/legal/commerce-release-status.ts` separa `PUBLISHED_CATALOG_MODE` de `PUBLISHED_COMMERCE_MODE`.
+- `services/api/src/modules/catalog/catalog.controller.ts` serve somente anúncios disponíveis e atributos normalizados.
+- `services/sync-worker/src/main.ts` sincroniza páginas LZT, respeitando o limite de busca e persistindo o cursor.
+- `services/sync-worker/src/fulfillment.ts` continua inativo; não há checkout nem compra automática no fornecedor.
 - O worker de entrega também não processa pedidos nesta versão.
 - Checkout, recarga de carteira, webhooks e imagens de catálogo passam por gates de liberação comercial.
 - Variáveis de ambiente e tokens não substituem a revisão de código que controla o modo.
@@ -19,7 +20,7 @@ As rotas de cliente e administração ainda requerem sessões válidas. A ausên
 
 ## Alterar o estado no futuro
 
-Não remova as travas apenas para popular uma demonstração. Uma eventual versão comercial exigiria revisão do modelo de oferta e das regras das plataformas, autorização dos provedores de pagamento, termos e privacidade aprovados, autenticação real, validação das APIs com credenciais autorizadas, análise de segurança, plano operacional e uma decisão explícita do responsável. Registre a evidência e altere os gates por uma revisão isolada e auditável. Consulte [COMPATIBILIDADE_COMERCIAL.md](COMPATIBILIDADE_COMERCIAL.md).
+O modo de catálogo somente leitura não habilita cobrança ou entrega. Uma versão comercial exige revisão própria do modelo de oferta, das regras das plataformas, dos provedores de pagamento, termos, privacidade e autenticação. Consulte [COMPATIBILIDADE_COMERCIAL.md](COMPATIBILIDADE_COMERCIAL.md).
 
 ## Critério de apresentação
 

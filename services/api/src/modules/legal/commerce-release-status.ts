@@ -2,8 +2,9 @@ import { ServiceUnavailableException } from '@nestjs/common';
 
 export type StorePaymentProvider = 'mercadopago' | 'pushinpay';
 
-// The current user-approved release is a visual demonstration only. This is a
-// source-level release gate: deployment environment variables cannot enable sales.
+// Catalog reads and commerce are independent release capabilities. This release
+// publishes supplier inventory read-only; checkout and fulfillment remain gated.
+export const PUBLISHED_CATALOG_MODE: 'demo' | 'live_read_only' = 'live_read_only';
 export const PUBLISHED_COMMERCE_MODE = 'demo' as const;
 
 // Keep these blank until the approved operating model and provider category are documented.
@@ -35,6 +36,8 @@ function paymentProviderApproved(provider: StorePaymentProvider): boolean {
 export function commerceReleaseStatus() {
   return {
     mode: PUBLISHED_COMMERCE_MODE,
+    catalogMode: PUBLISHED_CATALOG_MODE,
+    catalogSyncEnabled: PUBLISHED_CATALOG_MODE === 'live_read_only',
     demoOnly: PUBLISHED_COMMERCE_MODE === 'demo',
     marketplaceEnabled: marketplaceApproved(),
     paymentProviders: {
@@ -44,9 +47,21 @@ export function commerceReleaseStatus() {
   };
 }
 
+export function requireCatalogReadEnabled(): void {
+  if (PUBLISHED_CATALOG_MODE === 'demo') {
+    throw new ServiceUnavailableException('O catálogo real ainda não foi publicado.');
+  }
+}
+
+export function requireCatalogSyncEnabled(): void {
+  if (PUBLISHED_CATALOG_MODE !== 'live_read_only') {
+    throw new ServiceUnavailableException('A sincronização do catálogo está desativada nesta versão.');
+  }
+}
+
 export function requireMarketplaceCompliance(): void {
   if (PUBLISHED_COMMERCE_MODE === 'demo') {
-    throw new ServiceUnavailableException('Crystalforn está em modo demonstração: catálogo e operações comerciais estão desativados.');
+    throw new ServiceUnavailableException('As operações comerciais estão desativadas nesta versão.');
   }
   if (!marketplaceApproved()) {
     throw new ServiceUnavailableException('Checkout desativado até a aprovação documentada do modelo comercial.');

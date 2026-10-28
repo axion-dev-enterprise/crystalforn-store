@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Product = { id: string; game: string; generated_title: string; price_brl_cents: number; attributes: Record<string, unknown>; seller_feedback_total?: number | null; seller_feedback_positive_percentage?: number | null };
-type Catalog = { items: Product[]; page: number; pageSize: number; total: number; totalPages?: number; demoOnly?: boolean; message?: string };
+type Catalog = { items: Product[]; page: number; pageSize: number; total: number; totalPages?: number; demoOnly?: boolean; catalogMode?: string; message?: string };
 type RobloxAvatars = Record<string, string>;
 type Filters = { minPrice: string; maxPrice: string; minDaysOffline: string; skinName: string; steamGame: string; rank: string; minLevel: string };
 const EMPTY_FILTERS: Filters = { minPrice: '', maxPrice: '', minDaysOffline: '', skinName: '', steamGame: '', rank: '', minLevel: '' };
@@ -28,7 +28,7 @@ export function Storefront() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
-  const [result, setResult] = useState<Catalog | null>({ items: DEMO_PRODUCTS, page: 1, pageSize: DEMO_PAGE_SIZE, total: DEMO_PRODUCTS.length, demoOnly: true, message: 'Itens e preços fictícios para demonstrar a navegação. Não são anúncios reais e não podem ser comprados.' });
+  const [result, setResult] = useState<Catalog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [robloxAvatars, setRobloxAvatars] = useState<RobloxAvatars>({});
@@ -54,7 +54,7 @@ export function Storefront() {
     } catch (reason) {
       if (!controller.signal.aborted) {
         setError(reason instanceof Error ? reason.message : 'Erro ao carregar o catálogo.');
-        setResult({ items: DEMO_PRODUCTS, page: 1, pageSize: DEMO_PAGE_SIZE, total: DEMO_PRODUCTS.length, demoOnly: true, message: 'Itens e preços fictícios para demonstrar a navegação. Não são anúncios reais e não podem ser comprados.' });
+        setResult(null);
       }
     } finally {
       if (catalogRequest.current === controller) catalogRequest.current = null;
@@ -98,6 +98,7 @@ export function Storefront() {
   const visibleProducts = result?.demoOnly ? filteredDemoProducts.slice((page - 1) * DEMO_PAGE_SIZE, page * DEMO_PAGE_SIZE) : result?.items ?? [];
   const pages = result?.demoOnly ? Math.max(1, Math.ceil(filteredDemoProducts.length / DEMO_PAGE_SIZE)) : Math.max(1, Math.ceil((result?.total ?? 0) / (result?.pageSize ?? 24)));
   return <section className="catalog-section shell" id="catalogo" aria-labelledby="catalog-title"><div className="section-heading"><div><p className="eyebrow">{result?.demoOnly ? 'PRÉVIA VISUAL · ITENS FICTÍCIOS' : 'INVENTÁRIO DISPONÍVEL'}</p><h2 id="catalog-title">{result?.demoOnly ? 'Veja como a vitrine funciona.' : 'Escolha pelo que importa.'}</h2></div><p className="section-aside">{result?.demoOnly ? `${filteredDemoProducts.length} exemplos · sem venda` : result ? `${result.total} contas listadas` : 'Preços em reais'}</p></div>
+    {result?.catalogMode === 'live_read_only' && <p className="catalog-readonly-note" role="status">Catálogo real sincronizado com o fornecedor. A visualização está ativa; compras e entregas automáticas continuam desativadas.</p>}
     {result?.demoOnly && <div className="demo-catalog-notice" role="note"><strong>Catálogo de demonstração</strong><span>Todos os itens, atributos e valores são fictícios. Não há anúncios reais nem opção de compra nesta prévia.</span></div>}
     <div className="filter-row" role="group" aria-label="Filtrar catálogo por jogo">{games.map((item) => <button type="button" key={item.id || 'all'} className={`filter-chip ${game === item.id ? 'is-selected' : ''}`} aria-pressed={game === item.id} onClick={() => { setGame(item.id); setPage(1); setFilters((value) => ({ ...value, skinName: '', steamGame: '', rank: '', minLevel: '' })); setAppliedFilters((value) => ({ ...value, skinName: '', steamGame: '', rank: '', minLevel: '' })); }}>{item.label}</button>)}</div>
     <form className="catalog-filters" onSubmit={(event) => { event.preventDefault(); setPage(1); setAppliedFilters(filters); }}>

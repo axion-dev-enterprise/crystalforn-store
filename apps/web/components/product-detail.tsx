@@ -24,16 +24,18 @@ export function ProductDetail({ id }: { id: string }) {
   const [inventoryImages, setInventoryImages] = useState<InventoryImages>({});
   const [inventoryImageMessage, setInventoryImageMessage] = useState('');
   const [termsEnabled, setTermsEnabled] = useState(false);
+  const [catalogReadOnly, setCatalogReadOnly] = useState(false);
   const [paymentProviderApproval, setPaymentProviderApproval] = useState<Record<'mercadopago' | 'pushinpay', boolean>>({ mercadopago: false, pushinpay: false });
   const [termsStatusLoading, setTermsStatusLoading] = useState(true);
   useEffect(() => { fetch(`/api/v1/catalog/${encodeURIComponent(id)}`, { cache: 'no-store' }).then(async (response) => { if (!response.ok) throw new Error('Esta conta não está mais disponível.'); setProduct(await response.json() as Product); }).catch((reason) => setError(reason instanceof Error ? reason.message : 'Erro ao carregar o produto.')).finally(() => setLoading(false)); }, [id]);
   useEffect(() => {
     let active = true;
     fetch('/api/v1/legal/terms/status', { cache: 'no-store' })
-      .then(async (response) => { if (!response.ok) throw new Error(); return response.json() as Promise<{ enabled?: boolean; paymentProviders?: Partial<Record<'mercadopago' | 'pushinpay', boolean>> }>; })
+      .then(async (response) => { if (!response.ok) throw new Error(); return response.json() as Promise<{ enabled?: boolean; catalogMode?: string; paymentProviders?: Partial<Record<'mercadopago' | 'pushinpay', boolean>> }>; })
       .then((body) => { if (active) {
         const approvals = { mercadopago: body.paymentProviders?.mercadopago === true, pushinpay: body.paymentProviders?.pushinpay === true };
         setTermsEnabled(body.enabled === true);
+        setCatalogReadOnly(body.catalogMode === 'live_read_only');
         setPaymentProviderApproval(approvals);
         setGateway((current) => approvals[current] ? current : approvals.mercadopago ? 'mercadopago' : approvals.pushinpay ? 'pushinpay' : current);
       } })
@@ -125,7 +127,7 @@ export function ProductDetail({ id }: { id: string }) {
           </>}
           <p>Pedido {checkout.order.id.slice(0, 8)} · {orderStatusPtBr[checkout.order.status] ?? 'Em processamento'}</p>
           <Link className="button-primary button-wide" href="/cliente">Acompanhar pedido</Link>
-        </div> : !termsEnabled ? <div className="terms-blocked" role="status"><h2>{termsStatusLoading ? 'Conferindo condições de compra' : 'Compra temporariamente indisponível'}</h2><p>{termsStatusLoading ? 'Aguarde a confirmação das condições de compra.' : 'O checkout aguarda a aprovação dos Termos de Compra e a liberação documentada do modelo comercial. Nenhuma cobrança ou débito de carteira será iniciado.'}</p><Link className="button-outline" href="/termos">Ver condições de compra</Link></div> : <form className="checkout-form" onSubmit={(event) => void buy(event)}>
+        </div> : catalogReadOnly ? <div className="terms-blocked" role="status"><h2>Visualização do catálogo</h2><p>Este anúncio está sincronizado com o fornecedor. Compras, cobranças Pix e débitos da carteira permanecem desativados.</p></div> : !termsEnabled ? <div className="terms-blocked" role="status"><h2>{termsStatusLoading ? 'Conferindo condições de compra' : 'Compra temporariamente indisponível'}</h2><p>{termsStatusLoading ? 'Aguarde a confirmação das condições de compra.' : 'O checkout aguarda a aprovação dos Termos de Compra e a liberação documentada do modelo comercial. Nenhuma cobrança ou débito de carteira será iniciado.'}</p><Link className="button-outline" href="/termos">Ver condições de compra</Link></div> : <form className="checkout-form" onSubmit={(event) => void buy(event)}>
           <label htmlFor="coupon">Cupom de desconto <span>(opcional)</span></label>
           <input id="coupon" value={coupon} onChange={(event) => setCoupon(event.target.value)} autoComplete="off" maxLength={32} />
           <label htmlFor="payment-method">Forma de pagamento</label>

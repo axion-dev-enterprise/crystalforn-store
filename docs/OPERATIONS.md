@@ -6,7 +6,7 @@ Este runbook descreve a instalação genérica do projeto. Inventários de host,
 
 ## Compose
 
-O Compose define PostgreSQL 16, API, web, worker de estoque e worker de entrega. A API não publica porta no host; a web escuta em loopback. Os workers exigem profiles explícitos e estão efetivamente inativos no modo demo.
+O Compose define PostgreSQL 16, API, web, worker de estoque e worker de entrega. A API não publica porta no host; a web escuta em loopback. O worker de estoque exige o profile `inventory`; o worker de entrega exige `fulfillment` e permanece desligado no modo atual.
 
 ```sh
 docker compose up --build -d postgres api web
@@ -24,7 +24,7 @@ Não use `docker compose down -v` em instalações com dados que devam ser prese
 
 ## Variáveis
 
-O `.env.example` contém placeholders. Gere valores únicos para credenciais de banco, segredo entre serviços, segredo de sessão e chave de cifragem. As variáveis de integração de fornecedor e gateway permanecem sem uso comercial na versão demo. Guarde segredos no mecanismo privado do ambiente e injete em runtime; nunca os grave no repositório.
+O `.env.example` contém placeholders. Gere valores únicos para credenciais de banco, segredo entre serviços, segredo de sessão e chave de cifragem. O catálogo live-read-only usa a integração do fornecedor em runtime; gateway e entrega continuam desligados. Guarde segredos no mecanismo privado do ambiente e injete em runtime; nunca os grave no repositório.
 
 O worker divide cada página do fornecedor em requisições internas com no máximo 500 anúncios e limite padrão de `1.500.000` bytes (`API_IMPORT_BATCH_MAX_BYTES`). O limite máximo configurável é `1.900.000` bytes para permanecer abaixo do parser JSON de 2 MiB da API; anúncios individuais maiores falham com código explícito em vez de gerar um `413` ambíguo. `API_MAX_SYNC_PAGES` aceita até 1.000 páginas por execução, com cursor salvo após cada página; 30 mil itens exigem ao menos 750 páginas se o fornecedor devolver 40 por página, cerca de 37,5 minutos no limite de três segundos, além do tempo das respostas e dos outros feeds. Em caso de `429`, o cursor é preservado e o worker aguarda `Retry-After` ou 60 segundos antes da próxima varredura.
 
@@ -57,4 +57,4 @@ O serviço API aplica migrações no início. Antes de atualizar uma instalaçã
 3. Em erro de migração ou build, pare e diagnostique; não apague volumes ou diretórios para tentar corrigir.
 4. Restaure o backup verificado e a versão anterior apenas conforme um plano revisado para a instalação.
 
-Esta edição não habilita venda, sincronização ou cobrança em produção. Para isso seria necessária uma revisão explícita de produto e conformidade além deste runbook.
+Esta edição habilita somente leitura do catálogo real e sincronização contínua. Venda, checkout, cobrança e entrega automática continuam desativados; habilitá-los exige uma liberação separada do modelo comercial, termos e gateways.

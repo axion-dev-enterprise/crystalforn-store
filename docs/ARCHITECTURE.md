@@ -12,7 +12,7 @@ Next.js (apps/web) ── chamadas /api/v1 ──► NestJS (services/api)
                                          PostgreSQL 16
 
 Worker de catálogo e worker de entrega (services/sync-worker)
-   └── Compose profiles opcionais; ambos não executam tarefas na versão demo
+   └── Compose profiles opcionais; inventário pode rodar no modo live-read-only e entrega permanece desligada
 ```
 
 O Next.js renderiza as páginas e implementa interações da vitrine, área de cliente e painel. A API NestJS concentra autenticação, validação de domínio, catálogo, pedidos, pagamentos e operações administrativas. PostgreSQL guarda catálogo, usuários/sessões, pedidos, carteira, configurações e histórico de sincronização. As alterações de esquema são migrações SQL aditivas numeradas em `services/api/sql`.
@@ -43,7 +43,7 @@ O worker de sincronização consulta um fornecedor paginado e envia lotes de at�
 
 ## Fluxos principais
 
-### Navegação de demonstração
+### Catálogo em leitura
 
 1. O navegador carrega a vitrine Next.js.
 2. A API informa que o catálogo real está desativado.
@@ -57,7 +57,7 @@ O worker de sincronização consulta um fornecedor paginado e envia lotes de at�
 
 ### Fluxo comercial futuro
 
-O código contém estruturas para revalidar anúncio, registrar pedido idempotente, processar confirmação do gateway e armazenar dados de entrega cifrados. O gate de versão impede que esse fluxo seja usado na demonstração; a presença da implementação não significa disponibilidade ou aprovação comercial.
+O código contém estruturas para revalidar anúncio, registrar pedido idempotente, processar confirmação do gateway e armazenar dados de entrega cifrados. O gate comercial continua fechado; a presença da implementação não significa disponibilidade ou aprovação comercial.
 
 ## Dados e consistência
 
@@ -70,5 +70,5 @@ O código contém estruturas para revalidar anúncio, registrar pedido idempoten
 
 - Separação entre web, API e workers limita responsabilidades e permite manter workers desligados.
 - PostgreSQL mantém estado transacional do catálogo e comércio.
-- Gates de liberação comercial vivem no código para que uma variável de ambiente isolada não transforme demo em loja ativa.
+- Gates separados de catálogo e comércio vivem no código para que uma variável de ambiente isolada não transforme leitura em loja ativa.
 - Os exemplos visuais ficam no frontend e são claramente rotulados como fictícios.
