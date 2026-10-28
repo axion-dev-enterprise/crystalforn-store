@@ -10,6 +10,11 @@ type Filters = { minPrice: string; maxPrice: string; minDaysOffline: string; ski
 type CatalogSort = 'price_asc' | 'price_desc' | 'title_asc';
 const EMPTY_FILTERS: Filters = { minPrice: '', maxPrice: '', minDaysOffline: '', skinName: '', steamGame: '', rank: '', minLevel: '' };
 const games = [{ id: '', label: 'Todos' }, { id: 'fortnite', label: 'Fortnite' }, { id: 'steam', label: 'Steam' }, { id: 'roblox', label: 'Roblox' }, { id: 'valorant', label: 'Valorant' }, { id: 'lol', label: 'League of Legends' }];
+const DEMO_LOL_RANKS = ['Ferro', 'Bronze', 'Prata', 'Ouro', 'Platina', 'Esmeralda'].flatMap((tier) => ['IV', 'III', 'II', 'I'].map((division) => `${tier} ${division}`));
+const DEMO_VALORANT_RANKS = [
+  ...['Ferro', 'Bronze', 'Prata', 'Ouro', 'Platina', 'Diamante', 'Ascendente', 'Imortal'].flatMap((tier) => ['III', 'II', 'I'].map((division) => `${tier} ${division}`)),
+  'Radiante',
+];
 const money = (cents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100);
 const DEMO_PAGE_SIZE = 6;
 
@@ -165,8 +170,8 @@ export function Storefront() {
   const pages = result?.demoOnly ? Math.max(1, Math.ceil(filteredDemoProducts.length / DEMO_PAGE_SIZE)) : Math.max(1, Math.ceil((result?.total ?? 0) / (result?.pageSize ?? 24)));
   const demoSkinOptions = useMemo(() => demoInventoryOptions('fortnite', ['skin_names', 'skins', 'featured_skins']), []);
   const demoSteamOptions = useMemo(() => demoInventoryOptions('steam', ['game_names', 'games']), []);
-  const demoValorantRanks = useMemo(() => demoInventoryOptions('valorant', ['rank']), []);
-  const demoLolRanks = useMemo(() => demoInventoryOptions('lol', ['rank', 'lol_rank']), []);
+  const demoValorantRanks = useMemo(() => [...new Set([...DEMO_VALORANT_RANKS, ...demoInventoryOptions('valorant', ['rank'])])], []);
+  const demoLolRanks = useMemo(() => [...new Set([...DEMO_LOL_RANKS, ...demoInventoryOptions('lol', ['rank', 'lol_rank'])])], []);
   const activeFilterTokens = [
     ...(game ? [{ key: 'game', label: `Jogo: ${gameLabel(game)}` }] : []),
     ...(appliedFilters.minPrice ? [{ key: 'minPrice', label: `Preço mínimo: R$ ${appliedFilters.minPrice}` }] : []),
