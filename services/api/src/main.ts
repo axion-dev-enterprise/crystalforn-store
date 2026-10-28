@@ -44,7 +44,7 @@ async function bootstrap(): Promise<void> {
   app.enableCors({ origin: required('APP_ORIGIN'), credentials: true, methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true, transformOptions: { enableImplicitConversion: false } }));
   app.useGlobalFilters(new ProblemDetailsFilter());
-  await app.listen(integerEnv('PORT', 4000, 1, 65_535), 'REDACTED_IP_ADDRESS');
+  await app.listen(integerEnv('PORT', 4000, 1, 65_535), '0.0.0.0');
 }
 
 void bootstrap();

@@ -2,6 +2,11 @@
 
 O projeto usa versões SemVer. Esta lista registra alterações notáveis e limites conhecidos; commits contêm as mudanças completas.
 
+## 0.1.3 — 2026-10-27
+
+- Restaura o endereço de bind `0.0.0.0` exigido para iniciar web e API dentro dos contêineres.
+- Corrige a sanitização pública para preservar endereços wildcard de runtime.
+
 ## 0.1.2 — 2026-10-27
 
 - Melhora contraste dos botões primários, filtros selecionados e rodapé.
