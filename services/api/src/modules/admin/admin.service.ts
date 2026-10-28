@@ -70,10 +70,12 @@ export class AdminService {
       this.db.query<{ seller_id: string }>('SELECT seller_id FROM seller_blocklist ORDER BY seller_id'),
     ]);
     const values = Object.fromEntries(settings.rows.map((row) => [row.setting_key, row.setting_value])) as Record<string, unknown>;
+    const usdBrlRate = Number(values.usd_brl_rate);
+    const rubBrlRate = Number(values.rub_brl_rate);
     return {
       markupPercent: Number(values.markup_percent ?? 55),
-      usdBrlRate: values.usd_brl_rate ?? null,
-      rubBrlRate: values.rub_brl_rate ?? null,
+      usdBrlRate: Number.isFinite(usdBrlRate) && usdBrlRate > 0 ? usdBrlRate : null,
+      rubBrlRate: Number.isFinite(rubBrlRate) && rubBrlRate > 0 ? rubBrlRate : null,
       blockedSellerIds: sellers.rows.map((row) => row.seller_id),
     };
   }
