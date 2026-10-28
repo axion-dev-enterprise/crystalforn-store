@@ -2,6 +2,12 @@
 
 O projeto usa versões SemVer. Esta lista registra alterações notáveis e limites conhecidos; commits contêm as mudanças completas.
 
+## 0.1.2 — 2026-10-27
+
+- Melhora contraste dos botões primários, filtros selecionados e rodapé.
+- Nomeia semanticamente o grupo de filtros de jogo para tecnologias assistivas.
+- Registra referências de design responsivo e revisão das ações da vitrine e do painel.
+
 ## 0.1.1 — 2026-10-27
 
 - Atualiza GitHub Actions para releases compatíveis com Node.js 24 e fixa o runner em Ubuntu 24.04.
