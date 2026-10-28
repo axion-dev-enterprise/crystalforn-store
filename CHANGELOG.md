@@ -5,6 +5,8 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 ## Não lançado
 
 - Adiciona o símbolo facetado Crystalforn ao cabeçalho e ao rodapé.
+- Atualiza o símbolo para o cristal geométrico gerado nesta revisão; o wordmark permanece como texto HTML nítido no cabeçalho e rodapé.
+- Reduz os atributos da listagem pública aos metadados necessários nos cards; arrays completos permanecem disponíveis somente no endpoint de detalhes.
 - Registra tokens de largura, espaçamento, densidade, raios, foco e movimento e aplica os valores compartilhados ao layout, botões e filtros.
 - Mostra horas ou minutos de jogo no inventário Steam quando esse metadado existe, sem preencher dados ausentes com exemplos em anúncios reais.
 - Registra itens descartados por motivo agregado na sincronização e os exibe junto com páginas, importados, duração e erros no histórico administrativo.

@@ -7,7 +7,7 @@ Prefixo global: `/api/v1`. A lista abaixo descreve as rotas presentes no código
 | Método | Rota | Acesso | Comportamento atual |
 | --- | --- | --- | --- |
 | `GET` | `/health` | Público | Verifica conectividade PostgreSQL |
-| `GET` | `/catalog?game=&page=&pageSize=&sort=price_asc&minPrice=&maxPrice=&minDaysOffline=&skinName=&steamGame=&rank=&minLevel=` | Público | Retorna anúncios reais paginados em `live_read_only`; `sort` aceita `price_asc`, `price_desc` ou `title_asc`; compras seguem desativadas |
+| `GET` | `/catalog?game=&page=&pageSize=&sort=price_asc&minPrice=&maxPrice=&minDaysOffline=&skinName=&steamGame=&rank=&minLevel=` | Público | Retorna anúncios reais paginados em `live_read_only`, com atributos reduzidos aos campos usados nos cards; filtros usam dados completos no servidor; `sort` aceita `price_asc`, `price_desc` ou `title_asc`; compras seguem desativadas |
 | `GET` | `/catalog/:id` | Público | Retorna somente campos normalizados de anúncio disponível |
 | `GET` | `/catalog/:id/inventory-image?type=...` | Público | Busca prévias visuais Fortnite com limite por IP |
 | `GET` | `/catalog/roblox-avatars?userIds=...` | Público | Busca avatares públicos com limite por IP |
@@ -68,3 +68,5 @@ Checkout e recargas exigem cabeçalho `Idempotency-Key` entre 16 e 128 caractere
 ## Filtros de inventário
 
 `skinName` procura texto nas listas de skins Fortnite; `steamGame` procura títulos em `inventory.games`/`inventory.game_names`; `rank` pesquisa o rank de Valorant ou LoL; `minLevel` filtra o nível mínimo dessas contas. Cada campo tem limite validado no DTO e combina com jogo, preço, inatividade e paginação. Na demonstração, os filtros usam apenas os exemplos fictícios no cliente; a consulta de banco correspondente está pronta para catálogo habilitado.
+
+Na listagem pública, `attributes` contém somente os metadados usados pelos cards, incluindo contagens, rank, nível, saldos, dados públicos de avatar Roblox e reputação agregada. Arrays de inventário, jogos e skins não são transferidos nessa rota. Os detalhes do produto consultam o registro completo, mas a camada de apresentação continua omitindo credenciais, campos internos e valores sem suporte no modelo público.

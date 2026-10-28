@@ -235,7 +235,33 @@ export class CatalogService {
              THEN (p.attributes#>>'{seller_reputation,sold_items_count}')::numeric END DESC NULLS LAST,
            p.created_at DESC, p.id DESC`;
     const result = await this.db.query(
-      `SELECT p.id,p.provider_item_id,p.game,p.generated_title,p.price_brl_cents,p.attributes,p.synced_at,
+      `SELECT p.id,p.provider_item_id,p.game,p.generated_title,p.price_brl_cents,
+         jsonb_strip_nulls(jsonb_build_object(
+           'days_offline',p.attributes->'days_offline',
+           'seller_reputation',NULLIF(jsonb_strip_nulls(jsonb_build_object(
+             'restore_percent',p.attributes#>'{seller_reputation,restore_percent}',
+             'sold_items_count',p.attributes#>'{seller_reputation,sold_items_count}'
+           )),'{}'::jsonb),
+           'inventory',NULLIF(jsonb_strip_nulls(jsonb_build_object(
+             'games_count',p.attributes#>'{inventory,games_count}',
+             'skins_count',p.attributes#>'{inventory,skins_count}',
+             'lol_rank',p.attributes#>'{inventory,lol_rank}',
+             'rank',p.attributes#>'{inventory,rank}',
+             'vbucks_balance',p.attributes#>'{inventory,vbucks_balance}',
+             'vp_min',p.attributes#>'{inventory,vp_min}',
+             'blue_min',p.attributes#>'{inventory,blue_min}',
+             'robux_balance',p.attributes#>'{inventory,robux_balance}',
+             'level',p.attributes#>'{inventory,level}',
+             'items_count',p.attributes#>'{inventory,items_count}',
+             'fruits_count',p.attributes#>'{inventory,fruits_count}',
+             'pickaxes_count',p.attributes#>'{inventory,pickaxes_count}',
+             'vac_banned',p.attributes#>'{inventory,vac_banned}',
+             'followers_count',p.attributes#>'{inventory,followers_count}',
+             'roblox_id',p.attributes#>'{inventory,roblox_id}',
+             'username',p.attributes#>'{inventory,username}'
+           )),'{}'::jsonb)
+         )) AS attributes,
+         p.synced_at,
          sf.feedback_total AS seller_feedback_total,sf.positive_count AS seller_feedback_positive_count,
          sf.negative_count AS seller_feedback_negative_count,sf.positive_percentage AS seller_feedback_positive_percentage,
          sf.checked_at AS seller_feedback_checked_at

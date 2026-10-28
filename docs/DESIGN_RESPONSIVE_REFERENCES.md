@@ -34,7 +34,7 @@ O CSS centraliza as cores e estados de foco nesses tokens e nos seletores `data-
 
 ## Ajustes desta revisão
 
-- O cabeçalho e o rodapé usam o símbolo original facetado da Crystalforn, com wordmark textual para manter nitidez em qualquer escala.
+- O cabeçalho, o rodapé e o favicon usam o cristal geométrico Crystalforn com fundo transparente. O wordmark permanece em texto HTML para preservar nitidez, acessibilidade e comportamento responsivo.
 - Os detalhes do produto usam título conciso, destaques em chips, preço em coluna própria no desktop e ordem natural no celular; data de sincronização evita sugerir atualização em tempo real.
 - A vitrine oferece ordenação por menor preço, maior preço e nome, remove filtros individualmente e mantém consulta e página na URL e no retorno dos detalhes.
 - Cards e painéis usam escala tipográfica fluida e largura de leitura controlada para acomodar títulos longos sem dominar a tela.
@@ -44,6 +44,7 @@ O CSS centraliza as cores e estados de foco nesses tokens e nos seletores `data-
 - Mantidos viewport dinâmico `100dvh`, breakpoints de conteúdo, navegação móvel com alvos de 44 px, foco visível e respeito a movimento reduzido.
 - Os detalhes identificam os itens como dados públicos fornecidos pelo catálogo e avisam que a cobertura pode ser parcial.
 - A biblioteca Steam apresenta o tempo jogado quando a API fornece `playtime_forever`; a ausência do campo não cria um valor fictício.
+- A listagem pública transfere somente atributos resumidos usados nos cards; inventários completos são consultados no detalhe do anúncio.
 - O inventário e a auditoria administrativas oferecem busca/filtro e navegação paginada em vez de limitar o histórico aos primeiros registros.
 - A prévia administrativa renderiza o mesmo cartão de produto usado na vitrine, com atributos, reputação agregada, atualização e preço em uma única fonte de interface.
 - Catálogo e detalhes sinalizam anúncios com sincronização acima de 24 horas ou sem data conhecida como dados cuja disponibilidade pode ter mudado.
