@@ -39,6 +39,7 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [requestAttempt, setRequestAttempt] = useState(0);
   const [coupon, setCoupon] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [method, setMethod] = useState<'pix' | 'wallet'>('pix');
@@ -92,7 +93,7 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [id]);
+  }, [id, requestAttempt]);
   useEffect(() => {
     setInventoryImages({});
     setInventoryImageMessage('');
@@ -187,7 +188,7 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
     }
   }
   if (loading) return <section className="shell page-shell"><div className="detail-skeleton" aria-label="Carregando detalhes" aria-busy="true"><span /><span /><span /></div></section>;
-  if (!product) return <section className="shell page-shell"><div className="state-panel error-state" role="alert"><div><h1>Produto indisponível</h1><p>{error}</p></div><Link className="button-outline" href={returnTo}>Voltar ao catálogo</Link></div></section>;
+  if (!product) return <section className="shell page-shell"><div className="state-panel error-state" role="alert"><div><h1>Produto indisponível</h1><p>{error}</p></div><div className="state-actions"><button className="button-outline" type="button" onClick={() => { setProduct(null); setError(''); setLoading(true); setRequestAttempt((attempt) => attempt + 1); }}>Tentar novamente</button><Link className="button-outline" href={returnTo}>Voltar ao catálogo</Link></div></div></section>;
   const highlights = titleHighlights(product.generated_title, product.game);
   const updatedAt = syncedAtLabel(product.synced_at);
   return <section className="shell page-shell">

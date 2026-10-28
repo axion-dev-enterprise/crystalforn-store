@@ -12,7 +12,7 @@ Na promoção de 28/10/2026, a web está em `c2185da` e a API em `f8b271b`. Os e
 
 O backend informa `catalogMode: demo`. A página de detalhes e a vitrine deixam claro que os itens são fictícios. Compra, cobrança Pix, saldo da carteira e entrega automática permanecem desativados.
 
-As consultas principais da vitrine e do detalhe de produto têm limite de 15 segundos. Se a API não responder a tempo, a vitrine mostra um erro com opção de nova tentativa e a página do produto informa que a consulta expirou, sem manter o skeleton indefinidamente. Cancelar uma consulta por navegação ou mudança de filtro não apresenta erro ao usuário.
+As consultas principais da vitrine e do detalhe de produto têm limite de 15 segundos. Se a API não responder a tempo, ambos mostram um erro com opção de nova tentativa, sem manter o skeleton indefinidamente. Cancelar uma consulta por navegação ou mudança de filtro não apresenta erro ao usuário.
 
 ## Travas efetivas
 
