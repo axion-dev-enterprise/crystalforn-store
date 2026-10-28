@@ -312,7 +312,7 @@ export class AdminService {
       this.db.query<{ started_at: Date; finished_at: Date | null; pages_read: number; items_seen: number; items_upserted: number; complete: boolean; error_code: string | null }>(
         `SELECT started_at,finished_at,pages_read,items_seen,items_upserted,complete,error_code
          FROM catalog_sync_runs ORDER BY started_at DESC LIMIT 1`),
-      this.db.query<{ total: string; visible: string; hidden: string; unavailable: string; needs_review: string }>(
+      this.db.query<{ total: string; visible: string; hidden: string; unavailable: string; needs_review: string; waiting_sync: string }>(
         `SELECT count(*)::text AS total,
           count(*) FILTER (WHERE p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL
             AND COALESCE(o.hidden,false)=false)::text AS visible,
@@ -320,7 +320,10 @@ export class AdminService {
           count(*) FILTER (WHERE p.status<>'available' OR p.price_brl_cents IS NULL OR p.price_brl_cents<=0)::text AS unavailable,
           count(*) FILTER (WHERE COALESCE(p.source_title,'') ~ '[А-Яа-яЁё]' OR length(trim(p.generated_title))<14
             OR lower(trim(p.generated_title))=p.game OR p.attributes->'inventory' IS NULL
-            OR jsonb_typeof(p.attributes->'inventory')<>'object' OR p.attributes->'inventory'='{}'::jsonb)::text AS needs_review
+            OR jsonb_typeof(p.attributes->'inventory')<>'object' OR p.attributes->'inventory'='{}'::jsonb)::text AS needs_review,
+          count(*) FILTER (WHERE p.status='available' AND p.synced_at < COALESCE(
+            (SELECT started_at FROM catalog_sync_runs WHERE finished_at IS NULL ORDER BY started_at DESC LIMIT 1),
+            'epoch'::timestamptz))::text AS waiting_sync
          FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
          LEFT JOIN catalog_item_overrides o ON o.product_id=p.id`),
       this.db.query<{ finished_at: Date }>(
@@ -348,6 +351,7 @@ export class AdminService {
         hidden: Number(inventory.rows[0]?.hidden ?? 0),
         unavailable: Number(inventory.rows[0]?.unavailable ?? 0),
         needsReview: Number(inventory.rows[0]?.needs_review ?? 0),
+        waitingSync: Number(inventory.rows[0]?.waiting_sync ?? 0),
       },
     };
   }

@@ -12,7 +12,7 @@ type Dashboard = {
   orders: Array<{ status: string; count: string; revenue_cents: string }>;
   currency: string;
   catalogSync: null | { status: 'complete' | 'failed' | 'running'; startedAt: string; finishedAt: string | null; pagesRead: number; itemsSeen: number; itemsUpserted: number; durationMs: number | null; lastSuccessAt: string | null; errorMessage: string | null };
-  inventoryAvailability: { total: number; visible: number; hidden: number; unavailable: number; needsReview: number };
+  inventoryAvailability: { total: number; visible: number; hidden: number; unavailable: number; needsReview: number; waitingSync: number };
 };
 const money = (cents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100);
 const orderStatus: Record<string, string> = { pending_payment: 'Aguardando pagamento', paid: 'Pago', delivery_required: 'Entrega pendente', delivered: 'Entregue', cancelled: 'Cancelado', refunded: 'Valor devolvido à carteira', review: 'Em revisão' };

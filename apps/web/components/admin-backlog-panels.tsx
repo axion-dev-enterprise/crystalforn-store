@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-type InventoryAvailability = { total: number; visible: number; hidden: number; unavailable: number; needsReview: number };
+type InventoryAvailability = { total: number; visible: number; hidden: number; unavailable: number; needsReview: number; waitingSync: number };
 type CatalogItem = {
   id: string;
   provider_item_id: string;
@@ -67,6 +67,7 @@ export function AdminBacklogPanels({ inventoryAvailability, defaultMarkupPercent
   const [visibility, setVisibility] = useState('all');
   const [quality, setQuality] = useState('all');
   const [catalogRefresh, setCatalogRefresh] = useState(0);
+  const [previewItemId, setPreviewItemId] = useState('');
   const [syncRuns, setSyncRuns] = useState<SyncRun[]>([]);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [historyError, setHistoryError] = useState('');
@@ -166,6 +167,7 @@ export function AdminBacklogPanels({ inventoryAvailability, defaultMarkupPercent
         <div><dt>Oculto por regra</dt><dd>{inventoryAvailability.hidden.toLocaleString('pt-BR')}</dd></div>
         <div><dt>Indisponível ou sem preço</dt><dd>{inventoryAvailability.unavailable.toLocaleString('pt-BR')}</dd></div>
         <div><dt>Precisa de revisão</dt><dd>{inventoryAvailability.needsReview.toLocaleString('pt-BR')}</dd></div>
+        <div><dt>Aguardando sincronização</dt><dd>{inventoryAvailability.waitingSync.toLocaleString('pt-BR')}</dd></div>
       </dl> : <p className="empty-inline" role="status">As contagens do estoque ainda estão carregando.</p>}
     </section>
 
@@ -195,9 +197,11 @@ export function AdminBacklogPanels({ inventoryAvailability, defaultMarkupPercent
             <div className="visibility-flags">{item.seller_hidden && <span>Vendedor oculto</span>}{item.item_hidden && <span>Anúncio oculto</span>}{!item.hidden && <span className="quality-good">Visível ao público</span>}</div>
           </div>
           <div className="admin-catalog-actions">
+            <button className="button-outline" type="button" aria-expanded={previewItemId === item.id} aria-controls={`listing-preview-${item.id}`} onClick={() => setPreviewItemId((current) => current === item.id ? '' : item.id)}>{previewItemId === item.id ? 'Fechar prévia' : 'Prévia na loja'}</button>
             {item.seller_id && <button className="button-outline" type="button" disabled={busyTarget === `sellers:${item.seller_id}`} onClick={() => void setVisibility('sellers', item.seller_id!, !item.seller_hidden)}>{item.seller_hidden ? 'Reexibir vendedor' : 'Ocultar vendedor'}</button>}
             <button className="button-outline" type="button" disabled={busyTarget === `items:${item.id}`} onClick={() => void setVisibility('items', item.id, !item.item_hidden)}>{item.item_hidden ? 'Reexibir anúncio' : 'Ocultar anúncio'}</button>
           </div>
+          {previewItemId === item.id && <article className="admin-listing-preview" id={`listing-preview-${item.id}`} aria-label={`Prévia pública de ${item.generated_title}`}><p className="eyebrow">PRÉVIA DA VITRINE PÚBLICA</p><p>{gameName[item.game] ?? item.game}</p><h4>{item.generated_title}</h4><strong>{formatMoney(item.price_brl_cents ? Number(item.price_brl_cents) : null)}</strong><p className="fine-print">O anúncio público exibe os atributos disponíveis no catálogo. Credenciais de acesso não são incluídas nesta prévia.</p></article>}
         </li>)}</ul>
         <div className="pagination" aria-label="Paginação do catálogo administrativo"><button className="button-outline" type="button" onClick={() => setCatalogPage((page) => Math.max(1, page - 1))} disabled={catalogPage <= 1 || catalogLoading}>Anterior</button><span>Página {catalog.page} de {catalog.totalPages}</span><button className="button-outline" type="button" onClick={() => setCatalogPage((page) => Math.min(catalog.totalPages, page + 1))} disabled={catalogLoading || catalogPage >= catalog.totalPages}>Próxima</button></div>
       </> : <div className="empty-inline"><p>{catalog?.total ? 'Nenhum anúncio nesta página.' : 'Nenhum anúncio corresponde aos filtros.'}</p>{(search || game || sellerId || status || minPrice || maxPrice || visibility !== 'all' || quality !== 'all') && <button className="text-link-button" type="button" onClick={() => { setSearch(''); setGame(''); setSellerId(''); setStatus(''); setMinPrice(''); setMaxPrice(''); setVisibility('all'); setQuality('all'); setCatalogPage(1); }}>Limpar filtros</button>}</div>}
