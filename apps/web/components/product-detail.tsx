@@ -46,6 +46,8 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
   const [copyStatus, setCopyStatus] = useState('');
   const [inventoryImages, setInventoryImages] = useState<InventoryImages>({});
   const [inventoryImageMessage, setInventoryImageMessage] = useState('');
+  const [inventorySection, setInventorySection] = useState<HTMLElement | null>(null);
+  const [visibleInventoryProductId, setVisibleInventoryProductId] = useState('');
   const [termsEnabled, setTermsEnabled] = useState(false);
   const [catalogReadOnly, setCatalogReadOnly] = useState(false);
   const [paymentProviderApproval, setPaymentProviderApproval] = useState<Record<'mercadopago' | 'pushinpay', boolean>>({ mercadopago: false, pushinpay: false });
@@ -67,11 +69,24 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
     return () => { active = false; };
   }, []);
   useEffect(() => {
-    if (product?.game !== 'fortnite') return;
+    if (!product || !inventorySection) return;
+    setVisibleInventoryProductId('');
+    if (!('IntersectionObserver' in window)) { setVisibleInventoryProductId(product.id); return; }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setVisibleInventoryProductId(product.id);
+        observer.disconnect();
+      }
+    }, { rootMargin: '240px' });
+    observer.observe(inventorySection);
+    return () => observer.disconnect();
+  }, [inventorySection, product?.id]);
+  useEffect(() => {
+    if (product?.game !== 'fortnite' || visibleInventoryProductId !== product.id) return;
     let active = true;
     void Promise.all((['skins', 'pickaxes', 'dances', 'gliders'] as const).map(async (type) => {
       try {
-        const response = await fetch(`/api/v1/catalog/${encodeURIComponent(product.id)}/inventory-image?type=${type}`, { cache: 'force-cache' });
+        const response = await fetch(`/api/v1/catalog/${encodeURIComponent(product.id)}/inventory-image?type=${type}`, { cache: 'force-cache', signal: AbortSignal.timeout(15_000) });
         if (!response.ok) throw new Error();
         const body = await response.json() as { imageDataUrl?: string };
         if (!body.imageDataUrl?.startsWith('data:image/png;base64,')) throw new Error();
@@ -84,9 +99,9 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
       if (Object.keys(images).length === 0) setInventoryImageMessage('As prévias visuais do fornecedor não estão disponíveis agora; os dados públicos informados continuam abaixo.');
     });
     return () => { active = false; };
-  }, [product]);
+  }, [product, visibleInventoryProductId]);
   useEffect(() => {
-    if (product?.game !== 'roblox') return;
+    if (product?.game !== 'roblox' || visibleInventoryProductId !== product.id) return;
     const inventory = product.attributes.inventory as Record<string, unknown> | undefined;
     const userId = inventory?.roblox_id === undefined ? '' : String(inventory.roblox_id);
     if (!/^\d{1,20}$/.test(userId)) return;
@@ -96,7 +111,7 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
       .then((body) => { if (active && body.avatars?.[userId]) setInventoryImages((current) => ({ ...current, avatar: body.avatars![userId] })); })
       .catch(() => { if (active) setInventoryImageMessage('A miniatura pública do perfil Roblox não está disponível agora.'); });
     return () => { active = false; };
-  }, [product]);
+  }, [product, visibleInventoryProductId]);
   async function buy(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError('');
     if (method === 'pix' && !paymentProviderApproval[gateway]) {
@@ -173,13 +188,13 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
         </form>}
       </aside>
       {inventoryImageMessage && <p className="inventory-image-note" role="status">{inventoryImageMessage}</p>}
-      <InventoryShowcase game={product.game} attributes={product.attributes} images={inventoryImages} />
+      <InventoryShowcase game={product.game} attributes={product.attributes} images={inventoryImages} sectionRef={setInventorySection} />
       <div className="attributes-panel"><h2>Outros dados da conta</h2><AttributeList attributes={product.attributes} /></div>
     </div>
   </section>;
 }
 
-function InventoryShowcase({ game, attributes, images }: { game: string; attributes: Record<string, unknown>; images: InventoryImages }) {
+function InventoryShowcase({ game, attributes, images, sectionRef }: { game: string; attributes: Record<string, unknown>; images: InventoryImages; sectionRef: (element: HTMLElement | null) => void }) {
   const inventory = attributes.inventory && typeof attributes.inventory === 'object' ? attributes.inventory as Record<string, unknown> : {};
   const definitions = game === 'fortnite' ? [
     { key: 'skins', fallback: 'featured_skins', title: 'Personagens e skins', image: images.skins },
@@ -219,7 +234,7 @@ function InventoryShowcase({ game, attributes, images }: { game: string; attribu
     const tone = /mythic|icon/i.test(rarity) ? 'cosmetic-mythic' : /legendary/i.test(rarity) ? 'cosmetic-legendary' : /epic/i.test(rarity) ? 'cosmetic-epic' : 'cosmetic-standard';
     return <li className="cosmetic-card" key={`${title}-${index}`}><span className={`cosmetic-mark ${tone}`} aria-hidden="true">{title.slice(0, 2).toUpperCase()}</span><span className="cosmetic-copy"><strong>{title}</strong>{translatedRarity && <small>{translatedRarity}</small>}{playtimeLabel && <small>{playtimeLabel}</small>}</span></li>;
   }
-  return <section className={`inventory-showcase inventory-${game}`} aria-labelledby="inventory-showcase-title">
+  return <section ref={sectionRef} className={`inventory-showcase inventory-${game}`} aria-labelledby="inventory-showcase-title">
     <div className="inventory-showcase-heading"><div><p className="eyebrow">ITENS INFORMADOS PELO FORNECEDOR</p><h2 id="inventory-showcase-title">Itens do inventário</h2><p className="inventory-coverage-note">A lista depende dos campos públicos disponíveis para este anúncio e pode ser parcial.</p></div><span>{groups.reduce((total, group) => total + group.items.length, 0)} itens listados</span></div>
     {game === 'roblox' && <RobloxProfile inventory={inventory} avatar={images.avatar} />}
     {groups.map((group) => <section className="inventory-group" key={group.key}>
