@@ -26,6 +26,8 @@ Não use `docker compose down -v` em instalações com dados que devam ser prese
 
 O `.env.example` contém placeholders. Gere valores únicos para credenciais de banco, segredo entre serviços, segredo de sessão e chave de cifragem. As variáveis de integração de fornecedor e gateway permanecem sem uso comercial na versão demo. Guarde segredos no mecanismo privado do ambiente e injete em runtime; nunca os grave no repositório.
 
+O worker divide cada página do fornecedor em requisições internas com no máximo 500 anúncios e limite padrão de `1.500.000` bytes (`API_IMPORT_BATCH_MAX_BYTES`). O limite máximo configurável é `1.900.000` bytes para permanecer abaixo do parser JSON de 2 MiB da API; anúncios individuais maiores falham com código explícito em vez de gerar um `413` ambíguo.
+
 ## Migrações e backup
 
 O serviço API aplica migrações no início. Antes de atualizar uma instalação persistente, crie e verifique backup do banco com ferramenta compatível, registre hash/tamanho, e confirme a estratégia de restauração. Teste restauração em ambiente isolado. Este repositório não fornece backup de dados privados.

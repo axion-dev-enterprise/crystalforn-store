@@ -21,6 +21,7 @@ const intervalMs = integerEnv('API_SYNC_INTERVAL_SECONDS', 30, 30, 2_147_483) * 
 const requestedDelayMs = integerEnv('API_RATE_DELAY_MS', 3000, 0, 60_000);
 const maxPages = integerEnv('API_MAX_SYNC_PAGES', 500, 1, 500);
 const timeoutMs = integerEnv('API_REQUEST_TIMEOUT_MS', 10_000, 1000, 60_000);
+const importBatchMaxBytes = integerEnv('API_IMPORT_BATCH_MAX_BYTES', 1_500_000, 16_384, 1_900_000);
 let stopping = false;
 const pool = new Pool({ connectionString: databaseUrl, max: 2, application_name: 'digital-store-inventory-worker', connectionTimeoutMillis: 5000 });
 const apiRoot = new URL(apiBase.endsWith('/') ? apiBase : `${apiBase}/`);
@@ -38,6 +39,33 @@ function itemId(item: unknown): string | null {
   if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
   const id = String((item as Record<string, unknown>).item_id ?? '').trim();
   return id && id.length <= 100 ? id : null;
+}
+
+function catalogImportBodies(items: unknown[], maxBytes: number): string[] {
+  const prefix = '{"items":[';
+  const suffix = ']}';
+  const maxItems = 500;
+  const bodies: string[] = [];
+  let encodedItems: string[] = [];
+  let bodyBytes = Buffer.byteLength(prefix) + Buffer.byteLength(suffix);
+  for (const item of items) {
+    const encoded = JSON.stringify(item);
+    if (encoded === undefined) throw new Error('catalog_item_not_serializable');
+    const itemBytes = Buffer.byteLength(encoded);
+    const separatorBytes = encodedItems.length ? 1 : 0;
+    if (encodedItems.length >= maxItems || bodyBytes + separatorBytes + itemBytes > maxBytes) {
+      if (!encodedItems.length) throw new Error('catalog_item_exceeds_import_request_limit');
+      bodies.push(`${prefix}${encodedItems.join(',')}${suffix}`);
+      encodedItems = [];
+      bodyBytes = Buffer.byteLength(prefix) + Buffer.byteLength(suffix);
+    }
+    const nextSeparatorBytes = encodedItems.length ? 1 : 0;
+    if (bodyBytes + nextSeparatorBytes + itemBytes > maxBytes) throw new Error('catalog_item_exceeds_import_request_limit');
+    encodedItems.push(encoded);
+    bodyBytes += nextSeparatorBytes + itemBytes;
+  }
+  if (encodedItems.length) bodies.push(`${prefix}${encodedItems.join(',')}${suffix}`);
+  return bodies;
 }
 
 async function refreshOneSellerFeedback(): Promise<void> {
@@ -293,17 +321,22 @@ async function synchronize(): Promise<void> {
         }
         pageIds.forEach((id) => seen.add(id));
         itemsSeen += payload.items.length;
-        const imported = await fetch(`${internalOrigin}/api/v1/internal/catalog/items`, {
-          method: 'POST', headers: { Authorization: `Bearer ${workerSecret}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items: apiProvider === 'lzt-market' && feed.key !== 'generic'
-            ? payload.items.map((item) => item && typeof item === 'object' && !Array.isArray(item)
-              ? { ...(item as Record<string, unknown>), catalog_game_hint: feed.key }
-              : item)
-            : payload.items }), signal: AbortSignal.timeout(timeoutMs),
-        });
-        if (!imported.ok) { errorCode = `catalog_import_http_${imported.status}`; break; }
-        const result = await imported.json() as { imported?: number };
-        upserted += Number(result.imported ?? 0);
+        const importItems = apiProvider === 'lzt-market' && feed.key !== 'generic'
+          ? payload.items.map((item) => item && typeof item === 'object' && !Array.isArray(item)
+            ? { ...(item as Record<string, unknown>), catalog_game_hint: feed.key }
+            : item)
+          : payload.items;
+        const importBodies = catalogImportBodies(importItems, importBatchMaxBytes);
+        for (const body of importBodies) {
+          const imported = await fetch(`${internalOrigin}/api/v1/internal/catalog/items`, {
+            method: 'POST', headers: { Authorization: `Bearer ${workerSecret}`, 'Content-Type': 'application/json' },
+            body, signal: AbortSignal.timeout(timeoutMs),
+          });
+          if (!imported.ok) { errorCode = `catalog_import_http_${imported.status}`; break; }
+          const result = await imported.json() as { imported?: number };
+          upserted += Number(result.imported ?? 0);
+        }
+        if (errorCode) break;
         if (apiProvider === 'lzt-market' && !stopping) await refreshOneSellerFeedback();
         genericItemsSeen += apiProvider === 'generic' ? payload.items.length : 0;
         if (apiProvider === 'generic' && payload.hasNextPage === false
@@ -362,8 +395,11 @@ async function synchronize(): Promise<void> {
       'UPDATE catalog_sync_runs SET finished_at=now(),pages_read=$2,items_seen=$3,items_upserted=$4,complete=$5,error_code=$6 WHERE id=$1',
       [runId, pages, itemsSeen, upserted, complete, errorCode]);
     if (!complete && !errorCode) await lockClient.query("UPDATE catalog_sync_runs SET error_code='unknown_incomplete' WHERE id=$1", [runId]);
-  } catch {
-    if (runId) await lockClient.query("UPDATE catalog_sync_runs SET finished_at=now(),complete=false,error_code='worker_error' WHERE id=$1", [runId]).catch(() => undefined);
+  } catch (error) {
+    const knownImportError = error instanceof Error
+      && ['catalog_item_not_serializable', 'catalog_item_exceeds_import_request_limit'].includes(error.message)
+      ? error.message : 'worker_error';
+    if (runId) await lockClient.query('UPDATE catalog_sync_runs SET finished_at=now(),complete=false,error_code=$2 WHERE id=$1', [runId, knownImportError]).catch(() => undefined);
   } finally {
     if (locked) await lockClient.query("SELECT pg_advisory_unlock(hashtext('digital-accounts-store-inventory-sync'))").catch(() => undefined);
     lockClient.release();
