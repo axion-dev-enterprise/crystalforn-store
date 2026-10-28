@@ -66,8 +66,8 @@ export function SiteHeader() {
     <header className="site-header">
       <div className="shell header-row">
         <Link className="brand" href="/" aria-label="Crystalforn, início">
-          <span className="brand-mark" aria-hidden="true"><Image src="/brand/crystalforn-mark.png" alt="" width={48} height={48} priority /></span>
-          <span>Crystalforn<small>contas digitais</small></span>
+          <Image className="brand-wordmark brand-wordmark-dark" src="/brand/crystalforn-wordmark-dark.png" alt="" width={1945} height={808} priority />
+          <Image className="brand-wordmark brand-wordmark-light" src="/brand/crystalforn-wordmark-light.png" alt="" width={1942} height={809} />
         </Link>
         <nav className="primary-nav" aria-label="Navegação principal">
           <Link href="/#catalogo">Catálogo</Link>

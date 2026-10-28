@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import { DEMO_PRODUCTS } from '@/data/demo-products';
 
 export type StoreProduct = { id: string; game: string; generated_title: string; price_brl_cents: number | string; attributes: Record<string, unknown>; synced_at?: string | null; seller_feedback_total?: number | null; seller_feedback_positive_percentage?: number | null };
 type Catalog = { items: StoreProduct[]; page: number; pageSize: number; total: number; totalPages?: number; demoOnly?: boolean; catalogMode?: string; message?: string };
@@ -10,18 +11,6 @@ type CatalogSort = 'price_asc' | 'price_desc' | 'title_asc';
 const EMPTY_FILTERS: Filters = { minPrice: '', maxPrice: '', minDaysOffline: '', skinName: '', steamGame: '', rank: '', minLevel: '' };
 const games = [{ id: '', label: 'Todos' }, { id: 'fortnite', label: 'Fortnite' }, { id: 'steam', label: 'Steam' }, { id: 'roblox', label: 'Roblox' }, { id: 'valorant', label: 'Valorant' }, { id: 'lol', label: 'League of Legends' }];
 const money = (cents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100);
-const DEMO_PRODUCTS: StoreProduct[] = [
-  { id: 'demo-fortnite-01', game: 'fortnite', generated_title: 'Fortnite · inventário com 42 skins', price_brl_cents: 8990, attributes: { days_offline: 45, inventory: { skins_count: 42, skin_names: ['Travis Scott', 'Lynx', 'Peely'], pickaxe_names: ['Driver'], emote_names: ['Dance Moves'], glider_names: ['Discovery'], pickaxes_count: 18, vbucks_balance: 1200 } } },
-  { id: 'demo-fortnite-02', game: 'fortnite', generated_title: 'Fortnite · coleção de 86 skins', price_brl_cents: 14990, attributes: { days_offline: 120, inventory: { skins_count: 86, skin_names: ['Midas', 'Lynx', 'Raven'], pickaxe_names: ['Reaper'], emote_names: ['Scenario'], glider_names: ['Founder’s Umbrella'], pickaxes_count: 31, vbucks_balance: 2500 } } },
-  { id: 'demo-valorant-01', game: 'valorant', generated_title: 'Valorant · Platina · nível 137', price_brl_cents: 11990, attributes: { days_offline: 60, inventory: { rank: 'Platina', level: 137, skins_count: 24 } } },
-  { id: 'demo-valorant-02', game: 'valorant', generated_title: 'Valorant · Diamante · nível 208', price_brl_cents: 21990, attributes: { days_offline: 90, inventory: { rank: 'Diamante', level: 208, skins_count: 41 } } },
-  { id: 'demo-lol-01', game: 'lol', generated_title: 'League of Legends · Ouro · nível 76', price_brl_cents: 10990, attributes: { days_offline: 52, inventory: { rank: 'Ouro', lol_rank: 'Ouro II', level: 76, skins_count: 33 } } },
-  { id: 'demo-lol-02', game: 'lol', generated_title: 'League of Legends · Esmeralda · nível 184', price_brl_cents: 18990, attributes: { days_offline: 101, inventory: { rank: 'Esmeralda', lol_rank: 'Esmeralda III', level: 184, skins_count: 68 } } },
-  { id: 'demo-roblox-01', game: 'roblox', generated_title: 'Roblox · nível 82 · 16 itens', price_brl_cents: 6990, attributes: { days_offline: 35, inventory: { level: 82, items_count: 16, robux_balance: 800 } } },
-  { id: 'demo-roblox-02', game: 'roblox', generated_title: 'Roblox · nível 146 · 32 itens', price_brl_cents: 12990, attributes: { days_offline: 75, inventory: { level: 146, items_count: 32, robux_balance: 2100 } } },
-  { id: 'demo-steam-01', game: 'steam', generated_title: 'Steam · biblioteca com 38 jogos', price_brl_cents: 7990, attributes: { days_offline: 40, inventory: { level: 21, games_count: 38, game_names: ['Portal 2', 'Hades', 'Stardew Valley'], games: [{ title: 'Portal 2', playtime_forever: 4500 }, { title: 'Hades', playtime_forever: 1280 }, { title: 'Stardew Valley', playtime_forever: 0 }], vac_banned: false } } },
-  { id: 'demo-steam-02', game: 'steam', generated_title: 'Steam · biblioteca com 112 jogos', price_brl_cents: 18990, attributes: { days_offline: 100, inventory: { level: 54, games_count: 112, game_names: ['Cyberpunk 2077', 'Elden Ring', 'Portal 2'], games: [{ title: 'Cyberpunk 2077', playtime_forever: 3040 }, { title: 'Elden Ring', playtime_forever: 8950 }, { title: 'Portal 2', playtime_forever: 240 }], vac_banned: false } } },
-];
 const DEMO_PAGE_SIZE = 6;
 
 function displayTitle(product: StoreProduct): string {
@@ -213,7 +202,7 @@ export function CatalogProductCard({ product, demo, sequence, returnTo = '/#cata
     </p>}
     <div className="product-bottom">
       <span className="demo-price"><strong>{money(Number(product.price_brl_cents))}</strong>{demo && <small>valor ilustrativo</small>}</span>
-      {demo ? <span className="demo-no-sale">Sem compra</span> : <a className="text-link" href={`/produto/${product.id}?returnTo=${encodeURIComponent(returnTo)}`}>Ver detalhes <span aria-hidden="true">→</span></a>}
+      {demo ? <a className="text-link" aria-label={`Ver detalhes do exemplo fictício de ${gameLabel(product.game)}`} href={`/produto/${product.id}?returnTo=${encodeURIComponent(returnTo)}`}>Ver detalhes <span aria-hidden="true">→</span></a> : <a className="text-link" href={`/produto/${product.id}?returnTo=${encodeURIComponent(returnTo)}`}>Ver detalhes <span aria-hidden="true">→</span></a>}
     </div>
   </article>;
 }

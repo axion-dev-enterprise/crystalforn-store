@@ -383,4 +383,17 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 :root[data-theme="dark"] .button-primary{color:var(--paper)}
 .cancellation-request summary:focus-visible{outline-color:var(--focus-color)}
 @media(prefers-reduced-motion:reduce){.product-card:hover{transform:none}}
+
+.brand-wordmark{display:block;width:220px;height:60px;object-fit:cover;object-position:center}
+.brand-wordmark-light{display:none}
+:root[data-theme="light"] .brand-wordmark-dark{display:none}
+:root[data-theme="light"] .brand-wordmark-light{display:block}
+@media(max-width:700px){.brand-wordmark{width:190px;height:52px}}
+@media(max-width:380px){.brand-wordmark{width:164px;height:45px}}
+.sync-discard-reasons{display:grid;gap:8px;max-width:560px}
+.sync-discard-reasons h3{margin:0;color:var(--muted);font:10px var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.sync-discard-reasons p{margin:0;color:var(--muted);font-size:12px}
+.sync-discard-reasons ul{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
+.sync-discard-reasons li{display:flex;min-height:36px;align-items:center;gap:12px;padding:6px 10px;border:1px solid var(--line);background:var(--soft);color:var(--ink);font-size:12px}
+.sync-discard-reasons strong{font-family:var(--mono);font-variant-numeric:tabular-nums}
 .roblox-card-frame{position:absolute;inset:0;display:block}

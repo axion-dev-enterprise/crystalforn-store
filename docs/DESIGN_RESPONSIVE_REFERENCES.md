@@ -34,8 +34,10 @@ O CSS centraliza as cores e estados de foco nesses tokens e nos seletores `data-
 
 ## Ajustes desta revisão
 
-- O cabeçalho, o rodapé e o favicon usam o cristal geométrico Crystalforn com fundo transparente. O wordmark permanece em texto HTML para preservar nitidez, acessibilidade e comportamento responsivo.
+- O rodapé e o favicon usam o símbolo geométrico Crystalforn com fundo transparente.
+- O cabeçalho usa variantes raster transparentes do wordmark em cores próprias para tema escuro e claro; o nome acessível segue no link e o símbolo compacto continua no favicon e rodapé.
 - Os detalhes do produto usam título conciso, destaques em chips, preço em coluna própria no desktop e ordem natural no celular; data de sincronização evita sugerir atualização em tempo real.
+- Exemplos fictícios abrem uma página de detalhe própria, com valor e inventário identificados como demonstrativos; essa rota usa dados locais e não solicita imagens ou dados ao fornecedor.
 - A vitrine oferece ordenação por menor preço, maior preço e nome, remove filtros individualmente e mantém consulta e página na URL e no retorno dos detalhes.
 - Cards e painéis usam escala tipográfica fluida e largura de leitura controlada para acomodar títulos longos sem dominar a tela.
 - Corrigido o contraste do texto em botões primários e filtros selecionados sobre a superfície azul-clara da marca.
@@ -53,6 +55,7 @@ O CSS centraliza as cores e estados de foco nesses tokens e nos seletores `data-
 - QR Codes Pix também declaram dimensões HTML de 180×180 px; o linter Web Vitals do workspace agora reporta zero avisos de dimensões nas imagens da aplicação.
 - O inventário e a auditoria administrativas oferecem busca/filtro e navegação paginada em vez de limitar o histórico aos primeiros registros.
 - A prévia administrativa renderiza o mesmo cartão de produto usado na vitrine, com atributos, reputação agregada, atualização e preço em uma única fonte de interface.
+- A seção operacional de sincronização exibe os anúncios descartados e traduz os motivos retornados pelo backend, junto com duração, páginas, volume e última execução bem-sucedida.
 - Catálogo e detalhes sinalizam anúncios com sincronização acima de 24 horas ou sem data conhecida como dados cuja disponibilidade pode ter mudado.
 
 ## Escopo da verificação
