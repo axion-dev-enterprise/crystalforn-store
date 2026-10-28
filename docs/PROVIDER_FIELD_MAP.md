@@ -1,6 +1,6 @@
 # Mapa de filtros e campos do fornecedor
 
-Atualizado em 28/10/2026. Este mapa diferencia filtros implementados na loja, normalização de dados no código e parâmetros descritos pela LZT. A presença de um parâmetro de busca não significa que a resposta contenha os mesmos detalhes como campos de inventário.
+Atualizado em 28/10/2026 após nova conferência da documentação pública. Este mapa diferencia filtros implementados na loja, normalização de dados no código e parâmetros descritos pela LZT. A presença de um parâmetro de busca não significa que a resposta contenha os mesmos detalhes como campos de inventário.
 
 ## Mapeamentos implementados
 
@@ -18,11 +18,13 @@ Atualizado em 28/10/2026. Este mapa diferencia filtros implementados na loja, no
 | --- | --- | --- | --- | --- |
 | Fortnite | `skinName` | `inventory.skins`, `inventory.featured_skins` | `skin[]` (enum de skins) | A busca local funciona sobre itens importados; o modo demo usa fixtures. O enum LZT não é enviado pela vitrine. |
 | Steam | `steamGame` | `inventory.games`, `inventory.game_names` | `game[]` (IDs) | A busca aceita nome do jogo presente no payload. Não há resolução texto→ID para consulta LZT. |
-| Valorant | `rank`, `minLevel` | `inventory.rank`, `inventory.level` | `rmin`, `rmax` (rank numérico) | A API local filtra rank/nível dos registros importados; a vitrine não traduz o rótulo textual para enums de busca do fornecedor. |
-| League of Legends | `rank`, `minLevel` | `inventory.rank`, `inventory.lol_rank`, `inventory.level`, `inventory.lol_level` | `lol_rank[]` (enum de rank) | A API local filtra rank/nível conhecidos; os parâmetros LZT não são enviados pela vitrine. |
+| Valorant | `rank`, `minLevel` | `inventory.rank`, `inventory.level` | `rmin`, `rmax`, `valorant_level_min`, `valorant_level_max` | A API local filtra rank/nível dos registros importados; a vitrine não traduz o rótulo textual para enums de busca do fornecedor. |
+| League of Legends | `rank`, `minLevel` | `inventory.rank`, `inventory.lol_rank`, `inventory.level`, `inventory.lol_level` | `lol_rank[]`, `lol_level_min`, `lol_level_max` | A API local filtra rank/nível conhecidos; os parâmetros LZT não são enviados pela vitrine. |
 | Roblox | Sem filtro de item individual | `inventory.items`, `inventory.fruits`, `inventory.gamepasses` | `robux_min`/`robux_max`, `gamepass_min`/`gamepass_max` | Filtros documentados são agregados; lista de gamepasses depende de campo presente no payload. |
 
 Os testes de navegação desta revisão usaram apenas parâmetros da loja em modo demo e fixtures sintéticas; a tabela acima descreve o mapeamento estático do código e documentação. Ela não afirma que o fornecedor foi consultado.
+
+Na documentação oficial consultada em 28/10/2026, a categoria Epic lista 3.122 valores em `skin[]`, 2.307 em `pickaxe[]`, 2.209 em `dance[]` e 759 em `glider[]`; esses enums permitem selecionar nomes individuais na busca do fornecedor, mas não garantem que o inventário retornado traga a lista completa dos itens. Steam documenta `game[]` como IDs inteiros. Riot documenta `rmin`/`rmax` para ranks Valorant, `valorant_level_min/max`, `lol_rank[]` e `lol_level_min/max`. Roblox documenta `gamepass_min/max` como custo total de passes em jogos populares, não nomes de passes individuais.
 
 - **Epic Games/Fortnite:** a LZT publica `skin[]`, `pickaxe[]`, `dance[]` e `glider[]` com enums de milhares de itens. A vitrine hoje pesquisa nomes nos arrays já importados; o sincronizador não expõe seleção desses enums e não repassa o filtro individual à consulta do fornecedor.
 - **Riot:** `rmin`/`rmax` são limites numéricos de rank Valorant; `lol_rank[]` é um filtro de rank LoL. A API da loja recebe pesquisa textual normalizada e aplica o filtro sobre os anúncios já importados.

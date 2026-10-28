@@ -1,6 +1,6 @@
 # Backlog Crystalforn
 
-Atualizado em 28/10/2026 após nova revisão das mensagens de Mateus Alves Fernandes na Workana. O cliente considera a API próxima do rumo esperado, condicionando a conclusão a filtros essenciais, amostras transparentes de inventário, títulos legíveis e melhor cobertura de paginação. Este documento reúne o backlog funcional, visual e operacional; status representam evidência no código/documentação, não autorização para ativar operações comerciais.
+Atualizado em 28/10/2026 após nova leitura da conversa de Mateus Alves Fernandes na Workana. O cliente considera a API próxima do rumo esperado e detalhou filtros, nomes de rank/divisão, atributos dos cards, inventários por jogo, escala, preço e o fluxo futuro de compra. Este documento reúne o backlog funcional, visual e operacional; status representam evidência no código/documentação, não autorização para ativar operações comerciais.
 
 ## Estado e limites atuais
 
@@ -21,6 +21,34 @@ Atualizado em 28/10/2026 após nova revisão das mensagens de Mateus Alves Ferna
 - **Paginação:** o cliente observou respostas pequenas (10–30 anúncios e 120 para Steam) e reiterou a expectativa de 20–40 mil. O alvo permanece não validado; o código e limites documentados não garantem sincronização em tempo real.
 - **Próxima etapa citada:** gateway e testes de entrega depois dos ajustes. Isso não altera o modo demo vigente: qualquer operação real segue bloqueada e requer revisão/aprovação independente.
 
+## Novo backlog — detalhamento da leitura atual
+
+Este recorte incorpora as mensagens mais novas da conversa. A coluna de estado descreve a evidência atual, e não um aceite do cliente. Itens de demonstração usam somente fixtures; itens comerciais permanecem bloqueados.
+
+| Ordem | Entrega | Estado | Critério de conclusão |
+| --- | --- | --- | --- |
+| 1 | Filtros essenciais e títulos por jogo | Parcial; filtros locais e normalização de rank existem, opções do fornecedor não estão conectadas | Fortnite pesquisa skins/personagens; Steam pesquisa jogos; LoL e Valorant filtram nível/rank quando disponíveis. Títulos em pt-BR exibem rank/divisão somente para LoL/Valorant, respeitando as listas abaixo e sem inventar dados. |
+| 2 | Cards e páginas de detalhe transparentes | Parcial; há exemplos textuais e algumas prévias condicionais por URL | Cards mostram selo “Full Acesso” apenas quando sustentado pelo anúncio; Fortnite usa inventário visual quando recursos confiáveis existem; Roblox usa avatar permitido; LoL/Valorant/Steam podem usar arte genérica licenciada. Detalhes agrupam atributos por jogo e marcam listas incompletas. |
+| 3 | Inventário representativo em todas as categorias | Parcial; fixture Fortnite foi inspecionada, payloads completos por categoria não foram confirmados | Mapear campos reais para skins, picaretas, emotes, asas-delta, jogos Steam, itens Riot e gamepasses; imagens e nomes aparecem lado a lado quando o payload/fonte autorizada fornecer os dados. Sem campo, imagem ou item, mostrar ausência/fallback, não inferir. |
+| 4 | Paginação e ordenação em massa | Benchmark sintético 20k/40k passou; runtime LZT permanece desativado e escala real não validada | Registrar uma medição autorizada de 20k/30k/40k, memória, duração, retomada, páginas, limites e falhas. Listar preço crescente e filtrar preço/inatividade; priorizar reputação somente se houver campo confiável. Não chamar varredura periódica de “tempo real” sem evidência de evento/latência. |
+| 5 | Moeda e formação de preço | Não comprovado em fluxo de produção | Especificar fonte e horário do câmbio RUB→BRL, precisão/arredondamento e fórmula de margem variável de 50%–59%; validar com exemplos sintéticos. Não publicar preço comercial nem consultar fornecedor no modo demo. |
+| 6 | Checkout, indisponibilidade e pós-compra | Bloqueado pelo modo demo | Em uma futura revisão autorizada, definir aceite obrigatório dos termos, validação de disponibilidade antes de cobrar, não entrega se o fornecedor rejeitar, idempotência e crédito automático de estorno em saldo. Integrar gateway e campos de entrega somente depois de revisar compatibilidade, segurança e autorização comercial. |
+| 7 | Revisão responsiva, temas e administração | Parcial; revisão pública confirmou redirecionamento de `/admin` e `/cliente` sem sessão | Verificar catálogo, detalhe e painel em celular/desktop, tema claro/escuro, foco/contraste, dados de cada indicador e permissões de sessão legítima. Sem sessão válida, manter o item marcado como não verificado. |
+
+### Dados exatos de rank informados pelo cliente
+
+- **League of Legends:** Ferro, Bronze, Prata, Ouro, Platina e Esmeralda; cada tier com IV, III, II e I.
+- **Valorant:** Ferro, Bronze, Prata, Ouro, Platina, Diamante, Ascendente e Imortal; cada tier com III, II e I; Radiante sem divisão.
+- O cliente limita o destaque automático de rank nos títulos a LoL e Valorant. Esses rótulos precisam ser conciliados com o valor presente no payload e com os enums documentados do fornecedor; texto desconhecido fica neutro.
+
+### Catálogo, disponibilidade e checkout futuro
+
+- O cliente quer ordenar por preço crescente, filtrar por preço e inatividade, e priorizar vendedores com boa reputação quando isso puder ser feito sem reduzir excessivamente o volume. Campos inexistentes não podem ser inferidos.
+- O cliente pede conversão de RUB para BRL e margem variável de 50% a 59%. Fonte cambial, horário de referência, cálculo e arredondamento ainda precisam ser definidos antes de qualquer preço operacional.
+- O texto de aceite solicitado para um checkout futuro é: “Li e aceito os Termos de Compra e vou gravar a tela até o primeiro login (necessário para o suporte em caso de problema).” O requisito permanece bloqueado junto com checkout e cobrança.
+- O fluxo futuro pedido pelo cliente inclui revalidar disponibilidade antes da cobrança/entrega, evitar entregar item indisponível e creditar eventual reembolso no saldo. A alegação de remoção instantânea depende de capacidades documentadas e medidas do fornecedor.
+- Os dados de entrega citados pelo cliente (login, senha, e-mail, senha do e-mail e link de acesso) são altamente sensíveis e não devem aparecer em fixtures, logs ou demonstrações. A entrega real permanece desligada.
+
 ## Novo backlog — próximo ciclo de entrega
 
 Este recorte transforma as mensagens mais recentes em tarefas executáveis. A sequência abaixo vale para a demonstração atual e não autoriza consultas autenticadas ao fornecedor, venda, pagamento ou entrega real.
@@ -30,7 +58,7 @@ Este recorte transforma as mensagens mais recentes em tarefas executáveis. A se
 | 1 | Fazer revisão visual responsiva do catálogo e detalhe | BL-10, BL-11 | Capturas em larguras móvel e desktop confirmam hierarquia legível, inventário organizado, navegação sem overflow e os dois temas com contraste/foco adequados; defeitos encontrados viram correções pontuais. |
 | 2 | Fechar matriz de filtros e títulos por categoria | BL-02, BL-03 | Uma tabela liga cada filtro e regra de título ao campo documentado; LoL/Valorant exibem rank apenas quando fornecido; exemplos sem dado ficam neutros; fixtures demonstrativas cobrem Fortnite, Steam, Roblox, Valorant e LoL. |
 | 3 | Preparar amostras visuais honestas de inventário | BL-04, BL-08 | Cada categoria mostra os atributos que o payload realmente sustenta; imagens ausentes têm fallback consistente; listas parciais são identificadas; gamepasses Roblox não são prometidos sem campo correspondente. |
-| 4 | Medir o importador em escala sintética | BL-05 | Benchmark controlado de 20 mil e 40 mil registros registra duração, memória, taxa de erro, retomada e limites; resultados são separados de qualquer garantia de velocidade ou quota do fornecedor. |
+| 4 | Registrar evidência de escala sintética e manter validação de fornecedor pendente | BL-05 | Benchmark CI de 20 mil e 40 mil registros está registrado; uma futura medição autorizada separa duração, memória, retomada e limites do fornecedor, sem promessa de tempo real. |
 | 5 | Consolidar estado operacional do painel em modo demo | BL-12, BL-13 | Revisão autenticada permitida confirma permissões, origem dos indicadores e estados de erro; sem autenticação legítima, registrar o bloqueio sem criar atalho ou sessão simulada. |
 | 6 | Registrar revisão e pendências com o cliente | BL-07 | A revisão reporta o que foi demonstrado, o que depende de dados da LZT e o que continua bloqueado; não declarar aceite formal sem confirmação explícita do cliente. |
 
@@ -55,8 +83,8 @@ Este recorte transforma as mensagens mais recentes em tarefas executáveis. A se
 | 6 | BL-05 Paginação em massa | Retomada implementada; benchmark sintético 20k/40k passou; escala real não validada | Benchmark sintético e limites documentados até a meta de 40 mil |
 | 7 | BL-06 Concorrência e indisponibilidade | Parcial e bloqueado comercialmente | Nunca entregar anúncio indisponível; reconciliação/idempotência comprovadas |
 | 8 | BL-07 Revisão com o cliente | Condicionada aos ajustes mínimos; sem aceite formal registrado | Revisar filtros, títulos e amostras após correções e comunicar limites observados |
-| 9 | BL-12 Painel administrativo | Parcial; controles implementados, runtime não verificado | Operação auditável para catálogo, pedidos, sincronização e políticas comerciais |
-| 10 | BL-13 Área do cliente e segurança de conta | Fluxo central e interface presentes; runtime/permissões não verificados | Histórico e dados de demonstração seguros; entrega real continua bloqueada |
+| 9 | BL-12 Painel administrativo | Parcial; a borda pública redireciona sem sessão; permissões autenticadas não verificadas | Operação auditável para catálogo, pedidos, sincronização e políticas comerciais |
+| 10 | BL-13 Área do cliente e segurança de conta | Parcial; a rota pública redireciona sem sessão; permissões autenticadas não verificadas | Histórico e dados de demonstração seguros; entrega real continua bloqueada |
 | 11 | BL-09 Pagamentos e testes de entrega | Futuro e bloqueado pelo modo demonstração | Planejar validação somente após revisão comercial independente |
 
 **Regra de ordenação:** primeiro corrigir experiência visual e fechar os contratos de dados; medir sincronização isoladamente; só depois submeter qualquer mudança de modo de operação à revisão comercial e de segurança. Nenhum item abaixo desativa por si só o gate de demonstração.
@@ -182,7 +210,7 @@ O cliente relatou que as consultas atuais terminam em conjuntos pequenos (10, 20
 - Um benchmark com dataset sintético demonstra comportamento em 20 mil e 40 mil registros, com limites documentados de memória, duração e taxa de erro. Isso não deve ser apresentado como garantia de importação em tempo real sem medição autorizada contra o fornecedor.
 - Dados incompletos ou falha no meio da execução não iniciam reconciliação que esconda anúncios válidos.
 
-**Dependências:** BL-02, limites oficiais da API, armazenamento e benchmark isolado. A configuração atual permite até 1.000 páginas por execução e impõe pelo menos 3 segundos entre chamadas LZT; para 30 mil itens a 40 por página, a estimativa documentada já é de cerca de 37,5 minutos, sem contar respostas e outros feeds. Portanto, “em tempo real” não está demonstrado. Execução autenticada contra produção exige autorização e gates próprios.
+**Dependências:** BL-02, limites oficiais da API, armazenamento e benchmark isolado. A configuração atual permite até 1.000 páginas por execução e impõe pelo menos 3 segundos entre buscas, ou até 20 buscas/minuto; a documentação oficial atual descreve 120 requisições/minuto num bucket compartilhado de buscas e leituras de anúncios. Para 30 mil itens a 40 por página, a estimativa do worker permanece cerca de 37,5 minutos, sem contar respostas e outros feeds. Portanto, “em tempo real” não está demonstrado. Execução autenticada contra produção exige autorização e gates próprios.
 
 ### BL-06 — Evitar venda dupla e tratar indisponibilidade sem entrega
 
@@ -256,7 +284,7 @@ Aplicar uma identidade escura, moderna e reconhecível da Crystalforn, preservan
 
 ### BL-12 — Definir e completar o painel administrativo
 
-**Estado:** Parcial. O painel inclui resumo e histórico de pedidos, sincronização, filtros/ocultação de anúncios e vendedores, simulação de preço/cupom, regras de margem, auditoria e atendimento. A interface agora identifica o modo de demonstração e chama registros de sincronização de históricos quando o gate informa que o worker está desligado. Falta verificação autenticada dos fluxos e de suas permissões em runtime; ações administrativas existentes não habilitam vendas nem alteram o gate.
+**Estado:** Parcial. O painel inclui resumo e histórico de pedidos, sincronização, filtros/ocultação de anúncios e vendedores, simulação de preço/cupom, regras de margem, auditoria e atendimento. A interface agora identifica o modo de demonstração e chama registros de sincronização de históricos quando o gate informa que o worker está desligado. A inspeção pública confirmou que `/admin` redireciona a `/entrar`, que exige e-mail e senha; nenhuma autenticação foi tentada. Fluxos autenticados e permissões em runtime seguem sem verificação; as ações administrativas existentes não habilitam vendas nem alteram o gate.
 
 Consolidar uma interface administrativa útil para acompanhar catálogo, pedidos, cupons e sincronização, com histórico de ações e indicação clara de ambiente. Não criar ações que habilitem vendas ou executem operações reais escondidas em uma tela de demonstração.
 
@@ -282,7 +310,7 @@ Consolidar uma interface administrativa útil para acompanhar catálogo, pedidos
 
 ### BL-13 — Completar a área do cliente dentro do modo permitido
 
-**Estado:** Parcial. A UI inclui histórico paginado, carteira, estados de entrega e fluxo central de identidade com consulta de tenant/papéis; login e cadastro locais estão desativados. A demonstração bloqueia pagamentos e entrega reais. Falta validação autenticada de autorização/isolamento de dados em runtime e revisão final da conta cliente no Auth Center.
+**Estado:** Parcial. A UI inclui histórico paginado, carteira, estados de entrega e fluxo central de identidade com consulta de tenant/papéis; login e cadastro locais estão desativados. A inspeção pública confirmou que `/cliente` também redireciona a `/entrar`, e a página informa que o acesso de clientes espera a configuração de identidade. Nenhuma sessão foi criada ou testada. A demonstração bloqueia pagamentos e entrega reais; autorização/isolamento de dados autenticados e integração final com Auth Center permanecem sem verificação.
 
 Entregar uma área de cliente que exponha apenas a identidade autenticada e registros compatíveis com o ambiente. Para demonstração, usar exemplos fictícios claramente sinalizados; preparar o desenho de pedidos e entrega sem expor credenciais reais.
 
