@@ -47,6 +47,7 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
   const [checkout, setCheckout] = useState<CheckoutResult | null>(null);
   const [copyStatus, setCopyStatus] = useState('');
   const [inventoryImages, setInventoryImages] = useState<InventoryImages>({});
+  const [failedInventoryImageKeys, setFailedInventoryImageKeys] = useState<Set<string>>(new Set());
   const [inventoryImageMessage, setInventoryImageMessage] = useState('');
   const [inventorySection, setInventorySection] = useState<HTMLElement | null>(null);
   const [visibleInventoryProductId, setVisibleInventoryProductId] = useState('');
@@ -70,6 +71,7 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
   useEffect(() => {
     setInventoryImages({});
     setInventoryImageMessage('');
+    setFailedInventoryImageKeys(new Set());
   }, [product?.id]);
   useEffect(() => {
     let active = true;
@@ -210,13 +212,13 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
         </form>}
       </aside>
       {inventoryImageMessage && <p className="inventory-image-note" role="status">{inventoryImageMessage}</p>}
-      <InventoryShowcase productId={product.id} game={product.game} demoOnly={Boolean(product.demoOnly)} attributes={product.attributes} images={inventoryImages} sectionRef={setInventorySection} />
+      <InventoryShowcase productId={product.id} game={product.game} demoOnly={Boolean(product.demoOnly)} attributes={product.attributes} images={inventoryImages} failedImageKeys={failedInventoryImageKeys} onImageError={(key) => setFailedInventoryImageKeys((current) => current.has(key) ? current : new Set(current).add(key))} sectionRef={setInventorySection} />
       <div className="attributes-panel"><h2>Outros dados da conta</h2><AttributeList attributes={product.attributes} /></div>
     </div>
   </section>;
 }
 
-function InventoryShowcase({ productId, game, demoOnly, attributes, images, sectionRef }: { productId: string; game: string; demoOnly: boolean; attributes: Record<string, unknown>; images: InventoryImages; sectionRef: (element: HTMLElement | null) => void }) {
+function InventoryShowcase({ productId, game, demoOnly, attributes, images, failedImageKeys, onImageError, sectionRef }: { productId: string; game: string; demoOnly: boolean; attributes: Record<string, unknown>; images: InventoryImages; failedImageKeys: Set<string>; onImageError: (key: string) => void; sectionRef: (element: HTMLElement | null) => void }) {
   const inventory = attributes.inventory && typeof attributes.inventory === 'object' ? attributes.inventory as Record<string, unknown> : {};
   const definitions: Array<{ key: string; fallback: string; aliases?: string[]; title: string; image?: string; imageType?: string }> = game === 'fortnite' ? [
     { key: 'skins', fallback: 'featured_skins', aliases: ['skin_names'], title: 'Personagens e skins', image: images.skins },
@@ -244,10 +246,12 @@ function InventoryShowcase({ productId, game, demoOnly, attributes, images, sect
     const items = candidates.find((value) => value.length > 0) ?? candidates[0];
     return items?.length ? [{ ...group, items }] : [];
   });
-  function itemCard(item: unknown, index: number) {
+  function itemCard(item: unknown, index: number, groupKey: string) {
     const record = item && typeof item === 'object' ? item as Record<string, unknown> : {};
     const title = typeof item === 'string' ? item : String(record.title ?? record.name ?? record.label ?? `Item ${index + 1}`);
     const imageUrl = safeInventoryImageUrl(record.image_url ?? record.imageUrl ?? record.icon_url ?? record.iconUrl ?? record.thumbnail ?? record.image ?? record.icon);
+    const imageKey = `${groupKey}-${index}-${title}`;
+    const imageFailed = failedImageKeys.has(imageKey);
     const rarity = typeof record.rarity === 'string' ? record.rarity : '';
     const translatedRarity = rarityLabelsPtBr[rarity.toLowerCase()] ?? rarity;
     const playtimeMinutes = game === 'steam' ? Number(record.playtime_forever ?? record.playtime_minutes) : Number.NaN;
@@ -257,7 +261,7 @@ function InventoryShowcase({ productId, game, demoOnly, attributes, images, sect
         : `${Math.floor(playtimeMinutes / 60).toLocaleString('pt-BR')} h jogadas`
       : '';
     const tone = /mythic|icon/i.test(rarity) ? 'cosmetic-mythic' : /legendary/i.test(rarity) ? 'cosmetic-legendary' : /epic/i.test(rarity) ? 'cosmetic-epic' : 'cosmetic-standard';
-    return <li className="cosmetic-card" key={`${title}-${index}`}>{imageUrl ? <img className="cosmetic-image" src={imageUrl} alt={`Imagem de ${title}`} loading="lazy" decoding="async" referrerPolicy="no-referrer" /> : <span className={`cosmetic-mark ${tone}`} aria-hidden="true">{title.slice(0, 2).toUpperCase()}</span>}<span className="cosmetic-copy"><strong>{title}</strong>{translatedRarity && <small>{translatedRarity}</small>}{playtimeLabel && <small>{playtimeLabel}</small>}</span></li>;
+    return <li className="cosmetic-card" key={`${title}-${index}`}>{imageUrl && !imageFailed ? <img className="cosmetic-image" src={imageUrl} alt={`Imagem de ${title}`} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => onImageError(imageKey)} /> : <span className={`cosmetic-mark ${tone}`} aria-hidden="true">{title.slice(0, 2).toUpperCase()}</span>}<span className="cosmetic-copy"><strong>{title}</strong>{translatedRarity && <small>{translatedRarity}</small>}{playtimeLabel && <small>{playtimeLabel}</small>}</span></li>;
   }
   return <section ref={sectionRef} className={`inventory-showcase inventory-${game}`} aria-labelledby="inventory-showcase-title">
     <div className="inventory-showcase-heading"><div><p className="eyebrow">{demoOnly ? 'AMOSTRA FICTÍCIA · ITENS ILUSTRATIVOS' : 'ITENS INFORMADOS PELO FORNECEDOR'}</p><h2 id="inventory-showcase-title">{demoOnly ? 'Inventário do exemplo' : 'Itens do inventário'}</h2><p className="inventory-coverage-note">{demoOnly ? 'Esta prévia mostra alguns itens fictícios; não representa uma conta real nem um inventário completo.' : 'A lista depende dos campos públicos disponíveis para este anúncio e pode ser parcial.'}</p></div><span>{groups.reduce((total, group) => total + group.items.length, 0)} itens listados</span></div>
@@ -265,8 +269,8 @@ function InventoryShowcase({ productId, game, demoOnly, attributes, images, sect
     {groups.map((group) => <section className="inventory-group" key={group.key}>
       <div className="inventory-group-heading"><h3>{group.title}</h3><span>{group.items.length}</span></div>
       {group.image && <img className="inventory-provider-image" src={`/api/v1/catalog/${encodeURIComponent(productId)}/inventory-image/${group.imageType ?? group.key}/640`} srcSet={imageSrcSet(productId, group.imageType ?? group.key)} sizes="(max-width: 700px) calc(100vw - 32px), 680px" alt={`Prévia visual do fornecedor: ${group.title.toLowerCase()}`} width={680} height={280} loading="lazy" decoding="async" />}
-      <ul className="cosmetic-list">{group.items.slice(0, 36).map(itemCard)}</ul>
-      {group.items.length > 36 && <details className="inventory-more"><summary>Ver os outros {group.items.length - 36} itens</summary><ul className="cosmetic-list">{group.items.slice(36).map((item, index) => itemCard(item, index + 36))}</ul></details>}
+      <ul className="cosmetic-list">{group.items.slice(0, 36).map((item, index) => itemCard(item, index, group.key))}</ul>
+      {group.items.length > 36 && <details className="inventory-more"><summary>Ver os outros {group.items.length - 36} itens</summary><ul className="cosmetic-list">{group.items.slice(36).map((item, index) => itemCard(item, index + 36, group.key))}</ul></details>}
     </section>)}
     {groups.length === 0 && <p className="inventory-empty">{demoOnly ? 'Este exemplo não lista itens individuais.' : 'O fornecedor ainda não informou itens individuais para esta conta.'}</p>}
   </section>;
