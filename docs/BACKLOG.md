@@ -1,6 +1,6 @@
 # Backlog Crystalforn
 
-Atualizado em 28/10/2026 após nova revisão da conversa de Mateus Alves Fernandes na Workana. O cliente considera a integração próxima do esperado e pediu foco nos filtros essenciais por jogo, numa amostra visual de inventário com qualidade consistente e em títulos legíveis. Este documento registra solicitações e critérios de aceite; não confirma que as funcionalidades estejam implementadas nem autoriza ativar operações comerciais.
+Atualizado em 28/10/2026 após consolidação das mensagens de Mateus Alves Fernandes na Workana e das solicitações já registradas pelo operador. O cliente considera a integração próxima do esperado e pediu foco nos filtros essenciais por jogo, numa amostra visual de inventário com qualidade consistente e em títulos legíveis. Este documento reúne o backlog funcional, visual e operacional; status representam evidência no código/documentação, não autorização para ativar operações comerciais.
 
 ## Estado e limites atuais
 
@@ -9,6 +9,23 @@ Atualizado em 28/10/2026 após nova revisão da conversa de Mateus Alves Fernand
 - Toda tarefa que consulte dados reais da LZT, processe pagamentos, entregue credenciais ou movimente saldo depende de revisão própria de contrato, segurança e compatibilidade comercial. Os itens marcados como bloqueados não devem ser liberados por este backlog.
 - As quantidades de 20 mil a 40 mil anúncios são metas solicitadas pelo cliente, ainda sem validação de limites, cotas, custo ou garantias do fornecedor.
 - Verificação desta revisão: GitHub Actions Build #35 passou para `dd95d316765db57ff45a6cea1a515be02be0bcc6`, compilando web, API e workers; os auditores estáticos RSC, NestJS e UI também passaram. Isso não comprova paginação real da LZT, cobertura de payloads ou operação comercial.
+
+## Visão rápida de entrega
+
+| Ordem | Item | Situação | Resultado esperado |
+| --- | --- | --- | --- |
+| 1 | BL-01 Demonstração e compatibilidade comercial | Bloqueado para venda real; gate deve permanecer ativo | Demo sem catálogo comercial, cobrança, entrega ou reembolso real |
+| 2 | BL-10 Responsividade de produto e catálogo | Pendente de revisão visual abrangente | Detalhes, filtros e navegação confortáveis em celular e desktop |
+| 3 | BL-11 Identidade Crystalforn e tema | Parcial; identidade e logo precisam ser consolidados no produto | Sistema visual escuro/ claro consistente, marca aplicada e alternância acessível |
+| 4 | BL-02 a BL-04 Descoberta e detalhes por jogo | Parcial | Filtros úteis e detalhes fiéis aos campos que a API realmente entrega |
+| 5 | BL-03 Títulos localizados | Implementado parcialmente; amostras reais por categoria pendentes | Títulos em pt-BR, sem texto russo bruto ou atributos inventados |
+| 6 | BL-05 Importação em massa | Código de retomada presente; escala real não validada | Paginação resiliente, progresso observável e benchmark até 40 mil registros |
+| 7 | BL-06 Concorrência e indisponibilidade | Parcial e bloqueado comercialmente | Nunca entregar anúncio indisponível; reconciliação/idempotência comprovadas |
+| 8 | BL-12 Painel administrativo | Pendente de especificação e implementação consolidada | Operação auditável para catálogo, pedidos, sincronização e políticas comerciais |
+| 9 | BL-13 Área do cliente e segurança de conta | Parcial/pendente conforme fluxos cobertos | Histórico e dados de demonstração seguros; entrega real continua bloqueada |
+| 10 | BL-09 Pagamentos e testes de entrega | Futuro e bloqueado pelo modo demonstração | Plano validado antes de qualquer integração comercial |
+
+**Regra de ordenação:** primeiro corrigir experiência visual e fechar os contratos de dados; medir sincronização isoladamente; só depois submeter qualquer mudança de modo de operação à revisão comercial e de segurança. Nenhum item abaixo desativa por si só o gate de demonstração.
 
 ## Prioridade P0 — Resolver antes de qualquer ativação comercial
 
@@ -166,8 +183,87 @@ Mateus disse que o resultado atual da integração parece agradável e que o pro
 
 **Dependências:** BL-02 a BL-05 conforme a cobertura planejada.
 
+## Prioridade P1 — Experiência visual e marca
+
+### BL-10 — Refazer responsividade e hierarquia das páginas de catálogo e produto
+
+**Estado:** Pendente de auditoria e refinamento visual abrangente. O operador mostrou a página `/produto/:id` e apontou título excessivamente grande, espaçamento ruim e adaptação insuficiente. A solicitação cobre também catálogo e outras páginas da loja.
+
+Revisar os fluxos de catálogo, cartão, detalhe de produto e navegação em larguras móveis, tablet e desktop. Priorizar leitura do título e atributos, agrupamento do inventário, contexto de preço/estado e ação de retorno. Evitar overflow horizontal e conteúdo que obrigue rolagem excessiva antes de entender o produto.
+
+**Critérios de aceite**
+
+- Título de produto usa escala fluida e limite de largura; não empurra preço, atributos ou ações para fora do viewport.
+- Em celular, conteúdo é ordenado para leitura por prioridade, com espaçamentos consistentes, alvos de toque de pelo menos 44×44 px e sem rolagem horizontal.
+- Em desktop, grade e coluna de compra usam larguras legíveis, sem áreas vazias arbitrárias nem sobreposição.
+- Catálogo, filtros, paginação, estado vazio e estado de erro permanecem utilizáveis em viewport estreito.
+- Capturas de referência e verificação visual cobrem pelo menos uma largura móvel e uma desktop; os critérios WCAG 2.2 AA de foco, contraste e semântica são respeitados.
+- Estado de demonstração continua claramente apresentado e não sugere que seja possível concluir uma compra.
+
+**Dependências:** BL-11 para tokens de marca; BL-04 para a hierarquia do inventário. Sem alteração da disponibilidade comercial.
+
+### BL-11 — Consolidar identidade da Crystalforn, logo e alternância de tema
+
+**Estado:** Parcial. Há um visual escuro existente e uma solicitação anterior para criar logo; o backlog não registra ainda a aplicação consistente da identidade em todos os pontos nem a validação completa do alternador claro/escuro.
+
+Aplicar uma identidade escura, moderna e reconhecível da Crystalforn, preservando contraste e legibilidade. Usar a logo aprovada no cabeçalho, rodapé e contextos administrativos. A alternância entre tema escuro e claro deve manter a preferência do usuário e cobrir estados interativos, conteúdo e navegação.
+
+**Critérios de aceite**
+
+- Logo em formato e proporção adequados, versão reduzida para espaços compactos e texto alternativo acessível; a imagem gerada é revisada e integrada ao produto.
+- Cores, tipografia, bordas, foco, estados de erro e botões usam tokens consistentes nos dois temas.
+- Alternador é um botão semântico com rótulo/estado acessíveis, área de toque adequada e persistência da preferência entre navegações.
+- Texto e controles atendem aos contrastes mínimos; o tema claro não deixa componentes ilegíveis e o tema escuro evita preto absoluto saturado com neon.
+- Páginas de catálogo, produto, acesso e administração são verificadas nos dois temas.
+
+**Dependências:** decisão visual existente da Crystalforn e BL-10. A existência de uma imagem gerada não comprova integração no site.
+
+## Prioridade P2 — Administração e conta do cliente
+
+### BL-12 — Definir e completar o painel administrativo
+
+**Estado:** Pendente de inventário de funcionalidades; a tela atual mostra resumo de pedidos e sincronização, mas faltam controles e estados operacionais descritos no escopo original. O painel deve permanecer somente leitura ou operar apenas sobre dados fictícios enquanto o gate de demonstração estiver ativo.
+
+Consolidar uma interface administrativa útil para acompanhar catálogo, pedidos, cupons e sincronização, com histórico de ações e indicação clara de ambiente. Não criar ações que habilitem vendas ou executem operações reais escondidas em uma tela de demonstração.
+
+**Capacidades solicitadas para desenho e implementação**
+
+- Visão de pedidos e estados com busca, filtros, detalhes e trilha de auditoria; métricas devem vir de dados reais disponíveis no ambiente ou ser identificadas como demonstração.
+- Estado da sincronização: último ciclo, duração, páginas, itens analisados/importados, falhas, retomada disponível e origem dos dados.
+- Gestão de catálogo com filtros por categoria e `seller_id`, e controles de ocultação; mudanças reais no fornecedor ficam desativadas até revisão e autorização independentes.
+- Gestão de cupons com faixa de 1% a 4%, validação de vigência e limites, exclusivamente em dados de demonstração até a revisão comercial.
+- Configuração/projeção de margem de 50% a 59% sobre custo base, exibindo fórmula, moeda e arredondamento; não publicar preço comercial em modo demo.
+- Registro de incidentes de sincronização e indicadores de itens desatualizados ou indisponíveis, sem expor credenciais ou dados sensíveis.
+- Navegação responsiva, permissões por papel consultadas no Auth Center e confirmação customizada para ações administrativas futuras.
+
+**Critérios de aceite**
+
+- Cada métrica e ação tem origem, estado e permissão documentados; nenhuma métrica arbitrária ou falsa barra de progresso.
+- Valores de margem e cupom são validados no servidor e cobertos por regras documentadas antes de futura ativação.
+- `seller_id` é tratado como identificador de fornecedor, não como segredo ou prova de autorização.
+- Logs administrativos registram ator, ação, entidade, resultado e horário sem tokens, credenciais de conta ou payloads privados.
+- A interface distingue modo demo de produção e não oferece botão que contorne autenticação ou permissões.
+
+**Dependências:** BL-01, Auth Center/roles, BL-05 e BL-06; qualquer ação real depende de aprovação operacional separada.
+
+### BL-13 — Completar a área do cliente dentro do modo permitido
+
+**Estado:** Parcial/pendente. O escopo inicial pede histórico de compras e recebimento seguro de credenciais, mas o modo de demonstração impede compras e entrega reais. O cadastro deve usar o Auth Center conforme decisão anterior; não criar autenticação local paralela ou contas de atalho.
+
+Entregar uma área de cliente que exponha apenas a identidade autenticada e registros compatíveis com o ambiente. Para demonstração, usar exemplos fictícios claramente sinalizados; preparar o desenho de pedidos e entrega sem expor credenciais reais.
+
+**Critérios de aceite**
+
+- Cadastro e sessão seguem o Auth Center, com `dashboard_users`, tenant e papéis; ausência de configuração de provedor resulta em erro explícito, sem login simulado.
+- O usuário só vê seus próprios dados, pedidos e saldo; autorização é aplicada no servidor em todas as rotas.
+- Histórico demonstra estados sem insinuar pagamento ou entrega real quando o pedido é fictício.
+- Credenciais reais de contas não são armazenadas ou mostradas até que a operação comercial e o fluxo de entrega estejam aprovados; dados de demonstração são sintéticos e identificados.
+- A interface informa erros e estados vazios de forma acessível, sem usar diálogos nativos do navegador.
+
+**Dependências:** Auth Center, BL-01 e BL-09. A entrega segura de produtos reais continua bloqueada.
+
 ## Fora deste adendo
 
 - O texto “Blzzz” não contém requisito técnico identificável.
-- O pedido anterior de botão de alternância entre tema claro e escuro não é uma mensagem nova; permanece sujeito ao estado já registrado no projeto.
+- O botão de alternância entre tema claro e escuro e os refinamentos administrativos agora estão registrados em BL-11 e BL-12.
 - Nenhum pedido neste backlog altera a decisão vigente de manter a loja somente em demonstração.
