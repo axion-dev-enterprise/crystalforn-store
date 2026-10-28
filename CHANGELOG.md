@@ -4,6 +4,8 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
+- Acrescenta ao backlog os pedidos mais recentes do cliente sobre identidade e temas, filtros/títulos localizados, inventário por jogo, paginação em massa, concorrência e fluxo comercial futuro, com critérios de conclusão e limites da demonstração.
+- Informa no detalhe Roblox quando o payload não contém nomes individuais de gamepasses, sem inferir que a conta não tenha passes.
 - Expõe no detalhe Fortnite as contagens documentadas e os nomes em destaque separadamente; quando o exemplo não traz listas individuais, a interface informa essa ausência sem completar inventário por suposição.
 - Registra a revisão pendente de origem/licença das capas Steam existentes e adiciona gate P0 para imagens de jogos; não presume que URL pública de CDN autorize exibição.
 - Atualiza o backlog com a leitura mais recente da Workana: critérios de conclusão da API, filtros, inventário, escala e dependências comerciais, preservando o modo de demonstração.

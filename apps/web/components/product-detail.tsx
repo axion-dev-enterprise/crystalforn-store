@@ -274,6 +274,7 @@ function InventoryShowcase({ productId, game, demoOnly, attributes, images, fail
       {group.items.length > 0 ? <ul className="cosmetic-list">{group.items.slice(0, 36).map((item, index) => itemCard(item, index, group.key))}</ul> : <p className="inventory-empty">O anúncio informa a quantidade, mas não traz nomes individuais destes itens.</p>}
       {group.items.length > 36 && <details className="inventory-more"><summary>Ver os outros {group.items.length - 36} itens</summary><ul className="cosmetic-list">{group.items.slice(36).map((item, index) => itemCard(item, index + 36, group.key))}</ul></details>}
     </section>)}
+    {game === 'roblox' && !groups.some((group) => group.key === 'gamepasses') && <section className="inventory-group" aria-labelledby="roblox-gamepasses-title"><div className="inventory-group-heading"><h3 id="roblox-gamepasses-title">Gamepasses</h3></div><p className="inventory-empty">{demoOnly ? 'Este exemplo não inclui uma lista de gamepasses.' : 'O anúncio não retornou nomes individuais de gamepasses.'}</p></section>}
     {groups.length === 0 && <p className="inventory-empty">{demoOnly ? 'Este exemplo não lista itens individuais.' : 'O fornecedor ainda não informou itens individuais para esta conta.'}</p>}
   </section>;
 }
