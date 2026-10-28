@@ -199,7 +199,7 @@ Registrar uma revisão do catálogo e dos títulos depois dos itens aplicáveis 
 
 ### BL-10 — Refazer responsividade e hierarquia das páginas de catálogo e produto
 
-**Estado:** Implementação responsiva presente no CSS: título fluido limitado a 14 caracteres, grade do detalhe reorganizada abaixo de 700 px, filtros horizontais roláveis e navegação móvel. Falta inspeção do site renderizado em larguras representativas para confirmar o resultado e corrigir eventuais desvios. O operador mostrou a página `/produto/:id` e apontou título excessivamente grande, espaçamento ruim e adaptação insuficiente; o changelog registra os ajustes, mas não substitui verificação visual.
+**Estado:** Ajustado localmente após inspeção da página pública em modo demo: o H1 de produto deixou o limite estreito de `14ch`, ganhou largura fluida até `24ch` e teto menor no desktop; em telas de até 520 px há escala e largura próprias. A grade do detalhe já se reorganiza abaixo de 700 px, com filtros horizontais roláveis e navegação móvel. A URL de produto apontada anteriormente agora responde “Produto indisponível”; a inspeção atual usou somente a rota fictícia. Falta validar a aparência do título longo em larguras representativas e a leitura visual do inventário renderizado.
 
 Revisar os fluxos de catálogo, cartão, detalhe de produto e navegação em larguras móveis, tablet e desktop. Priorizar leitura do título e atributos, agrupamento do inventário, contexto de preço/estado e ação de retorno. Evitar overflow horizontal e conteúdo que obrigue rolagem excessiva antes de entender o produto.
 

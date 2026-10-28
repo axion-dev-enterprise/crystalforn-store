@@ -10,6 +10,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 - Alinha a busca demonstrativa de skins Fortnite e jogos Steam às mesmas variantes de inventário usadas nas sugestões, incluindo listas de objetos com nomes.
 - Amplia as prévias de inventário do catálogo de leitura para tipos oficiais de imagem Fortnite, Valorant e LoL, com validação de categoria e tipo; Steam e gamepasses Roblox permanecem condicionados às imagens/dados presentes no payload.
 - Torna a paginação do worker compatível com respostas LZT que omitem `hasNextPage` e `perPage`, derivando a continuação do total e salvando o progresso acumulado no checkpoint; totais inconsistentes interrompem a reconciliação.
+- Reduz a quebra excessiva de títulos longos na página de produto, ampliando a medida tipográfica no desktop e ajustando escala/largura para celular.
 - Reverte a publicação de anúncios reais para o modo demo aprovado: API sem catálogo real e worker LZT inativo; pagamentos e entrega continuam bloqueados.
 - Adiciona o símbolo facetado Crystalforn ao cabeçalho e ao rodapé.
 - Atualiza o símbolo para o cristal geométrico gerado nesta revisão; o wordmark permanece como texto HTML nítido no cabeçalho e rodapé.
