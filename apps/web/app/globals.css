@@ -249,6 +249,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 :root[data-theme="dark"] .sync-state-running{border-color:#9a783b;background:#302617;color:#f5dfb1}
 :root[data-theme="dark"] .sync-state-failed{border-color:#a85b53;background:#321d1c;color:#f4c8c3}
 :root[data-theme="dark"] .site-footer{background:#141214}
+:root[data-theme="dark"] .site-footer .footer-row{color:var(--muted)}
+:root[data-theme="dark"] .site-footer .footer-row span:first-child{color:var(--ink)}
+:root[data-theme="dark"] .site-footer .footer-row a{color:var(--green)}
 :root[data-theme="dark"] .cosmetic-card{border-color:#61594f;background:#242321;color:#f4f1ec}
 :root[data-theme="dark"] .cosmetic-mythic,:root[data-theme="dark"] .cosmetic-legendary,:root[data-theme="dark"] .cosmetic-epic{color:#f4f1ec}
 :root[data-theme="dark"] .cosmetic-copy small{color:#d0c9c0}
@@ -390,6 +393,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 :root[data-theme="light"] .brand-wordmark-light{display:block}
 @media(max-width:700px){.brand-wordmark{width:190px;height:52px}}
 @media(max-width:380px){.brand-wordmark{width:164px;height:45px}}
+
+/* Keep demo labels legible over every game-art palette and preserve disabled-state contrast. */
+.game-art-caption{right:auto;left:10px;width:max-content;max-width:calc(100% - 20px);padding:4px 6px;border:1px solid rgba(244,241,236,.35);border-radius:2px;background:rgba(12,10,9,.94);color:#f4f1ec;line-height:1.3}
+.pagination .button-outline:disabled{opacity:1;border-color:var(--line);background:var(--surface);color:var(--muted)}
 .sync-discard-reasons{display:grid;gap:8px;max-width:560px}
 .sync-discard-reasons h3{margin:0;color:var(--muted);font:10px var(--mono);letter-spacing:.06em;text-transform:uppercase}
 .sync-discard-reasons p{margin:0;color:var(--muted);font-size:12px}
