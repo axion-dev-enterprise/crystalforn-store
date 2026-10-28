@@ -41,7 +41,7 @@ As rotas a seguir exigem sessão de cliente válida e usam respostas privadas se
 
 ## Administração e integrações internas
 
-As rotas `/admin/*` exigem sessão e papel administrativo. A rota `POST /internal/catalog/items` exige credencial worker e o modo de sincronização publicado; não deve ser exposta a usuários finais. Webhooks de pagamento exigem assinatura/segredo do provedor, além do gate comercial.
+As rotas `/admin/*` exigem sessão e papel administrativo. As rotas `/internal/catalog/*` são exclusivas de serviço: exigem `SYNC_WORKER_SECRET` via Bearer, e a importação exige o modo de sincronização publicado. O middleware de origem do navegador as exclui usando o caminho original com prefixo `/api/v1`; mantenha-as em rede privada entre Compose services e não as exponha a usuários finais. Webhooks de pagamento exigem assinatura/segredo do provedor, além do gate comercial.
 
 ## Idempotência e erros
 
