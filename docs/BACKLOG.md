@@ -8,7 +8,7 @@ Atualizado em 28/10/2026 após consolidação das mensagens de Mateus Alves Fern
 - A API pode exibir resultados de integração em ambiente de desenvolvimento, mas isso não comprova capacidade de importar dezenas de milhares de anúncios, consistência de inventário ou prontidão para produção.
 - Toda tarefa que consulte dados reais da LZT, processe pagamentos, entregue credenciais ou movimente saldo depende de revisão própria de contrato, segurança e compatibilidade comercial. Os itens marcados como bloqueados não devem ser liberados por este backlog.
 - As quantidades de 20 mil a 40 mil anúncios são metas solicitadas pelo cliente, ainda sem validação de limites, cotas, custo ou garantias do fornecedor.
-- Verificação desta revisão: GitHub Actions Build #35 passou para `dd95d316765db57ff45a6cea1a515be02be0bcc6`, compilando web, API e workers; os auditores estáticos RSC, NestJS e UI também passaram. Isso não comprova paginação real da LZT, cobertura de payloads ou operação comercial.
+- Verificação da implementação mais recente: GitHub Actions Build #38 passou para `2c7582a5105f1c1c3ee573e58c6a39aefa616aa7`, compilando web, API e workers; auditores estáticos RSC (0 achados), NestJS (0 erros/avisos), UI anti-slop (15 arquivos, 0 achados) e `git diff --check` passaram. Isso não comprova paginação real da LZT, cobertura de payloads, autenticação em runtime ou operação comercial.
 
 ## Visão rápida de entrega
 
