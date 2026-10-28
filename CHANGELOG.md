@@ -9,6 +9,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 - Reduz gravações sequenciais do importador a um upsert PostgreSQL por lote interno de até 500 itens.
 - Divide páginas grandes da sincronização em requisições internas limitadas por quantidade e bytes, abaixo do limite do parser JSON da API.
 - Documenta o limite oficial de busca LZT, a paginação por cursor e a latência não determinística da reconciliação após uma varredura completa.
+- Atualiza contadores da sincronização após cada página para mostrar progresso no painel durante varreduras longas.
 - Mantém os filtros específicos limitados a dados de demonstração; catálogo real, sincronização e pagamentos continuam bloqueados.
 
 ## 0.1.3 — 2026-10-27

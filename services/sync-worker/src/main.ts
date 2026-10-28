@@ -336,6 +336,9 @@ async function synchronize(): Promise<void> {
           const result = await imported.json() as { imported?: number };
           upserted += Number(result.imported ?? 0);
         }
+        await lockClient.query(
+          'UPDATE catalog_sync_runs SET pages_read=$2,items_seen=$3,items_upserted=$4 WHERE id=$1',
+          [runId, pages, itemsSeen, upserted]);
         if (errorCode) break;
         if (apiProvider === 'lzt-market' && !stopping) await refreshOneSellerFeedback();
         genericItemsSeen += apiProvider === 'generic' ? payload.items.length : 0;

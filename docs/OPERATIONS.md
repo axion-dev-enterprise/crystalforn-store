@@ -34,6 +34,8 @@ O worker LZT usa cursor `after`, percorre um feed por execução e aplica ao men
 
 O ciclo contínuo é um poller, não um webhook de venda: anúncios recebidos são atualizados a cada página e os que deixam de aparecer só são ocultados depois que o feed inteiro termina sem erro. Varreduras incompletas preservam os anúncios existentes. A remoção de um anúncio do fornecedor pode, portanto, levar o tempo de uma varredura completa para refletir-se no site; a latência depende do número de páginas e do limite de busca do fornecedor. A confirmação de compra precisa manter sua própria revalidação imediatamente antes do processamento, sem tratar a sincronização periódica como garantia de disponibilidade.
 
+As métricas `pages_read`, `items_seen` e `items_upserted` são persistidas depois de cada página processada e podem ser acompanhadas no painel durante uma execução longa. Se um processo for interrompido, a última execução permanece marcada como em andamento e suas contagens registram o último ponto observado; o cursor salvo define a retomada.
+
 ## Migrações e backup
 
 O serviço API aplica migrações no início. Antes de atualizar uma instalação persistente, crie e verifique backup do banco com ferramenta compatível, registre hash/tamanho, e confirme a estratégia de restauração. Teste restauração em ambiente isolado. Este repositório não fornece backup de dados privados.
