@@ -220,11 +220,11 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
 
 function InventoryShowcase({ productId, game, demoOnly, attributes, images, failedImageKeys, onImageError, sectionRef }: { productId: string; game: string; demoOnly: boolean; attributes: Record<string, unknown>; images: InventoryImages; failedImageKeys: Set<string>; onImageError: (key: string) => void; sectionRef: (element: HTMLElement | null) => void }) {
   const inventory = attributes.inventory && typeof attributes.inventory === 'object' ? attributes.inventory as Record<string, unknown> : {};
-  const definitions: Array<{ key: string; fallback: string; aliases?: string[]; title: string; image?: string; imageType?: string }> = game === 'fortnite' ? [
-    { key: 'skins', fallback: 'featured_skins', aliases: ['skin_names'], title: 'Personagens e skins', image: images.skins },
-    { key: 'pickaxes', fallback: 'featured_pickaxes', aliases: ['pickaxe_names'], title: 'Picaretas', image: images.pickaxes },
-    { key: 'dances', fallback: 'featured_dances', aliases: ['emote_names'], title: 'Emotes', image: images.dances },
-    { key: 'gliders', fallback: 'featured_gliders', aliases: ['glider_names'], title: 'Asas-delta', image: images.gliders },
+  const definitions: Array<{ key: string; fallback: string; aliases?: string[]; title: string; image?: string; imageType?: string; countKey?: string }> = game === 'fortnite' ? [
+    { key: 'skins', fallback: 'featured_skins', aliases: ['skin_names'], title: 'Personagens e skins', image: images.skins, countKey: 'skins_count' },
+    { key: 'pickaxes', fallback: 'featured_pickaxes', aliases: ['pickaxe_names'], title: 'Picaretas', image: images.pickaxes, countKey: 'pickaxes_count' },
+    { key: 'dances', fallback: 'featured_dances', aliases: ['emote_names'], title: 'Emotes', image: images.dances, countKey: 'dances_count' },
+    { key: 'gliders', fallback: 'featured_gliders', aliases: ['glider_names'], title: 'Asas-delta', image: images.gliders, countKey: 'gliders_count' },
   ] : game === 'valorant' ? [
     { key: 'weapon_skins', fallback: 'featured_skins', title: 'Skins de armas', image: images.weapons, imageType: 'weapons' },
     { key: 'agents', fallback: 'featured_agents', title: 'Agentes', image: images.agents, imageType: 'agents' },
@@ -244,7 +244,9 @@ function InventoryShowcase({ productId, game, demoOnly, attributes, images, fail
     const candidates = [group.key, group.fallback, ...(group.aliases ?? [])]
       .map((key) => inventory[key]).filter((value): value is unknown[] => Array.isArray(value));
     const items = candidates.find((value) => value.length > 0) ?? candidates[0];
-    return items?.length ? [{ ...group, items }] : [];
+    const rawCount = group.countKey ? inventory[group.countKey] : undefined;
+    const itemCount = typeof rawCount === 'number' && Number.isFinite(rawCount) && rawCount >= 0 ? Math.floor(rawCount) : (items?.length ?? 0);
+    return items?.length || itemCount > 0 ? [{ ...group, items: items ?? [], itemCount }] : [];
   });
   function itemCard(item: unknown, index: number, groupKey: string) {
     const record = item && typeof item === 'object' ? item as Record<string, unknown> : {};
@@ -267,9 +269,9 @@ function InventoryShowcase({ productId, game, demoOnly, attributes, images, fail
     <div className="inventory-showcase-heading"><div><p className="eyebrow">{demoOnly ? 'AMOSTRA FICTÍCIA · ITENS ILUSTRATIVOS' : 'ITENS INFORMADOS PELO FORNECEDOR'}</p><h2 id="inventory-showcase-title">{demoOnly ? 'Inventário do exemplo' : 'Itens do inventário'}</h2><p className="inventory-coverage-note">{demoOnly ? 'Esta prévia mostra alguns itens fictícios; não representa uma conta real nem um inventário completo.' : 'A lista depende dos campos públicos disponíveis para este anúncio e pode ser parcial.'}</p></div><span>{groups.reduce((total, group) => total + group.items.length, 0)} itens listados</span></div>
     {game === 'roblox' && <RobloxProfile inventory={inventory} avatar={images.avatar} demoOnly={demoOnly} />}
     {groups.map((group) => <section className="inventory-group" key={group.key}>
-      <div className="inventory-group-heading"><h3>{group.title}</h3><span>{group.items.length}</span></div>
+      <div className="inventory-group-heading"><h3>{group.title}</h3><span>{group.items.length < group.itemCount ? `${group.items.length} nomes · ${group.itemCount} no total` : `${group.itemCount} itens listados`}</span></div>
       {group.image && <img className="inventory-provider-image" src={`/api/v1/catalog/${encodeURIComponent(productId)}/inventory-image/${group.imageType ?? group.key}/640`} srcSet={imageSrcSet(productId, group.imageType ?? group.key)} sizes="(max-width: 700px) calc(100vw - 32px), 680px" alt={`Prévia visual do fornecedor: ${group.title.toLowerCase()}`} width={680} height={280} loading="lazy" decoding="async" />}
-      <ul className="cosmetic-list">{group.items.slice(0, 36).map((item, index) => itemCard(item, index, group.key))}</ul>
+      {group.items.length > 0 ? <ul className="cosmetic-list">{group.items.slice(0, 36).map((item, index) => itemCard(item, index, group.key))}</ul> : <p className="inventory-empty">O anúncio informa a quantidade, mas não traz nomes individuais destes itens.</p>}
       {group.items.length > 36 && <details className="inventory-more"><summary>Ver os outros {group.items.length - 36} itens</summary><ul className="cosmetic-list">{group.items.slice(36).map((item, index) => itemCard(item, index + 36, group.key))}</ul></details>}
     </section>)}
     {groups.length === 0 && <p className="inventory-empty">{demoOnly ? 'Este exemplo não lista itens individuais.' : 'O fornecedor ainda não informou itens individuais para esta conta.'}</p>}

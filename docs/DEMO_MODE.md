@@ -6,6 +6,8 @@ Esta revisão apresenta dez exemplos fictícios no frontend, com páginas de det
 
 Os exemplos Steam usam capas públicas da loja Steam para mostrar como as imagens do inventário aparecem na interface. Nomes, valores e bibliotecas continuam fictícios; as capas são ilustrativas e não comprovam titularidade ou conteúdo de qualquer conta real. Se a imagem externa não carregar, o cartão mantém o fallback textual acessível.
 
+O primeiro exemplo Fortnite usa somente a forma dos campos do JSON de referência: duas skins em destaque, contagens de inventário, vinculações e passe de batalha. O detalhe separa os nomes destacados da contagem total e informa quando a amostra não contém nomes individuais. Esses valores são fictícios; não representam uma conta ou anúncio do fornecedor.
+
 Na promoção de 28/10/2026, a web está em `c2185da` e a API em `f8b271b`. Os endpoints públicos de saúde e de estado de liberação confirmaram que catálogo, sincronização e pagamentos continuam desligados.
 
 O backend informa `catalogMode: demo`. A página de detalhes e a vitrine deixam claro que os itens são fictícios. Compra, cobrança Pix, saldo da carteira e entrega automática permanecem desativados.

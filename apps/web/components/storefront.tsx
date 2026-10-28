@@ -248,10 +248,10 @@ function ProductInventoryPreview({ game, attributes }: { game: string; attribute
   if (!inventory) return null;
   const groups = game === 'fortnite'
     ? [
-        ['Personagens e skins', inventory.skin_names],
-        ['Picaretas', inventory.pickaxe_names],
-        ['Emotes', inventory.emote_names],
-        ['Asas-delta', inventory.glider_names],
+        ['Personagens e skins', inventory.skin_names ?? inventory.featured_skins],
+        ['Picaretas', inventory.pickaxe_names ?? inventory.featured_pickaxes],
+        ['Emotes', inventory.emote_names ?? inventory.featured_dances],
+        ['Asas-delta', inventory.glider_names ?? inventory.featured_gliders],
       ] as const
     : game === 'steam' ? [['Jogos na biblioteca', inventory.game_names]] as const : [];
   if (!groups.length) return null;
