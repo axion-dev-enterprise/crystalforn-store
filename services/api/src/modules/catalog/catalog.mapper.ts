@@ -105,6 +105,22 @@ function setArray(target: Record<string, unknown>, key: string, ...values: unkno
   const value = firstArray(...values);
   if (value) target[key] = value;
 }
+function steamGamesWithArtwork(value: unknown): unknown[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value.map((entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return entry;
+    const game = record(entry);
+    const appid = numeric(game.appid ?? game.app_id);
+    if (appid === null || !Number.isSafeInteger(appid)) return entry;
+    const hasImage = [game.image_url, game.imageUrl, game.icon_url, game.iconUrl, game.header_image, game.headerImage, game.thumbnail, game.image, game.icon]
+      .some((candidate) => typeof candidate === 'string' && candidate.trim().length > 0);
+    return hasImage ? { ...game, appid } : {
+      ...game,
+      appid,
+      image_url: `https://cdn.akamai.steamstatic.com/steam/apps/${appid}/library_600x900.jpg`,
+    };
+  });
+}
 function dynamicTitle(gameLabel: string, details: string[], maxLength = 180): string {
   let title = gameLabel;
   for (const detail of details.filter((value) => Boolean(value) && !/[\u0400-\u04FF]/.test(value))) {
@@ -224,7 +240,7 @@ export function normalizeProduct(item: Record<string, unknown>): NormalizedProdu
         return title ? [{ appid: numeric(entry.appid), title, playtime_forever: numeric(entry.playtime_forever) }] : [];
       }))
       .slice(0, 500);
-    setArray(inventory, 'games', item.steam_games, item.steam_game, item.games, item.game, sourceInventory.games, fullGameList);
+    setArray(inventory, 'games', steamGamesWithArtwork(item.steam_games), steamGamesWithArtwork(item.steam_game), steamGamesWithArtwork(item.games), steamGamesWithArtwork(item.game), steamGamesWithArtwork(sourceInventory.games), steamGamesWithArtwork(fullGameList));
     setArray(inventory, 'game_names', item.game_names, sourceInventory.game_names, fullGameList.map((entry) => entry.title));
     setArray(inventory, 'gifts', item.gift, item.gifts, sourceInventory.gift, sourceInventory.gifts);
   }
