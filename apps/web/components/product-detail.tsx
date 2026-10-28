@@ -225,18 +225,21 @@ function InventoryShowcase({ productId, game, demoOnly, attributes, images, sect
   ] : game === 'roblox' ? [
     { key: 'items', fallback: 'featured_items', title: 'Itens', image: undefined },
     { key: 'fruits', fallback: 'featured_fruits', title: 'Frutas', image: undefined },
+    { key: 'gamepasses', fallback: 'game_passes', aliases: ['gamepass'], title: 'Gamepasses', image: undefined },
   ] : game === 'steam' ? [
     { key: 'games', fallback: 'game_names', title: 'Jogos na biblioteca', image: undefined },
     { key: 'gifts', fallback: 'featured_gifts', title: 'Presentes Steam', image: undefined },
   ] : [];
   const groups = definitions.flatMap((group) => {
-    const items = [group.key, group.fallback, ...(group.aliases ?? [])]
-      .map((key) => inventory[key]).find(Array.isArray) as unknown[] | undefined;
+    const candidates = [group.key, group.fallback, ...(group.aliases ?? [])]
+      .map((key) => inventory[key]).filter((value): value is unknown[] => Array.isArray(value));
+    const items = candidates.find((value) => value.length > 0) ?? candidates[0];
     return items?.length ? [{ ...group, items }] : [];
   });
   function itemCard(item: unknown, index: number) {
     const record = item && typeof item === 'object' ? item as Record<string, unknown> : {};
     const title = typeof item === 'string' ? item : String(record.title ?? record.name ?? record.label ?? `Item ${index + 1}`);
+    const imageUrl = safeInventoryImageUrl(record.image_url ?? record.imageUrl ?? record.icon_url ?? record.iconUrl ?? record.thumbnail ?? record.image ?? record.icon);
     const rarity = typeof record.rarity === 'string' ? record.rarity : '';
     const translatedRarity = rarityLabelsPtBr[rarity.toLowerCase()] ?? rarity;
     const playtimeMinutes = game === 'steam' ? Number(record.playtime_forever ?? record.playtime_minutes) : Number.NaN;
@@ -246,7 +249,7 @@ function InventoryShowcase({ productId, game, demoOnly, attributes, images, sect
         : `${Math.floor(playtimeMinutes / 60).toLocaleString('pt-BR')} h jogadas`
       : '';
     const tone = /mythic|icon/i.test(rarity) ? 'cosmetic-mythic' : /legendary/i.test(rarity) ? 'cosmetic-legendary' : /epic/i.test(rarity) ? 'cosmetic-epic' : 'cosmetic-standard';
-    return <li className="cosmetic-card" key={`${title}-${index}`}><span className={`cosmetic-mark ${tone}`} aria-hidden="true">{title.slice(0, 2).toUpperCase()}</span><span className="cosmetic-copy"><strong>{title}</strong>{translatedRarity && <small>{translatedRarity}</small>}{playtimeLabel && <small>{playtimeLabel}</small>}</span></li>;
+    return <li className="cosmetic-card" key={`${title}-${index}`}>{imageUrl ? <img className="cosmetic-image" src={imageUrl} alt={`Imagem de ${title}`} loading="lazy" decoding="async" referrerPolicy="no-referrer" /> : <span className={`cosmetic-mark ${tone}`} aria-hidden="true">{title.slice(0, 2).toUpperCase()}</span>}<span className="cosmetic-copy"><strong>{title}</strong>{translatedRarity && <small>{translatedRarity}</small>}{playtimeLabel && <small>{playtimeLabel}</small>}</span></li>;
   }
   return <section ref={sectionRef} className={`inventory-showcase inventory-${game}`} aria-labelledby="inventory-showcase-title">
     <div className="inventory-showcase-heading"><div><p className="eyebrow">{demoOnly ? 'AMOSTRA FICTÍCIA · ITENS ILUSTRATIVOS' : 'ITENS INFORMADOS PELO FORNECEDOR'}</p><h2 id="inventory-showcase-title">{demoOnly ? 'Inventário do exemplo' : 'Itens do inventário'}</h2><p className="inventory-coverage-note">{demoOnly ? 'Esta prévia mostra alguns itens fictícios; não representa uma conta real nem um inventário completo.' : 'A lista depende dos campos públicos disponíveis para este anúncio e pode ser parcial.'}</p></div><span>{groups.reduce((total, group) => total + group.items.length, 0)} itens listados</span></div>
@@ -259,6 +262,17 @@ function InventoryShowcase({ productId, game, demoOnly, attributes, images, sect
     </section>)}
     {groups.length === 0 && <p className="inventory-empty">{demoOnly ? 'Este exemplo não lista itens individuais.' : 'O fornecedor ainda não informou itens individuais para esta conta.'}</p>}
   </section>;
+}
+
+function safeInventoryImageUrl(value: unknown): string | null {
+  if (typeof value !== 'string' || value.length > 2048) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:' || url.username || url.password) return null;
+    const host = url.hostname.toLowerCase();
+    const trustedHosts = ['epicgames.com', 'epicgames.dev', 'fortnite-api.com', 'rbxcdn.com', 'roblox.com', 'steampowered.com', 'steamstatic.com', 'riotgames.com', 'leagueoflegends.com', 'valorant-api.com'];
+    return trustedHosts.some((domain) => host === domain || host.endsWith(`.${domain}`)) ? url.toString() : null;
+  } catch { return null; }
 }
 
 function RobloxProfile({ inventory, avatar, demoOnly }: { inventory: Record<string, unknown>; avatar?: string; demoOnly: boolean }) {
@@ -281,7 +295,7 @@ function AttributeList({ attributes }: { attributes: Record<string, unknown> }) 
     username: 'Usuário Roblox', roblox_id: 'ID Roblox', country: 'País da conta', featured_skins: 'Skins em destaque',
     featured_pickaxes: 'Picaretas em destaque', featured_dances: 'Emotes em destaque', featured_gliders: 'Asas-delta em destaque',
     items_count: 'Itens/frutas', fruits_count: 'Frutas',
-    games_count: 'Jogos na biblioteca', vac_banned: 'Banimento VAC', community_banned: 'Banimento da comunidade',
+    games_count: 'Jogos na biblioteca', gamepasses: 'Gamepasses', game_passes: 'Gamepasses', gamepass: 'Gamepasses', vac_banned: 'Banimento VAC', community_banned: 'Banimento da comunidade',
     trade_banned: 'Bloqueio de trocas', trade_limited: 'Limite de trocas', market_available: 'Mercado da comunidade',
     guard_available: 'Steam Guard', balance: 'Saldo Steam',
     battle_pass: 'Passe de Batalha', has_bp: 'Passe ativo', bp_level: 'Nível do passe',
@@ -292,7 +306,7 @@ function AttributeList({ attributes }: { attributes: Record<string, unknown> }) 
     rmax: 'Elo máximo Valorant', knife: 'Possui faca', valorant_knife_min: 'Facas Valorant',
     rp_min: 'Pontos radiantes', fa_min: 'Agentes gratuitos',
   };
-  const inventoryListKeys = new Set(['skins','skin_names','featured_skins','pickaxes','pickaxe_names','featured_pickaxes','dances','emote_names','featured_dances','gliders','glider_names','featured_gliders','weapon_skins','agents','featured_agents','buddies','featured_buddies','champions','featured_champions','items','featured_items','fruits','featured_fruits','games','game_names','gifts','featured_gifts']);
+  const inventoryListKeys = new Set(['skins','skin_names','featured_skins','pickaxes','pickaxe_names','featured_pickaxes','dances','emote_names','featured_dances','gliders','glider_names','featured_gliders','weapon_skins','agents','featured_agents','buddies','featured_buddies','champions','featured_champions','items','featured_items','fruits','featured_fruits','gamepasses','gamepass','game_passes','games','game_names','gifts','featured_gifts']);
   function displayValue(key: string, value: string | number | boolean): string {
     if (typeof value === 'boolean') return value ? 'Sim' : 'Não';
     if (typeof value !== 'string') return String(value);

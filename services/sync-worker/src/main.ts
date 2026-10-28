@@ -1,4 +1,5 @@
 import { Pool, PoolClient } from 'pg';
+import { createHash } from 'node:crypto';
 import { integerEnv } from './config';
 
 // Demo release: never connect to or import from the supplier.
@@ -42,6 +43,12 @@ function itemId(item: unknown): string | null {
   if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
   const id = String((item as Record<string, unknown>).item_id ?? '').trim();
   return id && id.length <= 100 ? id : null;
+}
+
+function pageFingerprint(items: unknown[]): string | null {
+  const ids = items.map(itemId).filter((value): value is string => Boolean(value));
+  if (ids.length === 0) return null;
+  return createHash('sha256').update([...new Set(ids)].sort().join('\n')).digest('hex');
 }
 
 function catalogImportBodies(items: unknown[], maxBytes: number): string[] {
@@ -235,10 +242,18 @@ async function synchronize(): Promise<void> {
       const savedCursor = apiProvider === 'lzt-market'
         ? await lockClient.query<{ setting_value: unknown }>('SELECT setting_value FROM store_settings WHERE setting_key=$1', [cursorKey])
         : { rows: [] as { setting_value: unknown }[] };
-      const savedLztPage = typeof savedCursor.rows[0]?.setting_value === 'string'
-        ? savedCursor.rows[0].setting_value : null;
-      let lztPage = savedLztPage?.startsWith('page:') ? Number(savedLztPage.slice(5)) : 1;
-      if (!Number.isSafeInteger(lztPage) || lztPage < 1) lztPage = 1;
+      const savedCursorValue = savedCursor.rows[0]?.setting_value;
+      const cursorState = savedCursorValue && typeof savedCursorValue === 'object' && !Array.isArray(savedCursorValue)
+        ? savedCursorValue as Record<string, unknown> : null;
+      const legacyPage = typeof savedCursorValue === 'string' && savedCursorValue.startsWith('page:')
+        ? Number(savedCursorValue.slice(5)) : null;
+      const structuredPage = cursorState && Number.isSafeInteger(cursorState.nextPage) ? Number(cursorState.nextPage) : null;
+      let lztPage = structuredPage ?? legacyPage ?? 1;
+      const hasSavedLztPage = (structuredPage !== null && structuredPage > 0) || (legacyPage !== null && legacyPage > 0);
+      let lztPageFingerprints = Array.isArray(cursorState?.pageFingerprints)
+        ? cursorState.pageFingerprints.filter((value): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value)).slice(-maxPages)
+        : [];
+      if (!Number.isSafeInteger(lztPage) || lztPage < 1) { lztPage = 1; lztPageFingerprints = []; }
       const savedScanStarted = apiProvider === 'lzt-market'
         ? await lockClient.query<{ setting_value: unknown }>('SELECT setting_value FROM store_settings WHERE setting_key=$1', [scanStartedKey])
         : { rows: [] as { setting_value: unknown }[] };
@@ -250,8 +265,10 @@ async function synchronize(): Promise<void> {
       const seen = new Set<string>();
       if (apiProvider === 'lzt-market') {
         nextFeedIndex = feedIndex;
-        if (!savedLztPage || !scanStartedAt) {
+        if (!hasSavedLztPage || !scanStartedAt) {
           scanStartedAt = runStartedAt;
+          lztPage = 1;
+          lztPageFingerprints = [];
           await lockClient.query(
             'INSERT INTO store_settings(setting_key,setting_value) VALUES($1,$2::jsonb) ON CONFLICT(setting_key) DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=now()',
             [scanStartedKey, JSON.stringify(scanStartedAt.toISOString())]);
@@ -335,6 +352,12 @@ async function synchronize(): Promise<void> {
           }
           break;
         }
+        const fingerprint = apiProvider === 'lzt-market' ? pageFingerprint(payload.items) : null;
+        if (fingerprint && lztPageFingerprints.includes(fingerprint)) {
+          errorCode = 'pagination_repeated_page';
+          nextRunDelayMs = Math.max(intervalMs, 60_000);
+          break;
+        }
         const pageIds = payload.items.map(itemId).filter((value): value is string => Boolean(value));
         const newIds = pageIds.filter((id) => !seen.has(id));
         if (feedPage > 1 && newIds.length === 0) {
@@ -381,9 +404,10 @@ async function synchronize(): Promise<void> {
         if (apiProvider === 'lzt-market') {
           if (hasMore) {
             lztPage += 1;
+            if (fingerprint) lztPageFingerprints = [...lztPageFingerprints, fingerprint].slice(-maxPages);
             await lockClient.query(
               'INSERT INTO store_settings(setting_key,setting_value) VALUES($1,$2::jsonb) ON CONFLICT(setting_key) DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=now()',
-              [cursorKey, JSON.stringify(`page:${lztPage}`)]);
+              [cursorKey, JSON.stringify({ nextPage: lztPage, pageFingerprints: lztPageFingerprints })]);
           } else await lockClient.query('DELETE FROM store_settings WHERE setting_key=$1', [cursorKey]);
         } else if (hasMore) {
           genericNextPage = feedPage + 1;

@@ -76,6 +76,8 @@ O worker de inventário e o worker de entrega estão desativados no código dest
 - [Licenciamento](docs/LICENSING.md)
 - [Checklist de release](docs/RELEASE_CHECKLIST.md)
 - [Design responsivo e acessibilidade](docs/DESIGN_RESPONSIVE_REFERENCES.md)
+- [Backlog de requisitos e pendências](docs/BACKLOG.md)
+- [Mapa de filtros e campos do fornecedor](docs/PROVIDER_FIELD_MAP.md)
 
 Cada push para `main` e pull request executa o workflow de build do web, API e workers. O workflow não provisiona segredos ou serviços externos.
 

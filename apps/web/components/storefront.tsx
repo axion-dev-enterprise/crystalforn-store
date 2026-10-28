@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { DEMO_PRODUCTS } from '@/data/demo-products';
 
@@ -12,6 +12,24 @@ const EMPTY_FILTERS: Filters = { minPrice: '', maxPrice: '', minDaysOffline: '',
 const games = [{ id: '', label: 'Todos' }, { id: 'fortnite', label: 'Fortnite' }, { id: 'steam', label: 'Steam' }, { id: 'roblox', label: 'Roblox' }, { id: 'valorant', label: 'Valorant' }, { id: 'lol', label: 'League of Legends' }];
 const money = (cents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100);
 const DEMO_PAGE_SIZE = 6;
+
+function demoInventoryOptions(game: string, keys: string[]): string[] {
+  const values = DEMO_PRODUCTS.filter((product) => product.game === game).flatMap((product) => {
+    const inventory = product.attributes.inventory as Record<string, unknown> | undefined;
+    return keys.flatMap((key) => {
+      const value = inventory?.[key];
+      const entries = Array.isArray(value) ? value : typeof value === 'string' ? [value] : [];
+      return entries.flatMap((entry) => {
+        if (typeof entry === 'string') return [entry];
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];
+        const record = entry as Record<string, unknown>;
+        const label = record.title ?? record.name ?? record.label;
+        return typeof label === 'string' ? [label] : [];
+      });
+    });
+  });
+  return [...new Set(values.filter(Boolean))].sort((left, right) => left.localeCompare(right, 'pt-BR'));
+}
 
 function displayTitle(product: StoreProduct): string {
   const gameName = product.game === 'lol' ? 'league of legends' : product.game;
@@ -129,10 +147,10 @@ export function Storefront() {
       && (!appliedFilters.minPrice || Number(product.price_brl_cents) >= Number(appliedFilters.minPrice) * 100)
       && (!appliedFilters.maxPrice || Number(product.price_brl_cents) <= Number(appliedFilters.maxPrice) * 100)
       && (!appliedFilters.minDaysOffline || offlineDays >= Number(appliedFilters.minDaysOffline))
-      && (!appliedFilters.skinName || game !== 'fortnite' || skinNames.some((name) => name.toLocaleLowerCase('pt-BR').includes(appliedFilters.skinName.toLocaleLowerCase('pt-BR'))))
-      && (!appliedFilters.steamGame || game !== 'steam' || steamGames.some((name) => name.toLocaleLowerCase('pt-BR').includes(appliedFilters.steamGame.toLocaleLowerCase('pt-BR'))))
-      && (!appliedFilters.rank || !['valorant', 'lol'].includes(game) || rank.toLocaleLowerCase('pt-BR').includes(appliedFilters.rank.toLocaleLowerCase('pt-BR')))
-      && (!appliedFilters.minLevel || !['valorant', 'lol'].includes(game) || level >= Number(appliedFilters.minLevel));
+      && (!appliedFilters.skinName || (product.game === 'fortnite' && skinNames.some((name) => name.toLocaleLowerCase('pt-BR').includes(appliedFilters.skinName.toLocaleLowerCase('pt-BR')))))
+      && (!appliedFilters.steamGame || (product.game === 'steam' && steamGames.some((name) => name.toLocaleLowerCase('pt-BR').includes(appliedFilters.steamGame.toLocaleLowerCase('pt-BR')))))
+      && (!appliedFilters.rank || (['valorant', 'lol'].includes(product.game) && rank.toLocaleLowerCase('pt-BR').includes(appliedFilters.rank.toLocaleLowerCase('pt-BR'))))
+      && (!appliedFilters.minLevel || (['valorant', 'lol'].includes(product.game) && level >= Number(appliedFilters.minLevel)));
   });
   const sortedDemoProducts = [...filteredDemoProducts].sort((left, right) => {
     if (sort === 'title_asc') return displayTitle(left).localeCompare(displayTitle(right), 'pt-BR');
@@ -141,6 +159,10 @@ export function Storefront() {
   });
   const visibleProducts = result?.demoOnly ? sortedDemoProducts.slice((page - 1) * DEMO_PAGE_SIZE, page * DEMO_PAGE_SIZE) : result?.items ?? [];
   const pages = result?.demoOnly ? Math.max(1, Math.ceil(filteredDemoProducts.length / DEMO_PAGE_SIZE)) : Math.max(1, Math.ceil((result?.total ?? 0) / (result?.pageSize ?? 24)));
+  const demoSkinOptions = useMemo(() => demoInventoryOptions('fortnite', ['skin_names', 'skins', 'featured_skins']), []);
+  const demoSteamOptions = useMemo(() => demoInventoryOptions('steam', ['game_names', 'games']), []);
+  const demoValorantRanks = useMemo(() => demoInventoryOptions('valorant', ['rank']), []);
+  const demoLolRanks = useMemo(() => demoInventoryOptions('lol', ['rank', 'lol_rank']), []);
   const activeFilterTokens = [
     ...(game ? [{ key: 'game', label: `Jogo: ${gameLabel(game)}` }] : []),
     ...(appliedFilters.minPrice ? [{ key: 'minPrice', label: `Preço mínimo: R$ ${appliedFilters.minPrice}` }] : []),
@@ -172,10 +194,10 @@ export function Storefront() {
       <div className="filter-field"><label htmlFor="max-price">Preço máximo</label><input id="max-price" type="number" min="0" step="0.01" inputMode="decimal" placeholder="Sem limite" value={filters.maxPrice} onChange={(event) => setFilters((value) => ({ ...value, maxPrice: event.target.value }))} /></div>
       <div className="filter-field"><label htmlFor="offline-days">Inatividade</label><select id="offline-days" value={filters.minDaysOffline} onChange={(event) => setFilters((value) => ({ ...value, minDaysOffline: event.target.value }))}><option value="">Qualquer período</option><option value="30">30 dias ou mais</option><option value="60">60 dias ou mais</option><option value="90">90 dias ou mais</option></select></div>
       {game && <div className="demo-specific-filters" role="group" aria-label="Filtros específicos do jogo">
-        {game === 'fortnite' && <div className="filter-field"><label htmlFor="skin-name">Personagem ou skin {result?.demoOnly ? 'fictícia' : ''}</label><input id="skin-name" type="search" placeholder="Ex.: Travis Scott" value={filters.skinName} onChange={(event) => setFilters((value) => ({ ...value, skinName: event.target.value }))} /></div>}
-        {game === 'steam' && <div className="filter-field"><label htmlFor="steam-game">Jogo na biblioteca {result?.demoOnly ? 'fictício' : ''}</label><input id="steam-game" type="search" placeholder="Ex.: Portal 2" value={filters.steamGame} onChange={(event) => setFilters((value) => ({ ...value, steamGame: event.target.value }))} /></div>}
+        {game === 'fortnite' && <div className="filter-field"><label htmlFor="skin-name">Personagem ou skin {result?.demoOnly ? 'fictícia' : ''}</label><input id="skin-name" type="search" list={result?.demoOnly ? 'demo-fortnite-skins' : undefined} placeholder="Ex.: Travis Scott" value={filters.skinName} onChange={(event) => setFilters((value) => ({ ...value, skinName: event.target.value }))} /><datalist id="demo-fortnite-skins">{result?.demoOnly && demoSkinOptions.map((name) => <option key={name} value={name} />)}</datalist></div>}
+        {game === 'steam' && <div className="filter-field"><label htmlFor="steam-game">Jogo na biblioteca {result?.demoOnly ? 'fictício' : ''}</label><input id="steam-game" type="search" list={result?.demoOnly ? 'demo-steam-games' : undefined} placeholder="Ex.: Portal 2" value={filters.steamGame} onChange={(event) => setFilters((value) => ({ ...value, steamGame: event.target.value }))} /><datalist id="demo-steam-games">{result?.demoOnly && demoSteamOptions.map((name) => <option key={name} value={name} />)}</datalist></div>}
         {(game === 'valorant' || game === 'lol') && <>
-          <div className="filter-field"><label htmlFor="account-rank">Rank {result?.demoOnly ? 'fictício' : ''}</label><input id="account-rank" type="search" placeholder={game === 'lol' ? 'Ex.: Ouro II' : 'Ex.: Diamante'} value={filters.rank} onChange={(event) => setFilters((value) => ({ ...value, rank: event.target.value }))} /></div>
+          <div className="filter-field"><label htmlFor="account-rank">Rank {result?.demoOnly ? 'fictício' : ''}</label><input id="account-rank" type="search" list={result?.demoOnly ? (game === 'lol' ? 'demo-lol-ranks' : 'demo-valorant-ranks') : undefined} placeholder={game === 'lol' ? 'Ex.: Ouro II' : 'Ex.: Diamante'} value={filters.rank} onChange={(event) => setFilters((value) => ({ ...value, rank: event.target.value }))} /><datalist id="demo-lol-ranks">{result?.demoOnly && demoLolRanks.map((rank) => <option key={rank} value={rank} />)}</datalist><datalist id="demo-valorant-ranks">{result?.demoOnly && demoValorantRanks.map((rank) => <option key={rank} value={rank} />)}</datalist></div>
           <div className="filter-field"><label htmlFor="account-level">Nível mínimo {result?.demoOnly ? 'fictício' : ''}</label><input id="account-level" type="number" min="1" inputMode="numeric" placeholder="Qualquer nível" value={filters.minLevel} onChange={(event) => setFilters((value) => ({ ...value, minLevel: event.target.value }))} /></div>
         </>}
       </div>}

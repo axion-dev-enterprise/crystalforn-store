@@ -27,7 +27,14 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 - Amplia a prévia fictícia com League of Legends, filtros demonstrativos por personagem/skin, biblioteca Steam, rank e nível, e inventários textuais de exemplo.
 - Reduz gravações sequenciais do importador a um upsert PostgreSQL por lote interno de até 500 itens.
 - Divide páginas grandes da sincronização em requisições internas limitadas por quantidade e bytes, abaixo do limite do parser JSON da API.
-- Documenta o limite oficial de busca LZT, a paginação por cursor e a latência não determinística da reconciliação após uma varredura completa.
+- Documenta os limites oficiais da busca LZT, a paginação por `page` observada no runtime e a latência não determinística da reconciliação após uma varredura completa.
+- Normaliza ranks textuais de LoL e Valorant para pt-BR e inclui a divisão nos títulos quando há um valor conhecido; mapeamentos desconhecidos não inventam elo.
+- Mostra miniaturas individuais de inventário apenas para URLs HTTPS de domínios oficiais permitidos e inclui gamepasses Roblox quando uma lista vier no payload.
+- Registra o backlog de novos requisitos, os gates comerciais e a validação ainda pendente de inventários e importação em massa.
+- Mapeia campos normalizados e filtros LZT por categoria, registrando enumerações documentadas e lacunas que dependem de payloads autorizados.
+- Alinha filtros da prévia aos filtros do backend e sugere personagens, jogos e ranks apenas a partir dos exemplos fictícios existentes.
+- Usa a primeira lista de inventário não vazia entre os aliases do payload e corrige o runbook para refletir que a API e o sincronizador estão desligados no modo demo.
+- Persiste fingerprints das páginas já confirmadas para detectar repetição de resultados após retomada do sincronizador; o worker segue inativo no modo demo.
 - Atualiza contadores da sincronização após cada página para mostrar progresso no painel durante varreduras longas.
 - Mantém compras, pagamentos, entrega e sincronização com fornecedor desativados; esta versão demo usa somente exemplos fictícios.
 
