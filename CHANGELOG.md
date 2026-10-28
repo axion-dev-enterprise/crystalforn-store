@@ -35,6 +35,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 - Alinha filtros da prévia aos filtros do backend e sugere personagens, jogos e ranks apenas a partir dos exemplos fictícios existentes.
 - Usa a primeira lista de inventário não vazia entre os aliases do payload e corrige o runbook para refletir que a API e o sincronizador estão desligados no modo demo.
 - Persiste fingerprints das páginas já confirmadas para detectar repetição de resultados após retomada do sincronizador; o worker segue inativo no modo demo.
+- Registra quais campos e categorias estão presentes no exemplo da API entregue pelo cliente e separa o que o manual pede do que o payload comprova.
 - Atualiza contadores da sincronização após cada página para mostrar progresso no painel durante varreduras longas.
 - Mantém compras, pagamentos, entrega e sincronização com fornecedor desativados; esta versão demo usa somente exemplos fictícios.
 

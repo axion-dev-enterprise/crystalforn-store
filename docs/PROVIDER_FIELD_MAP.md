@@ -21,6 +21,12 @@ Atualizado em 28/10/2026. Este mapa diferencia filtros implementados na loja, no
 
 Referências oficiais: [Epic Games](https://lzt-market.readme.io/reference/categoryepicgames), [Steam](https://lzt-market.readme.io/reference/categorysteam), [Riot](https://lzt-market.readme.io/reference/categoryriot) e [Roblox](https://lzt-market.readme.io/reference/categoryroblox).
 
+## Cobertura do exemplo fornecido pelo cliente
+
+O arquivo `exemplo_apijson (1).txt` representa uma resposta paginada com `status`, `endpoint`, `page`, `total_items` e `items`. O exemplo contém somente anúncio Fortnite e inclui `item_id`, `seller_id`, preços RUB/USD, título original, tipo de e-mail, dias sem atividade, atividade recente, dados do passe de batalha, contagens de skins/picaretas/emotes/asas-delta, `featured_skins` como lista de nomes e vínculo de plataformas.
+
+O exemplo não fornece imagens/ícones por item, inventário detalhado de picaretas/emotes/asas-delta, ranks LoL/Valorant, jogos Steam nem gamepasses Roblox. Também não contém um status de disponibilidade por anúncio. O manual pede filtrar itens inválidos, banidos ou vendidos, mas esses estados não podem ser inferidos deste payload; exigem campo ou endpoint documentado. Esta amostra, portanto, não valida cobertura de todas as categorias nem permite prometer inventário completo ou imagem individual.
+
 ## Paginação: divergência que exige nova verificação autorizada
 
 As referências de categoria publicam `after` como cursor de próxima página. O registro operacional existente relata que uma leitura com `page=2` retornou página distinta e que o valor testado em `after` repetiu a primeira página; a implementação mantém `page` e checkpoint numérico. Como o schema publicado não explica como obter o valor correto de `after`, não se deve trocar o mecanismo sem uma nova validação factual autorizada. A integração está desligada no modo de demonstração.

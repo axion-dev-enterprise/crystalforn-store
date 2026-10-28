@@ -56,7 +56,7 @@ Usar documentação e catálogos oficiais do Market API para mapear filtros supo
 - Filtros combinados e paginação preservam os critérios de busca e retornam estados claros quando não há resultados.
 - Campos ausentes ou desconhecidos não são preenchidos com valores inventados.
 
-**Dependências:** inspeção do contrato oficial e amostras não sensíveis por categoria; nenhuma chamada autenticada de produção neste item.
+**Dependências:** inspeção do contrato oficial e amostras não sensíveis por categoria. O exemplo entregue pelo cliente cobre apenas Fortnite; não comprova payloads de Steam, LoL, Valorant ou Roblox. Nenhuma chamada autenticada de produção neste item.
 
 **Referências de contrato:** [filtros Epic Games](https://lzt-market.readme.io/reference/categoryepicgames), [filtros Steam](https://lzt-market.readme.io/reference/categorysteam), [filtros Riot](https://lzt-market.readme.io/reference/categoryriot) e [filtros Roblox](https://lzt-market.readme.io/reference/categoryroblox).
 
@@ -84,7 +84,7 @@ Gerar títulos em português e no padrão Crystalforn, sem copiar nomes vagos ou
 
 ### BL-04 — Melhorar a amostra visual de inventário por jogo
 
-**Estado:** Parcial. A página agora apresenta miniaturas por item quando o próprio registro fornece uma URL HTTPS de domínio oficial permitido e inclui a seção de gamepasses quando há uma lista retornada. A cobertura efetiva dos payloads do fornecedor não está comprovada. A nova mensagem pede qualidade consistente nos catálogos e uma boa amostra do conteúdo, sem afirmar que todos os campos ou itens de cada anúncio devam ser reproduzidos.
+**Estado:** Parcial. A página agora apresenta miniaturas por item quando o próprio registro fornece uma URL HTTPS de domínio oficial permitido e inclui a seção de gamepasses quando há uma lista retornada. O exemplo fornecido pelo cliente é apenas Fortnite e traz nomes em `featured_skins`, sem imagens/ícones por item ou listas detalhadas dos outros grupos; também não inclui gamepasses individuais Roblox. A cobertura efetiva dos payloads do fornecedor não está comprovada. A nova mensagem pede qualidade consistente nos catálogos e uma boa amostra do conteúdo, sem afirmar que todos os campos ou itens de cada anúncio devam ser reproduzidos.
 
 Mostrar imagens junto aos nomes das skins e ampliar os detalhes visuais do inventário. Para Roblox, investigar gamepasses e os demais itens efetivamente disponibilizados pelo Market API. Fornecer uma amostra organizada e representativa para cada jogo, deixando explícito quando a lista retornada for parcial; o cliente não exige copiar todos os campos do fórum ou da Legas.
 
