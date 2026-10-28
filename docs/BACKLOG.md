@@ -15,14 +15,14 @@ Atualizado em 28/10/2026 após consolidação das mensagens de Mateus Alves Fern
 | Ordem | Item | Situação | Resultado esperado |
 | --- | --- | --- | --- |
 | 1 | BL-01 Demonstração e compatibilidade comercial | Bloqueado para venda real; gate deve permanecer ativo | Demo sem catálogo comercial, cobrança, entrega ou reembolso real |
-| 2 | BL-10 Responsividade de produto e catálogo | Pendente de revisão visual abrangente | Detalhes, filtros e navegação confortáveis em celular e desktop |
-| 3 | BL-11 Identidade Crystalforn e tema | Parcial; identidade e logo precisam ser consolidados no produto | Sistema visual escuro/ claro consistente, marca aplicada e alternância acessível |
+| 2 | BL-10 Responsividade de produto e catálogo | Implementação presente; inspeção visual renderizada pendente | Detalhes, filtros e navegação confortáveis em celular e desktop |
+| 3 | BL-11 Identidade Crystalforn e tema | Ativos integrados; validação visual completa pendente | Sistema visual escuro/claro consistente, marca aplicada e alternância acessível |
 | 4 | BL-02 a BL-04 Descoberta e detalhes por jogo | Parcial | Filtros úteis e detalhes fiéis aos campos que a API realmente entrega |
 | 5 | BL-03 Títulos localizados | Implementado parcialmente; amostras reais por categoria pendentes | Títulos em pt-BR, sem texto russo bruto ou atributos inventados |
 | 6 | BL-05 Importação em massa | Código de retomada presente; escala real não validada | Paginação resiliente, progresso observável e benchmark até 40 mil registros |
 | 7 | BL-06 Concorrência e indisponibilidade | Parcial e bloqueado comercialmente | Nunca entregar anúncio indisponível; reconciliação/idempotência comprovadas |
-| 8 | BL-12 Painel administrativo | Pendente de especificação e implementação consolidada | Operação auditável para catálogo, pedidos, sincronização e políticas comerciais |
-| 9 | BL-13 Área do cliente e segurança de conta | Parcial/pendente conforme fluxos cobertos | Histórico e dados de demonstração seguros; entrega real continua bloqueada |
+| 8 | BL-12 Painel administrativo | Parcial; controles implementados, runtime não verificado | Operação auditável para catálogo, pedidos, sincronização e políticas comerciais |
+| 9 | BL-13 Área do cliente e segurança de conta | Fluxo central e interface presentes; runtime/permissões não verificados | Histórico e dados de demonstração seguros; entrega real continua bloqueada |
 | 10 | BL-09 Pagamentos e testes de entrega | Futuro e bloqueado pelo modo demonstração | Plano validado antes de qualquer integração comercial |
 
 **Regra de ordenação:** primeiro corrigir experiência visual e fechar os contratos de dados; medir sincronização isoladamente; só depois submeter qualquer mudança de modo de operação à revisão comercial e de segurança. Nenhum item abaixo desativa por si só o gate de demonstração.
@@ -187,7 +187,7 @@ Mateus disse que o resultado atual da integração parece agradável e que o pro
 
 ### BL-10 — Refazer responsividade e hierarquia das páginas de catálogo e produto
 
-**Estado:** Pendente de auditoria e refinamento visual abrangente. O operador mostrou a página `/produto/:id` e apontou título excessivamente grande, espaçamento ruim e adaptação insuficiente. A solicitação cobre também catálogo e outras páginas da loja.
+**Estado:** Implementação responsiva presente no CSS: título fluido limitado a 14 caracteres, grade do detalhe reorganizada abaixo de 700 px, filtros horizontais roláveis e navegação móvel. Falta inspeção do site renderizado em larguras representativas para confirmar o resultado e corrigir eventuais desvios. O operador mostrou a página `/produto/:id` e apontou título excessivamente grande, espaçamento ruim e adaptação insuficiente; o changelog registra os ajustes, mas não substitui verificação visual.
 
 Revisar os fluxos de catálogo, cartão, detalhe de produto e navegação em larguras móveis, tablet e desktop. Priorizar leitura do título e atributos, agrupamento do inventário, contexto de preço/estado e ação de retorno. Evitar overflow horizontal e conteúdo que obrigue rolagem excessiva antes de entender o produto.
 
@@ -204,7 +204,7 @@ Revisar os fluxos de catálogo, cartão, detalhe de produto e navegação em lar
 
 ### BL-11 — Consolidar identidade da Crystalforn, logo e alternância de tema
 
-**Estado:** Parcial. Há um visual escuro existente e uma solicitação anterior para criar logo; o backlog não registra ainda a aplicação consistente da identidade em todos os pontos nem a validação completa do alternador claro/escuro.
+**Estado:** A marca já está integrada no cabeçalho, rodapé e favicon, com wordmarks para fundos claro e escuro; o botão de tema SVG persiste a escolha em `localStorage`. Falta conferir renderização, contraste e persistência nos fluxos reais. Evidência estática não comprova aparência final em navegador.
 
 Aplicar uma identidade escura, moderna e reconhecível da Crystalforn, preservando contraste e legibilidade. Usar a logo aprovada no cabeçalho, rodapé e contextos administrativos. A alternância entre tema escuro e claro deve manter a preferência do usuário e cobrir estados interativos, conteúdo e navegação.
 
@@ -222,7 +222,7 @@ Aplicar uma identidade escura, moderna e reconhecível da Crystalforn, preservan
 
 ### BL-12 — Definir e completar o painel administrativo
 
-**Estado:** Pendente de inventário de funcionalidades; a tela atual mostra resumo de pedidos e sincronização, mas faltam controles e estados operacionais descritos no escopo original. O painel deve permanecer somente leitura ou operar apenas sobre dados fictícios enquanto o gate de demonstração estiver ativo.
+**Estado:** Parcial. O painel inclui resumo e histórico de pedidos, sincronização, filtros/ocultação de anúncios e vendedores, simulação de preço/cupom, regras de margem, auditoria e atendimento. A interface agora identifica o modo de demonstração e chama registros de sincronização de históricos quando o gate informa que o worker está desligado. Falta verificação autenticada dos fluxos e de suas permissões em runtime; ações administrativas existentes não habilitam vendas nem alteram o gate.
 
 Consolidar uma interface administrativa útil para acompanhar catálogo, pedidos, cupons e sincronização, com histórico de ações e indicação clara de ambiente. Não criar ações que habilitem vendas ou executem operações reais escondidas em uma tela de demonstração.
 
@@ -248,7 +248,7 @@ Consolidar uma interface administrativa útil para acompanhar catálogo, pedidos
 
 ### BL-13 — Completar a área do cliente dentro do modo permitido
 
-**Estado:** Parcial/pendente. O escopo inicial pede histórico de compras e recebimento seguro de credenciais, mas o modo de demonstração impede compras e entrega reais. O cadastro deve usar o Auth Center conforme decisão anterior; não criar autenticação local paralela ou contas de atalho.
+**Estado:** Parcial. A UI inclui histórico paginado, carteira, estados de entrega e fluxo central de identidade com consulta de tenant/papéis; login e cadastro locais estão desativados. A demonstração bloqueia pagamentos e entrega reais. Falta validação autenticada de autorização/isolamento de dados em runtime e revisão final da conta cliente no Auth Center.
 
 Entregar uma área de cliente que exponha apenas a identidade autenticada e registros compatíveis com o ambiente. Para demonstração, usar exemplos fictícios claramente sinalizados; preparar o desenho de pedidos e entrega sem expor credenciais reais.
 

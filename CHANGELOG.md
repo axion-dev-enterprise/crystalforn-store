@@ -4,6 +4,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
+- Exibe no painel administrativo o estado de release do catálogo e marca ciclos LZT como históricos quando a sincronização está desativada ou o status não pode ser confirmado.
 - Consolida no backlog os requisitos acumulados de responsividade, marca/logo e temas, painel administrativo e área do cliente, com prioridades, estados, critérios de aceite e dependências mantendo o gate de demonstração.
 - Reverte a publicação de anúncios reais para o modo demo aprovado: API sem catálogo real e worker LZT inativo; pagamentos e entrega continuam bloqueados.
 - Adiciona o símbolo facetado Crystalforn ao cabeçalho e ao rodapé.
