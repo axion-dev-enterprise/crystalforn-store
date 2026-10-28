@@ -21,6 +21,28 @@ Atualizado em 28/10/2026 após nova leitura da conversa de Mateus Alves Fernande
 - **Paginação:** o cliente observou respostas pequenas (10–30 anúncios e 120 para Steam) e reiterou a expectativa de 20–40 mil. O alvo permanece não validado; o código e limites documentados não garantem sincronização em tempo real.
 - **Próxima etapa citada:** gateway e testes de entrega depois dos ajustes. Isso não altera o modo demo vigente: qualquer operação real segue bloqueada e requer revisão/aprovação independente.
 
+## Adendo — reanálise solicitada por Mateus hoje, 28/10/2026
+
+Mateus pediu uma nova análise do resultado da API e avaliou a direção atual como agradável e próxima do esperado. Para considerar a etapa da API concluída, ele apontou os itens abaixo. São requisitos e observações do cliente, não validações independentes de runtime nem aceite formal.
+
+| Prioridade | Requisito confirmado nesta reanálise | Evidência / estado | Critério de pronto |
+| --- | --- | --- | --- |
+| P1 | Filtros essenciais por categoria, sem copiar o fórum inteiro | O cliente relata que as listas atuais retornam 10–30 anúncios e Steam chega a 120; esses números são observações dele, não medição nossa. | Documentar filtros e campos por categoria usando contrato oficial; priorizar personagens Fortnite, jogos Steam, rank LoL/Valorant e nível quando disponível. Cada filtro opera somente com dados compatíveis com seu jogo. |
+| P1 | Imagens por item e inventário útil em todos os jogos | O cliente confirma nomes de skins Fortnite, mas diz que as imagens individuais ainda faltam; pede mais conteúdo de Roblox, incluindo gamepasses, e inventário visual nos demais catálogos. | Exibir imagem ao lado do nome apenas quando houver recurso confiável e permitido; agrupar os dados realmente retornados por jogo; usar fallback acessível e marcar lista parcial. Gamepasses e inventário ausentes no contrato ficam identificados como não disponíveis. |
+| P1 | Normalização dos títulos LoL/Valorant | O cliente forneceu tiers e divisões e limitou essa regra a esses dois jogos. | Títulos em pt-BR refletem rank/divisão presentes e válidos no dado; ausente ou inválido usa título neutro. Não deduzir rank a partir de nível ou texto livre. |
+| P2 | Paginação e escala | O alvo pedido é 20–40 mil anúncios. Benchmark sintético local/CI não comprova esse volume no fornecedor nem sincronização em tempo real. | Manter evidência separada para benchmark sintético e medição autorizada do fornecedor; reportar limites, memória, duração, retomada e comportamento de erro antes de prometer escala ou tempo real. |
+| P2 | Proteção contra anúncio vendido e concorrência | O cliente espera remoção imediata do catálogo e ausência de entrega quando o fornecedor já vendeu o anúncio. | Planejar revalidação de disponibilidade, reserva/concorrência, idempotência e reconciliação com base nas capacidades documentadas; “instantâneo” só pode ser prometido se o fornecedor oferecer evento ou mecanismo equivalente comprovado. |
+| P3 | Gateway e testes de entrega como etapa seguinte | Mateus considera essa a fase posterior aos ajustes da API. | Permanecem bloqueados no modo de demonstração já escolhido. Checkout, cobrança, carteira, entrega de credenciais e reembolso não entram na implementação desta revisão. |
+
+### Ordem revisada para execução do backlog
+
+1. Fechar o mapa de campos e filtros por categoria, distinguindo exemplos locais de dados efetivamente suportados pelo contrato.
+2. Completar a apresentação demonstrativa de inventários: imagens individuais quando disponíveis, fallback, cobertura de Roblox/gamepasses e marcação explícita de listas parciais.
+3. Conferir títulos LoL/Valorant com a matriz de rank enviada pelo cliente e manter título neutro para dados desconhecidos.
+4. Manter benchmark sintético identificado como tal; registrar escala real e latência do fornecedor como pendentes de autorização e evidência.
+5. Preparar o desenho de concorrência e indisponibilidade para futura revisão, sem ativar venda ou entrega no demo.
+6. Só retomar gateway e testes comerciais após a revisão independente que remova o bloqueio do modo demo.
+
 ## Novo backlog — detalhamento da leitura atual
 
 Este recorte incorpora as mensagens mais novas da conversa. A coluna de estado descreve a evidência atual, e não um aceite do cliente. Itens de demonstração usam somente fixtures; itens comerciais permanecem bloqueados.
