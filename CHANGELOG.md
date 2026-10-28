@@ -4,6 +4,9 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
+- Extrai o particionador de lotes do worker para um módulo reutilizável e adiciona ao CI um benchmark sintético de 20 mil/40 mil registros, validando contagem, limite de 500 itens e bytes por lote sem acessar LZT ou banco.
+- Corrige o título do exemplo LoL de Esmeralda III para preservar a divisão fictícia exibida no inventário.
+- Registra no mapa do fornecedor a diferença entre filtros locais da loja e parâmetros LZT relacionados; acrescenta evidência pública dos filtros de demonstração e do inventário textual por categoria.
 - Exibe no painel administrativo o estado de release do catálogo e marca ciclos LZT como históricos quando a sincronização está desativada ou o status não pode ser confirmado.
 - Consolida no backlog os requisitos acumulados de responsividade, marca/logo e temas, painel administrativo e área do cliente, com prioridades, estados, critérios de aceite e dependências mantendo o gate de demonstração.
 - Atualiza o backlog com a revisão mais recente do cliente: filtros essenciais por jogo, ranks em títulos apenas para LoL/Valorant, inventários visuais representativos e paginação de 20–40 mil ainda não validada; registra a intenção de avançar ao gateway sem remover o gate demo.

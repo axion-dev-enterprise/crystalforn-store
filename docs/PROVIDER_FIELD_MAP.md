@@ -14,6 +14,16 @@ Atualizado em 28/10/2026. Este mapa diferencia filtros implementados na loja, no
 
 ## Filtros publicados pela LZT e lacunas da integração
 
+| Categoria | Campo na busca da loja | Campo consultado no catálogo local | Parâmetro público LZT relacionado | Situação desta versão |
+| --- | --- | --- | --- | --- |
+| Fortnite | `skinName` | `inventory.skins`, `inventory.featured_skins` | `skin[]` (enum de skins) | A busca local funciona sobre itens importados; o modo demo usa fixtures. O enum LZT não é enviado pela vitrine. |
+| Steam | `steamGame` | `inventory.games`, `inventory.game_names` | `game[]` (IDs) | A busca aceita nome do jogo presente no payload. Não há resolução texto→ID para consulta LZT. |
+| Valorant | `rank`, `minLevel` | `inventory.rank`, `inventory.level` | `rmin`, `rmax` (rank numérico) | A API local filtra rank/nível dos registros importados; a vitrine não traduz o rótulo textual para enums de busca do fornecedor. |
+| League of Legends | `rank`, `minLevel` | `inventory.rank`, `inventory.lol_rank`, `inventory.level`, `inventory.lol_level` | `lol_rank[]` (enum de rank) | A API local filtra rank/nível conhecidos; os parâmetros LZT não são enviados pela vitrine. |
+| Roblox | Sem filtro de item individual | `inventory.items`, `inventory.fruits`, `inventory.gamepasses` | `robux_min`/`robux_max`, `gamepass_min`/`gamepass_max` | Filtros documentados são agregados; lista de gamepasses depende de campo presente no payload. |
+
+Os testes de navegação desta revisão usaram apenas parâmetros da loja em modo demo e fixtures sintéticas; a tabela acima descreve o mapeamento estático do código e documentação. Ela não afirma que o fornecedor foi consultado.
+
 - **Epic Games/Fortnite:** a LZT publica `skin[]`, `pickaxe[]`, `dance[]` e `glider[]` com enums de milhares de itens. A vitrine hoje pesquisa nomes nos arrays já importados; o sincronizador não expõe seleção desses enums e não repassa o filtro individual à consulta do fornecedor.
 - **Riot:** `rmin`/`rmax` são limites numéricos de rank Valorant; `lol_rank[]` é um filtro de rank LoL. A API da loja recebe pesquisa textual normalizada e aplica o filtro sobre os anúncios já importados.
 - **Steam:** `game[]` aceita IDs de jogos e `hours_played` recebe horas por jogo. A loja atualmente filtra pelos nomes de jogos presentes no inventário normalizado; não converte uma busca textual em ID LZT.
