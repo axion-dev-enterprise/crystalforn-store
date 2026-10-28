@@ -18,7 +18,7 @@ Prefixo global: `/api/v1`. A lista abaixo descreve as rotas presentes no código
 
 | Método | Rota | Acesso |
 | --- | --- | --- |
-| `GET` | `/auth/central/login` | Público; exige integração central disponível |
+| `GET` | `/auth/central/login?client=crystalforn` | Público; redireciona ao login central de cliente; exige integração central disponível e retorna `503` se ela não estiver configurada |
 | `POST` | `/auth/central/callback` | Callback central; valida código e estado |
 | `POST` | `/auth/admin/login` | Público, credenciais administrativas verificadas no backend |
 | `POST` | `/auth/register` | Descontinuado; responde `410` |

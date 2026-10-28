@@ -51,7 +51,7 @@ O worker de sincronização consulta um fornecedor paginado e envia lotes de at�
 
 ### Autenticação
 
-1. A autenticação do cliente usa um fluxo central com callback e sessão local opaca.
+1. A autenticação do cliente começa pelo link “Entrar ou criar conta” da página de acesso e usa o fluxo central `client=crystalforn`, callback e sessão local opaca; o cliente precisa voltar com o papel `store_customer` validado pelo Auth Center.
 2. O administrador possui validação própria no backend, com hash forte, escopo de tenant/papel e sessão protegida.
 3. Sem configuração e identidade válidas, o fluxo falha fechado. A UI não contém rota mock de autenticação.
 
