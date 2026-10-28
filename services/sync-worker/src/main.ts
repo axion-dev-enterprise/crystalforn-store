@@ -30,10 +30,11 @@ const delayMs = apiProvider === 'lzt-market' ? Math.max(3000, requestedDelayMs) 
 const lztFeeds = [
   { key: 'fortnite', path: 'epicgames', params: [['epicgames_game[]', 'fortnite']] },
   { key: 'valorant', path: 'riot', params: [['riot_game[]', 'valorant']] },
+  { key: 'lol', path: 'riot', params: [['riot_game[]', 'league-of-legends']] },
   { key: 'roblox', path: 'roblox', params: [] as string[][] },
   { key: 'steam', path: 'steam', params: [] as string[][] },
 ];
-const lztOrderVersion = 'pdate_to_down_v1';
+const lztOrderVersion = 'pdate_to_down_page_v2';
 
 function itemId(item: unknown): string | null {
   if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
@@ -232,7 +233,10 @@ async function synchronize(): Promise<void> {
       const savedCursor = apiProvider === 'lzt-market'
         ? await lockClient.query<{ setting_value: unknown }>('SELECT setting_value FROM store_settings WHERE setting_key=$1', [cursorKey])
         : { rows: [] as { setting_value: unknown }[] };
-      let cursor: string | null = typeof savedCursor.rows[0]?.setting_value === 'string' ? savedCursor.rows[0].setting_value : null;
+      const savedLztPage = typeof savedCursor.rows[0]?.setting_value === 'string'
+        ? savedCursor.rows[0].setting_value : null;
+      let lztPage = savedLztPage?.startsWith('page:') ? Number(savedLztPage.slice(5)) : 1;
+      if (!Number.isSafeInteger(lztPage) || lztPage < 1) lztPage = 1;
       const savedScanStarted = apiProvider === 'lzt-market'
         ? await lockClient.query<{ setting_value: unknown }>('SELECT setting_value FROM store_settings WHERE setting_key=$1', [scanStartedKey])
         : { rows: [] as { setting_value: unknown }[] };
@@ -244,7 +248,7 @@ async function synchronize(): Promise<void> {
       const seen = new Set<string>();
       if (apiProvider === 'lzt-market') {
         nextFeedIndex = feedIndex;
-        if (!cursor || !scanStartedAt) {
+        if (!savedLztPage || !scanStartedAt) {
           scanStartedAt = runStartedAt;
           await lockClient.query(
             'INSERT INTO store_settings(setting_key,setting_value) VALUES($1,$2::jsonb) ON CONFLICT(setting_key) DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=now()',
@@ -257,10 +261,11 @@ async function synchronize(): Promise<void> {
       while (pages < maxPages && !stopping) {
         const requestUrl = new URL(feed.path, apiRoot);
         if (apiProvider === 'lzt-market') {
-          if (cursor) requestUrl.searchParams.set('after', cursor);
+          requestUrl.searchParams.set('page', String(lztPage));
           for (const [key, value] of feed.params) requestUrl.searchParams.append(key, value);
           requestUrl.searchParams.set('order_by', 'pdate_to_down');
           requestUrl.searchParams.set('currency', 'rub');
+          requestUrl.searchParams.set('locale', 'pt-BR');
           requestUrl.searchParams.append('origin[]', 'personal');
         } else requestUrl.searchParams.set('page', String(feedPage + 1));
         if (apiProvider === 'lzt-market' && lastLztCategoryRequestAt !== null) {
@@ -274,14 +279,14 @@ async function synchronize(): Promise<void> {
           signal: AbortSignal.timeout(timeoutMs),
         });
         if (!response.ok) {
-          if (apiProvider === 'lzt-market' && cursor && response.status === 400) {
+          if (apiProvider === 'lzt-market' && lztPage > 1 && response.status === 400) {
             await lockClient.query('DELETE FROM store_settings WHERE setting_key=$1', [cursorKey]);
-            errorCode = 'pagination_cursor_rejected';
+            errorCode = 'pagination_page_rejected';
           } else errorCode = `provider_http_${response.status}`;
           break;
         }
-        let payload: { status?: unknown; items?: unknown[]; total_items?: number; totalItems?: number; hasNextPage?: boolean; nextCursor?: string };
-        try { payload = await response.json() as { status?: unknown; items?: unknown[]; total_items?: number; totalItems?: number; hasNextPage?: boolean; nextCursor?: string }; }
+        let payload: { status?: unknown; items?: unknown[]; total_items?: number; totalItems?: number; hasNextPage?: boolean; page?: number; perPage?: number };
+        try { payload = await response.json() as { status?: unknown; items?: unknown[]; total_items?: number; totalItems?: number; hasNextPage?: boolean; page?: number; perPage?: number }; }
         catch { errorCode = 'invalid_json'; break; }
         if (apiProvider === 'generic' && payload.status !== undefined
           && (typeof payload.status !== 'string' || payload.status.trim().toLowerCase() !== 'success')) {
@@ -289,10 +294,19 @@ async function synchronize(): Promise<void> {
           break;
         }
         const totalItems = payload.totalItems ?? payload.total_items;
-        if (!Array.isArray(payload.items) || (totalItems !== undefined && (!Number.isFinite(totalItems) || totalItems < 0))) { errorCode = 'invalid_contract'; break; }
+        if (!Array.isArray(payload.items) || (totalItems !== undefined && (!Number.isFinite(totalItems) || totalItems < 0))
+          || (apiProvider === 'lzt-market' && (typeof payload.hasNextPage !== 'boolean' || payload.page !== lztPage
+            || !Number.isSafeInteger(payload.perPage) || (payload.perPage as number) < 1))) {
+          errorCode = 'invalid_contract';
+          break;
+        }
         pages += 1;
         feedPage += 1;
         if (payload.items.length === 0) {
+          if (apiProvider === 'lzt-market' && payload.hasNextPage === true) {
+            errorCode = 'pagination_incomplete';
+            break;
+          }
           const genericHasUnseenPages = apiProvider === 'generic' && (
             payload.hasNextPage === true ||
             (typeof totalItems === 'number' && genericItemsSeen < totalItems)
@@ -348,19 +362,14 @@ async function synchronize(): Promise<void> {
           break;
         }
         const hasMore = apiProvider === 'lzt-market'
-          ? payload.hasNextPage !== false && !(typeof totalItems === 'number' && seen.size >= totalItems)
+          ? payload.hasNextPage === true
           : payload.hasNextPage !== false && !(typeof totalItems === 'number' && (totalItems === 0 || genericItemsSeen >= totalItems));
         if (apiProvider === 'lzt-market') {
-          if (hasMore && !payload.nextCursor) {
-            await lockClient.query('DELETE FROM store_settings WHERE setting_key=$1', [cursorKey]);
-            errorCode = 'pagination_cursor_missing';
-            break;
-          }
-          cursor = hasMore ? payload.nextCursor! : null;
-          if (cursor) {
+          if (hasMore) {
+            lztPage += 1;
             await lockClient.query(
               'INSERT INTO store_settings(setting_key,setting_value) VALUES($1,$2::jsonb) ON CONFLICT(setting_key) DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=now()',
-              [cursorKey, JSON.stringify(cursor)]);
+              [cursorKey, JSON.stringify(`page:${lztPage}`)]);
           } else await lockClient.query('DELETE FROM store_settings WHERE setting_key=$1', [cursorKey]);
         } else if (hasMore) {
           genericNextPage = feedPage + 1;

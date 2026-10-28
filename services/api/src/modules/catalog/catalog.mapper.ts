@@ -1,4 +1,4 @@
-export const STORE_CATALOG_GAMES = ['fortnite', 'valorant', 'roblox', 'steam'] as const;
+export const STORE_CATALOG_GAMES = ['fortnite', 'valorant', 'lol', 'roblox', 'steam'] as const;
 export type StoreCatalogGame = typeof STORE_CATALOG_GAMES[number];
 export type Game = StoreCatalogGame | 'lol' | 'other';
 export interface NormalizedProduct {
