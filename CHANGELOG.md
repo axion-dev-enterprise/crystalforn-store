@@ -2,6 +2,10 @@
 
 O projeto usa versões SemVer. Esta lista registra alterações notáveis e limites conhecidos; commits contêm as mudanças completas.
 
+## 0.1.1 — 2026-10-27
+
+- Atualiza GitHub Actions para releases compatíveis com Node.js 24 e fixa o runner em Ubuntu 24.04.
+
 ## 0.1.0 — 2026-10-27
 
 - Primeira versão pública do código da loja Crystalforn.
