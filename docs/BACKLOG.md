@@ -1,5 +1,7 @@
 # Backlog Crystalforn
 
+> Fila executável consolidada: [BACKLOG_EXECUTIVO_ATUAL.md](BACKLOG_EXECUTIVO_ATUAL.md). Este documento preserva os requisitos detalhados e o histórico das revisões.
+
 ## Backlog executivo vigente — 28/10/2026
 
 Esta seção é o recorte de execução atual, consolidado após ler as mensagens mais recentes de Mateus Alves Fernandes na conversa da Workana. As seções abaixo preservam o histórico e os critérios detalhados; em caso de repetição, este quadro resume a ordem e o estado atual. A opinião do cliente de que a API está “quase lá” define uma expectativa de produto, não comprova aceite técnico.
