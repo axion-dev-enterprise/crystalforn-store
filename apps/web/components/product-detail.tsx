@@ -164,7 +164,7 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
             <textarea id="pix-code" readOnly value={checkout.pix.copyPaste} rows={4} />
             <button type="button" className="button-outline" onClick={() => void copyPixCode()}>Copiar código Pix</button>
             {copyStatus && <p className="fine-print" role="status" aria-live="polite">{copyStatus}</p>}
-            {checkout.pix.qrCodeBase64 && <img className="qr-image" alt="QR Code Pix para este pedido" src={`data:image/png;base64,${checkout.pix.qrCodeBase64}`} />}
+            {checkout.pix.qrCodeBase64 && <img className="qr-image" alt="QR Code Pix para este pedido" width={180} height={180} src={`data:image/png;base64,${checkout.pix.qrCodeBase64}`} />}
           </>}
           <p>Pedido {checkout.order.id.slice(0, 8)} · {orderStatusPtBr[checkout.order.status] ?? 'Em processamento'}</p>
           <Link className="button-primary button-wide" href="/cliente">Acompanhar pedido</Link>

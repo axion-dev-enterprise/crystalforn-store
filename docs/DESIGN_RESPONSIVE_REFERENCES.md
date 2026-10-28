@@ -48,6 +48,7 @@ O CSS centraliza as cores e estados de foco nesses tokens e nos seletores `data-
 - A quantidade de resultados é anunciada como estado polido; miniaturas assíncronas mantêm dimensões de exibição reservadas e decodificação assíncrona.
 - A busca de avatar Roblox na vitrine começa apenas quando o card se aproxima da viewport; a prévia textual continua disponível como fallback.
 - As consultas de imagem do detalhe Fortnite/Roblox esperam a aproximação da seção do inventário, e miniaturas e avatar declaram dimensões intrínsecas para reservar espaço.
+- QR Codes Pix também declaram dimensões HTML de 180×180 px; o linter Web Vitals do workspace agora reporta zero avisos de dimensões nas imagens da aplicação.
 - O inventário e a auditoria administrativas oferecem busca/filtro e navegação paginada em vez de limitar o histórico aos primeiros registros.
 - A prévia administrativa renderiza o mesmo cartão de produto usado na vitrine, com atributos, reputação agregada, atualização e preço em uma única fonte de interface.
 - Catálogo e detalhes sinalizam anúncios com sincronização acima de 24 horas ou sem data conhecida como dados cuja disponibilidade pode ter mudado.
