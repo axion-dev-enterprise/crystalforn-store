@@ -1,5 +1,39 @@
 # Backlog Crystalforn
 
+## Backlog executivo vigente — 28/10/2026
+
+Esta seção é o recorte de execução atual, consolidado após ler as mensagens mais recentes de Mateus Alves Fernandes na conversa da Workana. As seções abaixo preservam o histórico e os critérios detalhados; em caso de repetição, este quadro resume a ordem e o estado atual. A opinião do cliente de que a API está “quase lá” define uma expectativa de produto, não comprova aceite técnico.
+
+### Decisão de produto que continua valendo
+
+A versão permanece **demonstração somente**: sem estoque LZT publicado, vendas, pagamentos, entrega de credenciais ou movimentação de carteira. O cliente descreveu gateway e testes de entrega como próximos passos depois do trabalho da API; isso não altera a decisão explícita do operador de manter a demonstração. Ver [DEMO_MODE.md](DEMO_MODE.md) e [COMPATIBILIDADE_COMERCIAL.md](COMPATIBILIDADE_COMERCIAL.md).
+
+### Fila priorizada
+
+| Prioridade | Item | Estado observado | Critério de conclusão |
+| --- | --- | --- | --- |
+| P1 | Fechar filtros essenciais por jogo | Parcial: filtros demonstrativos existem sobre fixtures. As mensagens do cliente relatam buscas pequenas (10–30 anúncios; 120 na Steam), sem medição independente nesta atualização. | Mapear filtros documentados da Market API por categoria; Fortnite busca skins/personagens, Steam busca jogos, LoL e Valorant filtram rank/divisão e nível quando o payload oferecer os campos. Deixar claro que fixtures não são estoque real. |
+| P1 | Normalizar títulos de contas | Parcial: normalização e títulos demonstrativos estão no código; faltam payloads autorizados para comprovar a cobertura real de cada categoria. | Remover texto russo/vago quando houver atributos estruturados. Usar a matriz de ranks/divisões enviada pelo cliente somente em LoL e Valorant; usar título neutro para dados ausentes ou inválidos. |
+| P1 | Tornar inventários transparentes e visuais | Parcial: há detalhes por jogo e amostra Fortnite textual; imagens por item, gamepasses e cobertura de payload não estão confirmados em todas as categorias. | Agrupar somente os dados que a API realmente retorna; apresentar nome e imagem quando a origem for confiável e a exibição estiver autorizada; marcar amostra truncada/parcial e campos não fornecidos. Investigar gamepasses Roblox sem afirmar lista individual se o contrato não a fornecer. |
+| P1 | Revisar identidade e responsividade | Parcial: tema claro/escuro e persistência já foram verificados em uma rota; falta inspeção consolidada de catálogo, detalhe, admin e área do cliente nos dois temas e em larguras móveis/desktop. | Validar navegação, hierarquia, estados vazio/erro, contraste, foco e ausência de overflow em rotas representativas. A alternância não pode sugerir que a loja esteja em operação comercial. |
+| P2 | Validar paginação em massa e sincronização | Benchmark sintético de 20k/40k existe; não comprova importação LZT, limites do fornecedor ou “tempo real”. O worker permanece desligado na demonstração. | Apurar contrato, cotas, semântica de paginação, memória, duração, retomada e falhas com evidência autorizada. Não reconciliar catálogo após varredura incompleta nem anunciar escala/latência não medidas. |
+| P2 | Especificar indisponibilidade e concorrência | Parcial no desenho/código: existem revalidação antes do pedido e idempotência de crédito; evento instantâneo do fornecedor e fluxo comercial não foram comprovados em runtime. | Definir como impedir entrega obsoleta em corrida, reconciliar timeouts ambíguos e creditar saldo uma única vez após indisponibilidade confirmada. Só prometer remoção imediata se o fornecedor oferecer mecanismo documentado e a latência for medida. |
+| P2 | Completar operações do painel administrativo | Parcial: resumo, catálogo, regras e histórico têm estrutura; métricas e ações autenticadas não foram verificadas nesta revisão. | Priorizar rastreabilidade de sincronização, pedidos, falhas e ações; identificar origem demo/real; validar permissões no servidor e não oferecer controles que abram vendas ou integração real enquanto o gate estiver fechado. |
+| P3 | Gateway, checkout, entrega e reembolso reais | Bloqueado pela decisão atual de manter demonstração e pela revisão comercial pendente. | Só iniciar após revisão independente que autorize o modelo comercial, confirme compatibilidade dos provedores e aprove identidade, termos, segurança, entrega e testes isolados. Este item não autoriza transações. |
+
+### Sequência de trabalho
+
+1. Fechar a matriz de campos e filtros por categoria a partir do contrato/documentação oficial, distinguindo dados do exemplo, fixtures e dados efetivamente fornecidos.
+2. Completar os títulos e os detalhes demonstrativos sem inventar atributos, disponibilidade, imagens ou inventários.
+3. Revisar todas as rotas prioritárias em tema claro/escuro e em viewport estreito/largo; registrar evidência da revisão.
+4. Manter o benchmark sintético separado da futura medição LZT; documentar paginação, checkpoint e comportamento de falha antes de qualquer promessa de escala.
+5. Documentar o fluxo de corrida e indisponibilidade sem ativar checkout ou carteira.
+6. Manter pagamentos e entrega real bloqueados até a revisão comercial independente.
+
+### Leitura factual das mensagens
+
+Mateus reiterou que quer filtros essenciais, títulos próprios em vez de texto russo, maior transparência visual do conteúdo das contas e qualidade de amostra semelhante à organização do fórum/Legas, sem exigir cópia integral. Ele informou ranks/divisões de LoL e Valorant e restringiu a regra de títulos a esses dois jogos. Pediu que depois dessa etapa se avance para gateway e testes de entrega. Os relatos de volume, o desejo de atualização “em tempo real” e a expectativa de conclusão são requisitos do cliente, não resultados de execução nem aceite formal.
+
 Atualizado em 28/10/2026 após nova leitura da conversa de Mateus Alves Fernandes na Workana. O cliente considera a API próxima do rumo esperado e detalhou filtros, nomes de rank/divisão, atributos dos cards, inventários por jogo, escala, preço e o fluxo futuro de compra. Este documento reúne o backlog funcional, visual e operacional; status representam evidência no código/documentação, não autorização para ativar operações comerciais.
 
 ## Estado e limites atuais
