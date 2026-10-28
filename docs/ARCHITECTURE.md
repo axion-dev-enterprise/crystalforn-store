@@ -39,7 +39,7 @@ O prefixo HTTP global é `/api/v1`. Erros são tratados como respostas HTTP pelo
 
 ### Workers
 
-O worker de sincronização consulta um fornecedor paginado e envia lotes à rota interna autenticada do catálogo. O worker de entrega processa pagamentos confirmados e interage com o fornecedor. São processos independentes e profiles explícitos do Compose, para que não sejam necessários ao frontend/API. Na versão publicada atual ambos encerram sem realizar operações.
+O worker de sincronização consulta um fornecedor paginado e envia lotes de até 500 itens à rota interna autenticada do catálogo. A API normaliza e deduplica cada lote e grava os anúncios em um único upsert PostgreSQL por lote, reduzindo a quantidade de round trips ao banco. O worker de entrega processa pagamentos confirmados e interage com o fornecedor. São processos independentes e profiles explícitos do Compose, para que não sejam necessários ao frontend/API. Na versão publicada atual ambos encerram sem realizar operações.
 
 ## Fluxos principais
 

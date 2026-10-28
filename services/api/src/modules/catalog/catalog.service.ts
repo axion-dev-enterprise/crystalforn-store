@@ -273,7 +273,20 @@ export class CatalogService {
       RUB: Number(settings.rub_brl_rate) > 0 ? Number(settings.rub_brl_rate) : null,
       BRL: 1,
     };
-    let count = 0;
+    const rowsByItemId = new Map<string, {
+      provider_item_id: string;
+      seller_id: string | null;
+      game: string;
+      source_title: string | null;
+      generated_title: string;
+      source_price: number;
+      source_currency: string;
+      price_brl_cents: number | null;
+      markup_percent: number;
+      status: string;
+      attributes: Record<string, unknown>;
+      provider_updated_at: null;
+    }>();
     const sellerIds = new Set<string>();
     for (const value of items) {
       if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
@@ -283,18 +296,43 @@ export class CatalogService {
       const rate = rates[product.currency];
       let priceCents = rate === null ? null : Math.round(product.sourcePrice * rate * (1 + markup / 100) * 100);
       if (priceCents !== null && (!Number.isSafeInteger(priceCents) || priceCents <= 0)) priceCents = null;
+      rowsByItemId.set(product.itemId, {
+        provider_item_id: product.itemId,
+        seller_id: product.sellerId,
+        game: product.game,
+        source_title: product.sourceTitle,
+        generated_title: product.title,
+        source_price: product.sourcePrice,
+        source_currency: product.currency,
+        price_brl_cents: priceCents,
+        markup_percent: markup,
+        status: product.status,
+        attributes: product.attributes,
+        provider_updated_at: null,
+      });
+    }
+    const rows = [...rowsByItemId.values()];
+    if (rows.length) {
       await this.db.query(
-        `INSERT INTO products(provider_item_id,seller_id,game,source_title,generated_title,source_price,source_currency,price_brl_cents,markup_percent,status,attributes,provider_updated_at,synced_at)
-         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12,now())
+        `WITH incoming AS (
+           SELECT DISTINCT ON (provider_item_id) provider_item_id,seller_id,game,source_title,generated_title,
+             source_price,source_currency,price_brl_cents,markup_percent,status,attributes,provider_updated_at
+           FROM jsonb_to_recordset($1::jsonb) AS batch(
+             provider_item_id text,seller_id text,game text,source_title text,generated_title text,
+             source_price numeric,source_currency text,price_brl_cents bigint,markup_percent smallint,
+             status text,attributes jsonb,provider_updated_at timestamptz
+           )
+           ORDER BY provider_item_id
+         )
+         INSERT INTO products(provider_item_id,seller_id,game,source_title,generated_title,source_price,source_currency,price_brl_cents,markup_percent,status,attributes,provider_updated_at,synced_at)
+         SELECT provider_item_id,seller_id,game,source_title,generated_title,source_price,source_currency,price_brl_cents,markup_percent,status,attributes,provider_updated_at,now()
+         FROM incoming
          ON CONFLICT(provider_item_id) DO UPDATE SET seller_id=EXCLUDED.seller_id,game=EXCLUDED.game,source_title=EXCLUDED.source_title,
            generated_title=EXCLUDED.generated_title,source_price=EXCLUDED.source_price,source_currency=EXCLUDED.source_currency,
            price_brl_cents=EXCLUDED.price_brl_cents,markup_percent=EXCLUDED.markup_percent,
            status=CASE WHEN products.status='sold' THEN 'sold' ELSE EXCLUDED.status END,
            attributes=EXCLUDED.attributes,provider_updated_at=EXCLUDED.provider_updated_at,synced_at=now()`,
-        [product.itemId, product.sellerId, product.game, product.sourceTitle, product.title, product.sourcePrice, product.currency,
-          priceCents, markup, product.status,
-          JSON.stringify(product.attributes), null]);
-      count += 1;
+        [JSON.stringify(rows)]);
     }
     if (sellerIds.size) {
       await this.db.query(
@@ -303,7 +341,7 @@ export class CatalogService {
          WHERE seller_id ~ '^[0-9]{1,40}$' ON CONFLICT(seller_id) DO NOTHING`,
         [[...sellerIds]]);
     }
-    return count;
+    return rows.length;
   }
 
   async revalidateProviderItem(itemId: string, expectedGame?: string): Promise<Record<string, unknown> | null> {
