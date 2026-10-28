@@ -12,6 +12,7 @@ Atualizado em 28/10/2026 após nova leitura da conversa de Mateus Alves Fernande
 - As quantidades de 20 mil a 40 mil anúncios são metas solicitadas pelo cliente, ainda sem validação de limites, cotas, custo ou garantias do fornecedor.
 - Nesta revisão, a vitrine pública foi conferida em modo demo: `skinName=Travis Scott` retornou 1 exemplo Fortnite, `steamGame=Portal 2` retornou 2 exemplos Steam e `rank=Ouro&minLevel=1` retornou 1 exemplo LoL. Esses resultados provam somente a filtragem das fixtures fictícias; nenhuma consulta autenticada ao fornecedor ocorreu.
 - A página pública de detalhe Fortnite foi inspecionada: mostra seis itens textuais em quatro grupos (skins, picaretas, emotes e asas-delta) e avisa que a amostra é fictícia e incompleta. Não há URLs de imagem nos dados demonstrativos, portanto miniaturas reais ainda não foram verificadas.
+- A arte individual de Fortnite não foi adicionada: o exemplo do cliente traz nomes, sem imagens ou URLs. As capas Steam externas já usadas nos fixtures ainda não têm licença verificada para este contexto; acesso público via CDN não comprova direitos. A política oficial da Epic descreve Fan Content como pessoal e não comercial. Registrar a revisão de origem/licença e a decisão de manter, retirar ou substituir cada recurso antes de reutilização comercial; consulte [COMPATIBILIDADE_COMERCIAL.md](COMPATIBILIDADE_COMERCIAL.md).
 - Verificação da revisão atual: GitHub Actions Build [40781639640](https://github.com/axion-dev-enterprise/crystalforn-store/actions/runs/40781639640) passou para `7f34190`, compilando web, API e workers e executando o benchmark sintético. A revisão de interface `55323b9` também passou no auditor anti-slop (15 arquivos, 0 problemas) e em `git diff --check`. A execução atual confirma a compilação da lista demonstrativa de ranks/divisões; não verifica sua renderização em navegador. O benchmark mede serialização e divisão local de lotes; não comprova escala do fornecedor, cobertura de payloads reais, autenticação em runtime ou operação comercial.
 
 ## Delta das mensagens mais recentes do cliente — 28/10/2026
@@ -145,6 +146,20 @@ Preservar a loja sem anúncios reais, checkout, gateway, entrega e reembolso at�
 
 **Dependências:** decisão comercial documentada e aprovação de release.
 
+### BL-14 — Revisar origem e direitos de exibição das imagens de jogos
+
+**Estado:** Pendente. A demo tem capas Steam externas ilustrativas sem revisão de licença registrada. O exemplo recebido do cliente não traz arte individual Fortnite. A política oficial da Epic restringe a categoria “Fan Content” a uso pessoal e não comercial; como a Crystalforn é uma loja pública com intenção comercial futura, o uso de arte Epic precisa de avaliação específica. Esta descrição é um controle operacional, não um parecer jurídico.
+
+**Critérios de aceite**
+
+- Cada recurso de imagem externo tem URL/origem, titular, licença ou autorização aplicável, atribuições exigidas e contexto de uso registrados.
+- URLs públicas de CDN não são tratadas como autorização.
+- Se não houver direitos suficientes, remover ou substituir a arte por elementos originais que não sejam apresentados como imagem do item real.
+- A página mantém fallback acessível com nome do item quando imagem autorizada estiver ausente ou indisponível.
+- O escopo demonstrativo e qualquer escopo comercial futuro são avaliados separadamente.
+
+**Dependências:** documentação/licença do provedor de imagens, autorização do titular quando necessária e revisão do modelo de uso antes do lançamento comercial.
+
 ### BL-09 — Preparar a fase de gateway e testes após revisão da API
 
 **Estado:** Futuro e bloqueado pelo modo demonstração vigente. O cliente considera gateway e testes de entrega como a etapa seguinte quando a API estiver no rumo esperado. Isso não altera a decisão anterior de manter a loja em demonstração sem catálogo ou cobranças reais.
@@ -217,7 +232,7 @@ Mostrar imagens junto aos nomes das skins e ampliar os detalhes visuais do inven
 - Há uma matriz por jogo dos campos e itens presentes em payloads autorizados, com seção visual útil mesmo quando um tipo de inventário não é fornecido.
 - Imagens têm texto alternativo útil e a interface continua utilizável em telas móveis e com teclado.
 
-**Dependências:** BL-02, licença/origem dos recursos de imagem, limites de payload e revisão de desempenho.
+**Dependências:** BL-02, revisão de licença/origem dos recursos de imagem, limites de payload e revisão de desempenho. A política oficial da Epic limita Fan Content a uso pessoal e não comercial; a necessidade de revisão específica para este produto é uma conclusão operacional conservadora. Não declarar direitos com base apenas na disponibilidade de uma URL.
 
 **Limite de contrato:** a [documentação da categoria Roblox](https://lzt-market.readme.io/reference/categoryroblox) publica filtros `gamepass_min`/`gamepass_max` para o custo agregado de gamepasses, mas não documenta nesses parâmetros uma lista individual de passes. O detalhe individual continua condicionado a campos presentes em payloads autorizados; o endpoint de imagem documentado não oferece tipo para passes Roblox.
 

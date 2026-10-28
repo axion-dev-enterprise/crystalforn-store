@@ -18,6 +18,14 @@ Fontes oficiais revalidadas em 27/10/2026: [orientação da Epic sobre compra, v
 - **Pushin Pay:** os termos descrevem o serviço como tecnologia de pagamento e atribuem ao vendedor responsabilidade pela oferta, entrega e suporte. A documentação também prevê análise e bloqueio preventivo. Para contas novas, o limite inicial divulgado para transações Pix/API é R$ 150, sujeito a revisão. Não foi localizada aprovação pública específica para comércio de contas de jogos; obter confirmação escrita antes de habilitar cobranças. [Termos de Uso Pushin Pay](https://pushinpay.com.br/termos-de-uso).
 - **Mercado Pago:** não foi localizada confirmação pública explícita de que esta categoria de produto seja aceita. A integração técnica Pix não equivale à aprovação comercial. Solicitar confirmação escrita do Mercado Pago para a descrição exata da oferta antes de ativar a integração.
 
+## Imagens e propriedade intelectual
+
+- A política oficial da Epic define “Fan Content” como conteúdo pessoal e não comercial e exige atribuição/disclaimer em páginas que o exibam. O suporte da Epic direciona qualquer uso de imagens e conteúdo Fortnite a essa política. Como este produto é uma loja pública com intenção comercial futura, a adequação de imagens Epic requer revisão e autorização aplicável; a etiqueta “demonstração” não comprova licença.
+- A demo atual contém capas Steam externas ilustrativas. A origem e os direitos de exibição dessas capas não foram verificados para este contexto. Uma URL pública ou acessível por CDN não comprova licença de uso.
+- Não foram adicionadas imagens individuais de Fortnite: o exemplo do cliente fornece nomes, sem URLs ou ícones. Antes de reutilizar imagens de jogos em uma versão comercial, registrar licença/permissão, atribuição exigida e origem por recurso; se isso não puder ser comprovado, remover ou substituir a arte por elementos originais que não aleguem representar itens reais.
+
+Fonte Epic consultada em 28/10/2026: [Epic Games Fan Content Policy](https://legal.epicgames.com/epicgames/fan-art-policy). A necessidade de uma revisão específica para este produto é uma conclusão operacional conservadora, não um parecer jurídico.
+
 ## Condição de lançamento
 
 1. Não publicar nem aceitar pagamentos por contas de Fortnite, Valorant, LoL, Roblox ou Steam no escopo atual sem autorização escrita aplicável dos titulares dos direitos e aprovação documentada dos gateways.

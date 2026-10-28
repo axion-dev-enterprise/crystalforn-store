@@ -4,6 +4,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
+- Registra a revisão pendente de origem/licença das capas Steam existentes e adiciona gate P0 para imagens de jogos; não presume que URL pública de CDN autorize exibição.
 - Atualiza o backlog com a leitura mais recente da Workana: critérios de conclusão da API, filtros, inventário, escala e dependências comerciais, preservando o modo de demonstração.
 - Gera capas Steam para jogos normalizados com `appid` inteiro quando o payload não fornece imagem; promove a API `f8b271b` após CI Build 40784582327 aprovado. A rota de catálogo continua bloqueada pelo modo demo e não permite validar payload LZT em runtime.
 - Adiciona fallback acessível quando uma URL de imagem individual do inventário falha ao carregar; promove a web `c2185da` após CI Build 40783977644 aprovado.
