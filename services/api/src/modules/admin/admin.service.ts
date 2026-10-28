@@ -179,6 +179,13 @@ export class AdminService {
   async listCatalogSyncRuns(query: AdminPageQueryDto) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
+    const search = query.search?.trim() || null;
+    const status = query.status && query.status !== 'all' ? query.status : null;
+    const where = `WHERE ($1::text IS NULL OR COALESCE(error_code,'') ILIKE '%'||$1||'%')
+      AND ($2::text IS NULL OR ($2='running' AND finished_at IS NULL)
+        OR ($2='complete' AND finished_at IS NOT NULL AND complete=true)
+        OR ($2='failed' AND finished_at IS NOT NULL AND complete=false))`;
+    const filters = [search, status];
     const [rows, count] = await Promise.all([
       this.db.query<{
         id: string; started_at: Date; finished_at: Date | null; pages_read: number; items_seen: number;
@@ -186,10 +193,10 @@ export class AdminService {
       }>(
         `SELECT id,started_at,finished_at,pages_read,items_seen,items_upserted,complete,error_code,
           CASE WHEN finished_at IS NULL THEN NULL ELSE GREATEST(0,(extract(epoch FROM finished_at-started_at)*1000)::bigint)::text END AS duration_ms
-         FROM catalog_sync_runs ORDER BY started_at DESC LIMIT $1 OFFSET $2`,
-        [pageSize, (page - 1) * pageSize],
+         FROM catalog_sync_runs ${where} ORDER BY started_at DESC,id DESC LIMIT $3 OFFSET $4`,
+        [...filters, pageSize, (page - 1) * pageSize],
       ),
-      this.db.query<{ total: string }>('SELECT count(*)::text AS total FROM catalog_sync_runs'),
+      this.db.query<{ total: string }>(`SELECT count(*)::text AS total FROM catalog_sync_runs ${where}`, filters),
     ]);
     const total = Number(count.rows[0]?.total ?? 0);
     return {
@@ -208,14 +215,19 @@ export class AdminService {
   async listAudit(query: AdminPageQueryDto) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
+    const search = query.search?.trim() || null;
+    const action = query.action?.trim() || null;
+    const where = `WHERE ($1::text IS NULL OR u.email ILIKE '%'||$1||'%' OR a.action ILIKE '%'||$1||'%' OR a.target_id ILIKE '%'||$1||'%')
+      AND ($2::text IS NULL OR a.action=$2)`;
+    const filters = [search, action];
     const [rows, count] = await Promise.all([
       this.db.query(
         `SELECT a.id,a.actor_id,u.email AS actor_email,a.action,a.target_id,a.details,a.created_at
          FROM admin_audit a JOIN users u ON u.id=a.actor_id
-         ORDER BY a.created_at DESC,a.id DESC LIMIT $1 OFFSET $2`,
-        [pageSize, (page - 1) * pageSize],
+         ${where} ORDER BY a.created_at DESC,a.id DESC LIMIT $3 OFFSET $4`,
+        [...filters, pageSize, (page - 1) * pageSize],
       ),
-      this.db.query<{ total: string }>('SELECT count(*)::text AS total FROM admin_audit'),
+      this.db.query<{ total: string }>(`SELECT count(*)::text AS total FROM admin_audit a JOIN users u ON u.id=a.actor_id ${where}`, filters),
     ]);
     const total = Number(count.rows[0]?.total ?? 0);
     return { items: rows.rows, page, pageSize, total, totalPages: Math.ceil(total / pageSize) };

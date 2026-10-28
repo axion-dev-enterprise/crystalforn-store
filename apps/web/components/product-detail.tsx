@@ -3,14 +3,37 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-type Product = { id: string; provider_item_id: string; game: string; generated_title: string; price_brl_cents: number; attributes: Record<string, unknown>; seller_feedback_total?: number | null; seller_feedback_positive_percentage?: number | null };
+type Product = { id: string; provider_item_id: string; game: string; generated_title: string; price_brl_cents: number; attributes: Record<string, unknown>; synced_at?: string | null; seller_feedback_total?: number | null; seller_feedback_positive_percentage?: number | null };
 type CheckoutResult = { order: { id: string; status: string; total_cents: number }; pix?: { copyPaste?: string; qrCodeBase64?: string | null; expiresAt?: string } };
 type InventoryImages = Partial<Record<'skins' | 'pickaxes' | 'dances' | 'gliders' | 'avatar', string>>;
 const rarityLabelsPtBr: Record<string, string> = { common: 'Comum', uncommon: 'Incomum', rare: 'Rara', epic: 'Épica', legendary: 'Lendária', mythic: 'Mítica', icon: 'Série Ícones' };
 const orderStatusPtBr: Record<string, string> = { pending_payment: 'Aguardando pagamento', paid: 'Pagamento confirmado', delivery_required: 'Entrega em preparação', delivered: 'Entregue', cancelled: 'Cancelado', refunded: 'Valor devolvido ao saldo da carteira', review: 'Em análise' };
 const money = (cents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100);
+const gameNames: Record<string, string> = { fortnite: 'Fortnite', valorant: 'Valorant', lol: 'League of Legends', roblox: 'Roblox', steam: 'Steam' };
 
-export function ProductDetail({ id }: { id: string }) {
+function gameLabel(game: string): string { return gameNames[game] ?? 'Conta digital'; }
+function titleHighlights(title: string, game: string): string[] {
+  const gameName = gameLabel(game).toLocaleLowerCase('pt-BR');
+  return title.split(/\s*\|\s*|\s+·\s+/)
+    .map((part) => part.trim())
+    .filter((part) => part && part.toLocaleLowerCase('pt-BR') !== gameName && !/[\u0400-\u04FF]/.test(part))
+    .slice(0, 8);
+}
+
+function syncedAtLabel(value?: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+}
+
+function isStaleSync(value?: string | null): boolean {
+  if (!value) return true;
+  const timestamp = new Date(value).getTime();
+  return !Number.isFinite(timestamp) || Date.now() - timestamp > 24 * 60 * 60 * 1000;
+}
+
+export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; returnTo?: string }) {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -100,18 +123,21 @@ export function ProductDetail({ id }: { id: string }) {
     }
   }
   if (loading) return <section className="shell page-shell"><div className="detail-skeleton" aria-label="Carregando detalhes" aria-busy="true"><span /><span /><span /></div></section>;
-  if (!product) return <section className="shell page-shell"><div className="state-panel error-state" role="alert"><div><h1>Produto indisponível</h1><p>{error}</p></div><Link className="button-outline" href="/#catalogo">Voltar ao catálogo</Link></div></section>;
+  if (!product) return <section className="shell page-shell"><div className="state-panel error-state" role="alert"><div><h1>Produto indisponível</h1><p>{error}</p></div><Link className="button-outline" href={returnTo}>Voltar ao catálogo</Link></div></section>;
+  const highlights = titleHighlights(product.generated_title, product.game);
+  const updatedAt = syncedAtLabel(product.synced_at);
   return <section className="shell page-shell">
-    <Link className="back-link" href="/#catalogo">← Voltar ao catálogo</Link>
+    <Link className="back-link" href={returnTo}>← Voltar ao catálogo</Link>
     <div className="detail-layout">
       <article className="detail-copy">
-        <p className="eyebrow">{product.game.replace('lol', 'LEAGUE OF LEGENDS').toUpperCase()} · ESTOQUE CONFERIDO NO CHECKOUT</p>
-        <h1>{product.generated_title}</h1>
-        <p className="detail-lede">Veja os atributos sincronizados antes de concluir a compra. O item será validado novamente antes de criar qualquer cobrança.</p>
+        <header className="detail-intro">
+          <p className="eyebrow">{gameLabel(product.game).toUpperCase()} · ANÚNCIO SINCRONIZADO</p>
+          <h1>Conta {gameLabel(product.game)}</h1>
+          <p className="detail-lede">Explore os dados públicos do inventário e confira quando o anúncio foi sincronizado.</p>
+          {highlights.length > 0 && <ul className="detail-highlights" aria-label="Destaques do anúncio">{highlights.map((highlight, index) => <li key={`${highlight}-${index}`}>{highlight}</li>)}</ul>}
+          {updatedAt && <p className={`detail-updated${isStaleSync(product.synced_at) ? ' is-stale' : ''}`}><span>{isStaleSync(product.synced_at) ? 'Disponibilidade pode ter mudado' : 'Última sincronização'}</span><time dateTime={product.synced_at ?? undefined}>{updatedAt}</time></p>}
+        </header>
         {typeof product.seller_feedback_total === 'number' && product.seller_feedback_total > 0 && typeof product.seller_feedback_positive_percentage === 'number' && <section className="seller-feedback-summary" aria-label="Reputação do vendedor"><p className="eyebrow">AVALIAÇÕES DO VENDEDOR</p><strong>{product.seller_feedback_positive_percentage}% positivas</strong><p>De {product.seller_feedback_total.toLocaleString('pt-BR')} avaliações agregadas pela API do fornecedor.</p></section>}
-        {inventoryImageMessage && <p className="inventory-image-note" role="status">{inventoryImageMessage}</p>}
-        <InventoryShowcase game={product.game} attributes={product.attributes} images={inventoryImages} />
-        <div className="attributes-panel"><h2>Outros dados da conta</h2><AttributeList attributes={product.attributes} /></div>
       </article>
       <aside className="purchase-panel">
         <p className="eyebrow">PREÇO EM REAIS</p>
@@ -146,6 +172,9 @@ export function ProductDetail({ id }: { id: string }) {
           <Link className="signin-note" href="/entrar">Entrar ou criar conta</Link>
         </form>}
       </aside>
+      {inventoryImageMessage && <p className="inventory-image-note" role="status">{inventoryImageMessage}</p>}
+      <InventoryShowcase game={product.game} attributes={product.attributes} images={inventoryImages} />
+      <div className="attributes-panel"><h2>Outros dados da conta</h2><AttributeList attributes={product.attributes} /></div>
     </div>
   </section>;
 }
@@ -185,11 +214,11 @@ function InventoryShowcase({ game, attributes, images }: { game: string; attribu
     return <li className="cosmetic-card" key={`${title}-${index}`}><span className={`cosmetic-mark ${tone}`} aria-hidden="true">{title.slice(0, 2).toUpperCase()}</span><span className="cosmetic-copy"><strong>{title}</strong>{translatedRarity && <small>{translatedRarity}</small>}</span></li>;
   }
   return <section className={`inventory-showcase inventory-${game}`} aria-labelledby="inventory-showcase-title">
-    <div className="inventory-showcase-heading"><div><p className="eyebrow">CONTEÚDO DA CONTA</p><h2 id="inventory-showcase-title">Inventário em detalhe</h2></div><span>{groups.reduce((total, group) => total + group.items.length, 0)} itens listados</span></div>
+    <div className="inventory-showcase-heading"><div><p className="eyebrow">ITENS INFORMADOS PELO FORNECEDOR</p><h2 id="inventory-showcase-title">Itens do inventário</h2><p className="inventory-coverage-note">A lista depende dos campos públicos disponíveis para este anúncio e pode ser parcial.</p></div><span>{groups.reduce((total, group) => total + group.items.length, 0)} itens listados</span></div>
     {game === 'roblox' && <RobloxProfile inventory={inventory} avatar={images.avatar} />}
     {groups.map((group) => <section className="inventory-group" key={group.key}>
       <div className="inventory-group-heading"><h3>{group.title}</h3><span>{group.items.length}</span></div>
-      {group.image && <img className="inventory-provider-image" src={group.image} alt={`Prévia do fornecedor: ${group.title.toLowerCase()}`} />}
+      {group.image && <img className="inventory-provider-image" src={group.image} alt={`Prévia visual do fornecedor: ${group.title.toLowerCase()}`} width={680} height={280} loading="lazy" decoding="async" />}
       <ul className="cosmetic-list">{group.items.slice(0, 36).map(itemCard)}</ul>
       {group.items.length > 36 && <details className="inventory-more"><summary>Ver os outros {group.items.length - 36} itens</summary><ul className="cosmetic-list">{group.items.slice(36).map((item, index) => itemCard(item, index + 36))}</ul></details>}
     </section>)}

@@ -6,6 +6,7 @@ export class CatalogQueryDto {
   @IsOptional() @IsIn(['fortnite','valorant','lol','roblox','steam']) game?: StoreCatalogGame;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(500) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(48) pageSize = 24;
+  @IsOptional() @IsIn(['price_asc', 'price_desc', 'title_asc']) sort: 'price_asc' | 'price_desc' | 'title_asc' = 'price_asc';
   @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) minPrice?: number;
   @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) maxPrice?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(10000) minDaysOffline?: number;

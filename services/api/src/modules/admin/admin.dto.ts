@@ -24,6 +24,9 @@ export class AdminCatalogQueryDto {
 export class AdminPageQueryDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100000) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(50) pageSize = 20;
+  @IsOptional() @IsString() @MaxLength(120) search?: string;
+  @IsOptional() @IsIn(['all','complete','failed','running']) status?: string;
+  @IsOptional() @IsString() @MaxLength(80) action?: string;
 }
 
 export class PricingPreviewQueryDto {

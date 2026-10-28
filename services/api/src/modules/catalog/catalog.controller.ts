@@ -39,7 +39,7 @@ export class CatalogController {
       steamGame: query.steamGame,
       rank: query.rank,
       minLevel: query.minLevel,
-    }).then((catalog) => ({ ...catalog, demoOnly: false, catalogMode: PUBLISHED_CATALOG_MODE }));
+    }, query.sort).then((catalog) => ({ ...catalog, demoOnly: false, catalogMode: PUBLISHED_CATALOG_MODE }));
   }
   @Get(':id/inventory-image') async fortniteInventoryImage(@Req() request: RequestAddress, @Param('id') id: string, @Query('type') type = 'skins') {
     requireCatalogReadEnabled();

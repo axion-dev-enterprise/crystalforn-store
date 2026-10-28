@@ -4,13 +4,21 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
+- Adiciona o símbolo facetado Crystalforn ao cabeçalho e ao rodapé.
+- Reorganiza os detalhes do produto com título curto, atributos em destaques, painel de preço equilibrado e data real de sincronização.
+- Ajusta navegação móvel, tipografia fluida, espaçamento, cards, filtros ativos e estados de consulta em tema claro/escuro.
+- Preserva filtros, ordenação e página no endereço compartilhável e ao voltar dos detalhes; adiciona ordenação por preço ou nome estável no catálogo.
+- Retira trechos em cirílico dos títulos gerados para manter os resumos da loja em português.
+- Acrescenta busca, filtro de estado/ação e paginação na auditoria e no histórico do sincronizador do painel.
+- Explicita que o inventário detalhado depende dos campos públicos disponíveis e pode ter cobertura parcial.
+- Sinaliza anúncios sincronizados há mais de 24 horas como potencialmente alterados.
 - Adiciona tema claro/escuro com preferência persistida no navegador.
 - Amplia a prévia fictícia com League of Legends, filtros demonstrativos por personagem/skin, biblioteca Steam, rank e nível, e inventários textuais de exemplo.
 - Reduz gravações sequenciais do importador a um upsert PostgreSQL por lote interno de até 500 itens.
 - Divide páginas grandes da sincronização em requisições internas limitadas por quantidade e bytes, abaixo do limite do parser JSON da API.
 - Documenta o limite oficial de busca LZT, a paginação por cursor e a latência não determinística da reconciliação após uma varredura completa.
 - Atualiza contadores da sincronização após cada página para mostrar progresso no painel durante varreduras longas.
-- Mantém os filtros específicos limitados a dados de demonstração; catálogo real, sincronização e pagamentos continuam bloqueados.
+- Mantém compras, pagamentos e entrega bloqueados; o catálogo real e a sincronização permanecem em modo de consulta, sujeitos à disponibilidade do fornecedor.
 
 ## 0.1.3 — 2026-10-27
 

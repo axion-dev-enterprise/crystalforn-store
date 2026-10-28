@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-type Product = { id: string; game: string; generated_title: string; price_brl_cents: number; attributes: Record<string, unknown>; seller_feedback_total?: number | null; seller_feedback_positive_percentage?: number | null };
+type Product = { id: string; game: string; generated_title: string; price_brl_cents: number; attributes: Record<string, unknown>; synced_at?: string | null; seller_feedback_total?: number | null; seller_feedback_positive_percentage?: number | null };
 type Catalog = { items: Product[]; page: number; pageSize: number; total: number; totalPages?: number; demoOnly?: boolean; catalogMode?: string; message?: string };
 type RobloxAvatars = Record<string, string>;
 type Filters = { minPrice: string; maxPrice: string; minDaysOffline: string; skinName: string; steamGame: string; rank: string; minLevel: string };
+type CatalogSort = 'price_asc' | 'price_desc' | 'title_asc';
 const EMPTY_FILTERS: Filters = { minPrice: '', maxPrice: '', minDaysOffline: '', skinName: '', steamGame: '', rank: '', minLevel: '' };
 const games = [{ id: '', label: 'Todos' }, { id: 'fortnite', label: 'Fortnite' }, { id: 'steam', label: 'Steam' }, { id: 'roblox', label: 'Roblox' }, { id: 'valorant', label: 'Valorant' }, { id: 'lol', label: 'League of Legends' }];
 const money = (cents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100);
@@ -23,23 +24,85 @@ const DEMO_PRODUCTS: Product[] = [
 ];
 const DEMO_PAGE_SIZE = 6;
 
+function displayTitle(product: Product): string {
+  const gameName = product.game === 'lol' ? 'league of legends' : product.game;
+  const highlight = product.generated_title.split(/\s*\|\s*|\s+·\s+/).map((part) => part.trim()).find((part) => part && part.toLocaleLowerCase('pt-BR') !== gameName && !/[\u0400-\u04FF]/.test(part));
+  return highlight || `Conta ${product.game === 'lol' ? 'League of Legends' : product.game[0].toUpperCase() + product.game.slice(1)}`;
+}
+
+function queryNumber(value: string, integer = false): string {
+  if (!value || !/^(?:\d+|\d+\.\d{1,2})$/.test(value)) return '';
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 && (!integer || Number.isInteger(number)) ? value : '';
+}
+
+function updatedLabel(value?: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(date);
+}
+
+function isStaleSync(value?: string | null): boolean {
+  if (!value) return true;
+  const timestamp = new Date(value).getTime();
+  return !Number.isFinite(timestamp) || Date.now() - timestamp > 24 * 60 * 60 * 1000;
+}
+
 export function Storefront() {
   const [game, setGame] = useState('');
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<CatalogSort>('price_asc');
+  const [restoredFromUrl, setRestoredFromUrl] = useState(false);
   const [result, setResult] = useState<Catalog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [robloxAvatars, setRobloxAvatars] = useState<RobloxAvatars>({});
   const catalogRequest = useRef<AbortController | null>(null);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const initialGame = games.some((item) => item.id && item.id === params.get('game')) ? params.get('game')! : '';
+    const initialFilters: Filters = {
+      minPrice: queryNumber(params.get('minPrice') ?? ''),
+      maxPrice: queryNumber(params.get('maxPrice') ?? ''),
+      minDaysOffline: queryNumber(params.get('minDaysOffline') ?? '', true),
+      skinName: (params.get('skinName') ?? '').slice(0, 100),
+      steamGame: (params.get('steamGame') ?? '').slice(0, 100),
+      rank: (params.get('rank') ?? '').slice(0, 40),
+      minLevel: queryNumber(params.get('minLevel') ?? '', true),
+    };
+    const initialPage = Number(params.get('page'));
+    setGame(initialGame);
+    setFilters(initialFilters);
+    setAppliedFilters(initialFilters);
+    setPage(Number.isInteger(initialPage) && initialPage >= 1 && initialPage <= 500 ? initialPage : 1);
+    const initialSort = params.get('sort');
+    setSort(initialSort === 'price_desc' || initialSort === 'title_asc' ? initialSort : 'price_asc');
+    setRestoredFromUrl(true);
+  }, []);
+
+  const catalogParams = new URLSearchParams();
+  if (game) catalogParams.set('game', game);
+  if (page > 1) catalogParams.set('page', String(page));
+  if (sort !== 'price_asc') catalogParams.set('sort', sort);
+  for (const [key, value] of Object.entries(appliedFilters)) if (value) catalogParams.set(key, value);
+  const catalogQuery = catalogParams.toString();
+  const catalogReturnUrl = catalogQuery ? `/?${catalogQuery}#catalogo` : '/#catalogo';
+
+  useEffect(() => {
+    if (!restoredFromUrl) return;
+    const query = catalogParams.toString();
+    window.history.replaceState(null, '', query ? `/?${query}` : '/');
+  }, [restoredFromUrl, catalogQuery]);
+
   const load = useCallback(async () => {
     catalogRequest.current?.abort();
     const controller = new AbortController();
     catalogRequest.current = controller;
     setLoading(true); setError('');
     try {
-      const params = new URLSearchParams({ page: String(page), pageSize: '24' }); if (game) params.set('game', game);
+      const params = new URLSearchParams({ page: String(page), pageSize: '24', sort }); if (game) params.set('game', game);
       if (appliedFilters.minPrice) params.set('minPrice', appliedFilters.minPrice);
       if (appliedFilters.maxPrice) params.set('maxPrice', appliedFilters.maxPrice);
       if (appliedFilters.minDaysOffline) params.set('minDaysOffline', appliedFilters.minDaysOffline);
@@ -60,11 +123,12 @@ export function Storefront() {
       if (catalogRequest.current === controller) catalogRequest.current = null;
       if (!controller.signal.aborted) setLoading(false);
     }
-  }, [game, page, appliedFilters]);
+  }, [game, page, appliedFilters, sort]);
   useEffect(() => {
+    if (!restoredFromUrl) return;
     void load();
     return () => { catalogRequest.current?.abort(); };
-  }, [load]);
+  }, [load, restoredFromUrl]);
   useEffect(() => {
     const userIds = [...new Set((result?.items ?? []).filter((product) => product.game === 'roblox').map((product) => {
       const inventory = product.attributes.inventory as Record<string, unknown> | undefined;
@@ -95,8 +159,33 @@ export function Storefront() {
       && (!appliedFilters.rank || !['valorant', 'lol'].includes(game) || rank.toLocaleLowerCase('pt-BR').includes(appliedFilters.rank.toLocaleLowerCase('pt-BR')))
       && (!appliedFilters.minLevel || !['valorant', 'lol'].includes(game) || level >= Number(appliedFilters.minLevel));
   });
-  const visibleProducts = result?.demoOnly ? filteredDemoProducts.slice((page - 1) * DEMO_PAGE_SIZE, page * DEMO_PAGE_SIZE) : result?.items ?? [];
+  const sortedDemoProducts = [...filteredDemoProducts].sort((left, right) => sort === 'price_desc'
+    ? right.price_brl_cents - left.price_brl_cents
+    : sort === 'title_asc' ? displayTitle(left).localeCompare(displayTitle(right), 'pt-BR') : left.price_brl_cents - right.price_brl_cents);
+  const visibleProducts = result?.demoOnly ? sortedDemoProducts.slice((page - 1) * DEMO_PAGE_SIZE, page * DEMO_PAGE_SIZE) : result?.items ?? [];
   const pages = result?.demoOnly ? Math.max(1, Math.ceil(filteredDemoProducts.length / DEMO_PAGE_SIZE)) : Math.max(1, Math.ceil((result?.total ?? 0) / (result?.pageSize ?? 24)));
+  const activeFilterTokens = [
+    ...(game ? [{ key: 'game', label: `Jogo: ${gameLabel(game)}` }] : []),
+    ...(appliedFilters.minPrice ? [{ key: 'minPrice', label: `Preço mínimo: R$ ${appliedFilters.minPrice}` }] : []),
+    ...(appliedFilters.maxPrice ? [{ key: 'maxPrice', label: `Preço máximo: R$ ${appliedFilters.maxPrice}` }] : []),
+    ...(appliedFilters.minDaysOffline ? [{ key: 'minDaysOffline', label: `Inatividade: ${appliedFilters.minDaysOffline}+ dias` }] : []),
+    ...(appliedFilters.skinName ? [{ key: 'skinName', label: `Personagem: ${appliedFilters.skinName}` }] : []),
+    ...(appliedFilters.steamGame ? [{ key: 'steamGame', label: `Jogo Steam: ${appliedFilters.steamGame}` }] : []),
+    ...(appliedFilters.rank ? [{ key: 'rank', label: `Rank: ${appliedFilters.rank}` }] : []),
+    ...(appliedFilters.minLevel ? [{ key: 'minLevel', label: `Nível mínimo: ${appliedFilters.minLevel}` }] : []),
+  ];
+  function removeFilter(key: string) {
+    if (key === 'game') {
+      setGame('');
+      setFilters((current) => ({ ...current, skinName: '', steamGame: '', rank: '', minLevel: '' }));
+      setAppliedFilters((current) => ({ ...current, skinName: '', steamGame: '', rank: '', minLevel: '' }));
+    } else {
+      const next = { ...appliedFilters, [key]: '' } as Filters;
+      setFilters(next);
+      setAppliedFilters(next);
+    }
+    setPage(1);
+  }
   return <section className="catalog-section shell" id="catalogo" aria-labelledby="catalog-title"><div className="section-heading"><div><p className="eyebrow">{result?.demoOnly ? 'PRÉVIA VISUAL · ITENS FICTÍCIOS' : 'INVENTÁRIO DISPONÍVEL'}</p><h2 id="catalog-title">{result?.demoOnly ? 'Veja como a vitrine funciona.' : 'Escolha pelo que importa.'}</h2></div><p className="section-aside">{result?.demoOnly ? `${filteredDemoProducts.length} exemplos · sem venda` : result ? `${result.total} contas listadas` : 'Preços em reais'}</p></div>
     {result?.catalogMode === 'live_read_only' && <p className="catalog-readonly-note" role="status">Catálogo real sincronizado com o fornecedor. A visualização está ativa; compras e entregas automáticas continuam desativadas.</p>}
     {result?.demoOnly && <div className="demo-catalog-notice" role="note"><strong>Catálogo de demonstração</strong><span>Todos os itens, atributos e valores são fictícios. Não há anúncios reais nem opção de compra nesta prévia.</span></div>}
@@ -113,12 +202,14 @@ export function Storefront() {
           <div className="filter-field"><label htmlFor="account-level">Nível mínimo {result?.demoOnly ? 'fictício' : ''}</label><input id="account-level" type="number" min="1" inputMode="numeric" placeholder="Qualquer nível" value={filters.minLevel} onChange={(event) => setFilters((value) => ({ ...value, minLevel: event.target.value }))} /></div>
         </>}
       </div>}
+      <div className="filter-field catalog-sort-field"><label htmlFor="catalog-sort">Ordenar por</label><select id="catalog-sort" value={sort} onChange={(event) => { setPage(1); setSort(event.target.value as CatalogSort); }}><option value="price_asc">Menor preço</option><option value="price_desc">Maior preço</option><option value="title_asc">Nome do anúncio (A–Z)</option></select></div>
       <button className="button-outline" type="submit">Aplicar filtros</button>
     </form>
+    {activeFilterTokens.length > 0 && <div className="active-filters" aria-label="Filtros aplicados"><span className="active-filters-label">Filtros ativos</span>{activeFilterTokens.map((token) => <button className="active-filter" key={token.key} type="button" onClick={() => removeFilter(token.key)}><span>{token.label}</span><span>Remover</span></button>)}<button className="active-filters-clear" type="button" onClick={() => { setGame(''); setFilters(EMPTY_FILTERS); setAppliedFilters(EMPTY_FILTERS); setPage(1); }}>Limpar filtros</button></div>}
     {error && <div className="state-panel error-state" role="alert"><div><h3>{result?.demoOnly ? 'A prévia segue disponível' : 'Catálogo temporariamente indisponível'}</h3><p>{error}</p></div><button className="button-outline" type="button" onClick={() => void load()}>Tentar novamente</button></div>}
     {loading && !result?.demoOnly && <div className="product-grid" aria-label="Carregando catálogo" aria-busy="true">{Array.from({ length: 6 }, (_, i) => <div className="product-skeleton" key={i}><span /><span /><span /></div>)}</div>}
-    {!loading && !visibleProducts.length && <div className="state-panel empty-state"><div><h3>Nenhum item corresponde aos filtros</h3><p>Amplie a faixa de preço, reduza a inatividade ou escolha outra categoria.</p></div><button className="button-outline" type="button" onClick={() => { setGame(''); setFilters(EMPTY_FILTERS); setAppliedFilters(EMPTY_FILTERS); setPage(1); }}>Limpar filtros</button></div>}
-    {(!loading || result?.demoOnly) && !!visibleProducts.length && <><div className="product-grid">{visibleProducts.map((product, index) => <article className="product-card" key={product.id}><div className="product-badge">{result?.demoOnly ? 'Exemplo fictício' : 'Full Acesso'}</div><div className="card-topline"><span>{gameLabel(product.game)}</span><span className="card-sequence">{String((page - 1) * (result?.pageSize ?? 24) + index + 1).padStart(2, '0')}</span></div><ProductArt product={product} robloxAvatars={robloxAvatars} demo={Boolean(result?.demoOnly)} /><h3>{product.generated_title}</h3><ProductHighlights attributes={product.attributes} feedbackTotal={product.seller_feedback_total} positivePercentage={product.seller_feedback_positive_percentage} />{result?.demoOnly && <ProductInventoryPreview game={product.game} attributes={product.attributes} />}<div className="product-bottom"><span className="demo-price"><strong>{money(Number(product.price_brl_cents))}</strong>{result?.demoOnly && <small>valor ilustrativo</small>}</span>{result?.demoOnly ? <span className="demo-no-sale">Sem compra</span> : <a className="text-link" href={`/produto/${product.id}`}>Ver detalhes <span aria-hidden="true">→</span></a>}</div></article>)}</div><nav className="pagination" aria-label="Paginação do catálogo"><button className="button-outline" type="button" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Anterior</button><span>Página {page} de {pages}</span><button className="button-outline" type="button" disabled={page >= pages} onClick={() => setPage((value) => Math.min(pages, value + 1))}>Próxima</button></nav></>}
+    {!loading && !visibleProducts.length && <div className="state-panel empty-state"><div><h3>Nenhum item corresponde aos filtros</h3><p>Amplie a faixa de preço, reduza a inatividade ou escolha outra categoria.</p></div><button className="button-outline" type="button" onClick={() => { setGame(''); setFilters(EMPTY_FILTERS); setAppliedFilters(EMPTY_FILTERS); setPage(1); setSort('price_asc'); }}>Limpar filtros</button></div>}
+    {(!loading || result?.demoOnly) && !!visibleProducts.length && <><div className="product-grid">{visibleProducts.map((product, index) => <article className="product-card" key={product.id}><div className="product-badge">{result?.demoOnly ? 'Exemplo fictício' : 'No catálogo'}</div><div className="card-topline"><span>{gameLabel(product.game)}</span><span className="card-sequence">{String((page - 1) * (result?.pageSize ?? 24) + index + 1).padStart(2, '0')}</span></div><ProductArt product={product} robloxAvatars={robloxAvatars} demo={Boolean(result?.demoOnly)} /><h3 aria-label={product.generated_title}>{displayTitle(product)}</h3><ProductHighlights attributes={product.attributes} feedbackTotal={product.seller_feedback_total} positivePercentage={product.seller_feedback_positive_percentage} />{updatedLabel(product.synced_at) && <p className={`product-updated${isStaleSync(product.synced_at) ? ' is-stale' : ''}`}><span>{isStaleSync(product.synced_at) ? 'Pode ter mudado' : 'Sincronizado'}</span><time dateTime={product.synced_at ?? undefined}>{updatedLabel(product.synced_at)}</time></p>}{result?.demoOnly && <ProductInventoryPreview game={product.game} attributes={product.attributes} />}<div className="product-bottom"><span className="demo-price"><strong>{money(Number(product.price_brl_cents))}</strong>{result?.demoOnly && <small>valor ilustrativo</small>}</span>{result?.demoOnly ? <span className="demo-no-sale">Sem compra</span> : <a className="text-link" href={`/produto/${product.id}?returnTo=${encodeURIComponent(catalogReturnUrl)}`}>Ver detalhes <span aria-hidden="true">→</span></a>}</div></article>)}</div><nav className="pagination" aria-label="Paginação do catálogo"><button className="button-outline" type="button" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Anterior</button><span>Página {page} de {pages}</span><button className="button-outline" type="button" disabled={page >= pages} onClick={() => setPage((value) => Math.min(pages, value + 1))}>Próxima</button></nav></>}
   </section>;
 }
 
@@ -155,7 +246,7 @@ function ProductArt({ product, robloxAvatars, demo }: { product: Product; roblox
   const mark = product.game === 'fortnite' ? 'F' : product.game === 'valorant' ? 'V' : product.game === 'roblox' ? 'R' : product.game === 'steam' ? 'S' : product.game === 'lol' ? 'L' : 'A';
   return <div className={`product-art art-${product.game}`} aria-label={product.game === 'roblox' ? 'Avatar Roblox' : `Categoria ${product.game}`}>
     {avatar ? <img className="roblox-card-avatar" src={avatar} alt={`Avatar Roblox de ${String(inventory?.username ?? 'usuário')}`} loading="lazy" /> : product.game === 'fortnite' && !demo ? <FortniteCardPreview productId={product.id} title={product.generated_title} fallback={mark} /> : <span className="game-art-mark" aria-hidden="true">{mark}</span>}
-    <span className="game-art-caption">{demo ? 'Item fictício · prévia' : product.game === 'roblox' && typeof inventory?.username === 'string' ? inventory.username : 'Conta verificada no checkout'}</span>
+    <span className="game-art-caption">{demo ? 'Item fictício · prévia' : product.game === 'roblox' && typeof inventory?.username === 'string' ? inventory.username : 'Disponível para consulta'}</span>
   </div>;
 }
 

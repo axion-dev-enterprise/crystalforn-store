@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
 type Theme = 'light' | 'dark';
@@ -65,12 +66,7 @@ export function SiteHeader() {
     <header className="site-header">
       <div className="shell header-row">
         <Link className="brand" href="/" aria-label="Crystalforn, início">
-          <span className="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 40 40" focusable="false">
-              <path d="M20 3 36 13 31 34 11 37 4 17 20 3Z" />
-              <path d="m4 17 16 4 16-8M20 3l.2 18 11 13M20.2 21 11 37M20 21l-9-4" />
-            </svg>
-          </span>
+          <span className="brand-mark" aria-hidden="true"><Image src="/brand/crystalforn-mark.png" alt="" width={48} height={48} priority /></span>
           <span>Crystalforn<small>contas digitais</small></span>
         </Link>
         <nav className="primary-nav" aria-label="Navegação principal">

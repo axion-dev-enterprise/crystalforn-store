@@ -80,7 +80,7 @@ function setArray(target: Record<string, unknown>, key: string, ...values: unkno
 }
 function dynamicTitle(gameLabel: string, details: string[], maxLength = 180): string {
   let title = gameLabel;
-  for (const detail of details.filter(Boolean)) {
+  for (const detail of details.filter((value) => Boolean(value) && !/[\u0400-\u04FF]/.test(value))) {
     const candidate = `${title} | ${detail}`;
     if (candidate.length <= maxLength) title = candidate;
   }

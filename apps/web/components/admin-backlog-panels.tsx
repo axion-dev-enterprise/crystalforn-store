@@ -84,6 +84,14 @@ export function AdminBacklogPanels({ inventoryAvailability, defaultMarkupPercent
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [historyError, setHistoryError] = useState('');
   const [historyRefresh, setHistoryRefresh] = useState(0);
+  const [syncPage, setSyncPage] = useState(1);
+  const [syncStatus, setSyncStatus] = useState('all');
+  const [syncSearch, setSyncSearch] = useState('');
+  const [syncRunsPage, setSyncRunsPage] = useState<SyncRunPage | null>(null);
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditAction, setAuditAction] = useState('');
+  const [auditSearch, setAuditSearch] = useState('');
+  const [auditResultPage, setAuditResultPage] = useState<AuditPage | null>(null);
   const [markupPercent, setMarkupPercent] = useState(defaultMarkupPercent);
   const [couponPercent, setCouponPercent] = useState(0);
   const [preview, setPreview] = useState<PricePreview | null>(null);
@@ -122,23 +130,35 @@ export function AdminBacklogPanels({ inventoryAvailability, defaultMarkupPercent
     return () => { window.clearTimeout(timer); controller.abort(); };
   }, [catalogRefresh, loadCatalog]);
 
-  const loadHistory = useCallback(async () => {
+  const loadHistory = useCallback(async (signal?: AbortSignal) => {
     setHistoryError('');
     try {
+      const syncParams = new URLSearchParams({ page: String(syncPage), pageSize: '8', status: syncStatus });
+      if (syncSearch.trim()) syncParams.set('search', syncSearch.trim());
+      const auditParams = new URLSearchParams({ page: String(auditPage), pageSize: '8' });
+      if (auditSearch.trim()) auditParams.set('search', auditSearch.trim());
+      if (auditAction) auditParams.set('action', auditAction);
       const [syncResponse, auditResponse] = await Promise.all([
-        fetch('/api/v1/admin/catalog/sync-runs?page=1&pageSize=8', { credentials: 'include', cache: 'no-store' }),
-        fetch('/api/v1/admin/audit?page=1&pageSize=8', { credentials: 'include', cache: 'no-store' }),
+        fetch(`/api/v1/admin/catalog/sync-runs?${syncParams}`, { credentials: 'include', cache: 'no-store', signal }),
+        fetch(`/api/v1/admin/audit?${auditParams}`, { credentials: 'include', cache: 'no-store', signal }),
       ]);
       const [syncBody, auditBody] = await Promise.all([
         readResponse<SyncRunPage>(syncResponse, 'Não foi possível carregar o histórico de sincronização.'),
         readResponse<AuditPage>(auditResponse, 'Não foi possível carregar a auditoria.'),
       ]);
+      if (signal?.aborted) return;
+      setSyncRunsPage(syncBody);
       setSyncRuns(syncBody.items);
+      setAuditResultPage(auditBody);
       setAudit(auditBody.items);
-    } catch (reason) { setHistoryError(reason instanceof Error ? reason.message : 'Falha ao carregar os históricos.'); }
-  }, []);
+    } catch (reason) { if (!signal?.aborted) setHistoryError(reason instanceof Error ? reason.message : 'Falha ao carregar os históricos.'); }
+  }, [auditAction, auditPage, auditSearch, syncPage, syncSearch, syncStatus]);
 
-  useEffect(() => { void loadHistory(); }, [historyRefresh, loadHistory]);
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadHistory(controller.signal);
+    return () => controller.abort();
+  }, [historyRefresh, loadHistory]);
 
   const loadPreview = useCallback(async () => {
     setPreviewLoading(true);
@@ -187,7 +207,12 @@ export function AdminBacklogPanels({ inventoryAvailability, defaultMarkupPercent
 
     <section className="admin-card admin-sync-history" id="historico-sincronizacao-admin" aria-labelledby="sync-history-heading">
       <div className="admin-subheading"><div><p className="eyebrow">OPERAÇÃO</p><h2 id="sync-history-heading">Histórico de sincronização</h2></div><button className="button-outline" type="button" onClick={() => setHistoryRefresh((value) => value + 1)}>Atualizar histórico</button></div>
-      {historyError ? <div className="empty-inline" role="alert"><p>{historyError}</p><button className="text-link-button" type="button" onClick={() => setHistoryRefresh((value) => value + 1)}>Tentar novamente</button></div> : syncRuns.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th scope="col">Início</th><th scope="col">Estado</th><th scope="col">Páginas</th><th scope="col">Analisados</th><th scope="col">Importados</th><th scope="col">Duração</th></tr></thead><tbody>{syncRuns.map((run) => <tr key={run.id}><td>{dateTime(run.started_at)}</td><td><span className={`sync-state sync-state-${run.status}`}>{run.status === 'complete' ? 'Concluído' : run.status === 'running' ? 'Em andamento' : 'Incompleto'}</span>{run.errorMessage && <small className="admin-table-note">{run.errorMessage}</small>}</td><td>{run.pages_read}</td><td>{run.items_seen.toLocaleString('pt-BR')}</td><td>{run.items_upserted.toLocaleString('pt-BR')}</td><td>{run.duration_ms ? `${(Number(run.duration_ms) / 1000).toLocaleString('pt-BR')} s` : '—'}</td></tr>)}</tbody></table></div> : <p className="empty-inline">Ainda não há ciclos registrados.</p>}
+      <div className="admin-history-controls">
+        <label htmlFor="sync-history-search">Buscar código de erro<input id="sync-history-search" type="search" value={syncSearch} onChange={(event) => { setSyncSearch(event.target.value); setSyncPage(1); }} placeholder="Ex.: provider_rate_limited" /></label>
+        <label htmlFor="sync-history-status">Estado<select id="sync-history-status" value={syncStatus} onChange={(event) => { setSyncStatus(event.target.value); setSyncPage(1); }}><option value="all">Todos</option><option value="complete">Concluídos</option><option value="running">Em andamento</option><option value="failed">Com falha</option></select></label>
+      </div>
+      {historyError ? <div className="empty-inline" role="alert"><p>{historyError}</p><button className="text-link-button" type="button" onClick={() => setHistoryRefresh((value) => value + 1)}>Tentar novamente</button></div> : syncRuns.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th scope="col">Início</th><th scope="col">Estado</th><th scope="col">Páginas</th><th scope="col">Analisados</th><th scope="col">Importados</th><th scope="col">Duração</th></tr></thead><tbody>{syncRuns.map((run) => <tr key={run.id}><td>{dateTime(run.started_at)}</td><td><span className={`sync-state sync-state-${run.status}`}>{run.status === 'complete' ? 'Concluído' : run.status === 'running' ? 'Em andamento' : 'Incompleto'}</span>{run.errorMessage && <small className="admin-table-note">{run.errorMessage}</small>}</td><td>{run.pages_read}</td><td>{run.items_seen.toLocaleString('pt-BR')}</td><td>{run.items_upserted.toLocaleString('pt-BR')}</td><td>{run.duration_ms ? `${(Number(run.duration_ms) / 1000).toLocaleString('pt-BR')} s` : '—'}</td></tr>)}</tbody></table></div> : <div className="empty-inline"><p>{syncRunsPage?.total ? 'Nenhum ciclo corresponde à busca e ao estado selecionados.' : 'Ainda não há ciclos registrados.'}</p>{(syncSearch || syncStatus !== 'all') && <button className="text-link-button" type="button" onClick={() => { setSyncSearch(''); setSyncStatus('all'); setSyncPage(1); }}>Limpar filtros</button>}</div>}
+      {syncRunsPage && syncRunsPage.totalPages > 1 && <div className="pagination" aria-label="Paginação do histórico de sincronização"><button className="button-outline" type="button" onClick={() => setSyncPage((value) => Math.max(1, value - 1))} disabled={syncPage <= 1}>Anterior</button><span>Página {syncPage} de {syncRunsPage.totalPages} · {syncRunsPage.total} ciclos</span><button className="button-outline" type="button" onClick={() => setSyncPage((value) => Math.min(syncRunsPage.totalPages, value + 1))} disabled={syncPage >= syncRunsPage.totalPages}>Próxima</button></div>}
     </section>
 
     <section className="admin-card admin-catalog-manager" id="catalogo-itens-admin" aria-labelledby="admin-catalog-heading">
@@ -234,7 +259,12 @@ export function AdminBacklogPanels({ inventoryAvailability, defaultMarkupPercent
 
     <section className="admin-card admin-audit" id="auditoria-admin" aria-labelledby="audit-heading">
       <div className="admin-subheading"><div><p className="eyebrow">RASTREABILIDADE</p><h2 id="audit-heading">Auditoria administrativa</h2></div><button className="button-outline" type="button" onClick={() => setHistoryRefresh((value) => value + 1)}>Atualizar auditoria</button></div>
-      {historyError ? <div className="empty-inline" role="alert"><p>{historyError}</p><button className="text-link-button" type="button" onClick={() => setHistoryRefresh((value) => value + 1)}>Tentar novamente</button></div> : audit.length ? <ul className="admin-audit-list">{audit.map((entry) => <li key={entry.id}><div><strong>{actionName[entry.action] ?? entry.action}</strong><span>{entry.actor_email} · {dateTime(entry.created_at)}</span><span>Alvo: {entry.target_id}</span></div><pre>{JSON.stringify(entry.details ?? {}, null, 2)}</pre></li>)}</ul> : <p className="empty-inline">Ainda não há alterações administrativas registradas.</p>}
+      <div className="admin-history-controls">
+        <label htmlFor="audit-search">Buscar pessoa, ação ou alvo<input id="audit-search" type="search" value={auditSearch} onChange={(event) => { setAuditSearch(event.target.value); setAuditPage(1); }} placeholder="E-mail, anúncio, vendedor…" /></label>
+        <label htmlFor="audit-action">Tipo de alteração<select id="audit-action" value={auditAction} onChange={(event) => { setAuditAction(event.target.value); setAuditPage(1); }}><option value="">Todas as ações</option>{Object.entries(actionName).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+      </div>
+      {historyError ? <div className="empty-inline" role="alert"><p>{historyError}</p><button className="text-link-button" type="button" onClick={() => setHistoryRefresh((value) => value + 1)}>Tentar novamente</button></div> : audit.length ? <ul className="admin-audit-list">{audit.map((entry) => <li key={entry.id}><div><strong>{actionName[entry.action] ?? entry.action}</strong><span>{entry.actor_email} · {dateTime(entry.created_at)}</span><span>Alvo: {entry.target_id}</span></div><pre>{JSON.stringify(entry.details ?? {}, null, 2)}</pre></li>)}</ul> : <div className="empty-inline"><p>{auditResultPage?.total ? 'Nenhuma alteração corresponde à busca e ao tipo selecionados.' : 'Ainda não há alterações administrativas registradas.'}</p>{(auditSearch || auditAction) && <button className="text-link-button" type="button" onClick={() => { setAuditSearch(''); setAuditAction(''); setAuditPage(1); }}>Limpar filtros</button>}</div>}
+      {auditResultPage && auditResultPage.totalPages > 1 && <div className="pagination" aria-label="Paginação da auditoria"><button className="button-outline" type="button" onClick={() => setAuditPage((value) => Math.max(1, value - 1))} disabled={auditPage <= 1}>Anterior</button><span>Página {auditPage} de {auditResultPage.totalPages} · {auditResultPage.total} registros</span><button className="button-outline" type="button" onClick={() => setAuditPage((value) => Math.min(auditResultPage.totalPages, value + 1))} disabled={auditPage >= auditResultPage.totalPages}>Próxima</button></div>}
     </section>
   </>;
 }

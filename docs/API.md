@@ -7,7 +7,7 @@ Prefixo global: `/api/v1`. A lista abaixo descreve as rotas presentes no código
 | Método | Rota | Acesso | Comportamento atual |
 | --- | --- | --- | --- |
 | `GET` | `/health` | Público | Verifica conectividade PostgreSQL |
-| `GET` | `/catalog?game=&page=&pageSize=&minPrice=&maxPrice=&minDaysOffline=&skinName=&steamGame=&rank=&minLevel=` | Público | Retorna anúncios reais paginados em `live_read_only`; compras seguem desativadas |
+| `GET` | `/catalog?game=&page=&pageSize=&sort=price_asc&minPrice=&maxPrice=&minDaysOffline=&skinName=&steamGame=&rank=&minLevel=` | Público | Retorna anúncios reais paginados em `live_read_only`; `sort` aceita `price_asc`, `price_desc` ou `title_asc`; compras seguem desativadas |
 | `GET` | `/catalog/:id` | Público | Retorna somente campos normalizados de anúncio disponível |
 | `GET` | `/catalog/:id/inventory-image?type=...` | Público | Busca prévias visuais Fortnite com limite por IP |
 | `GET` | `/catalog/roblox-avatars?userIds=...` | Público | Busca avatares públicos com limite por IP |
@@ -49,13 +49,15 @@ As rotas `/admin/*` exigem sessão e papel administrativo. As rotas `/internal/c
 | --- | --- | --- |
 | `GET` | `/admin/dashboard` | Resumo de pedidos, estado da última sincronização, idade da atualização mais recente de anúncio e contagens do inventário |
 | `GET` | `/admin/catalog?page=&pageSize=&search=&game=&sellerId=&status=&visibility=&quality=&freshness=&minPrice=&maxPrice=` | Consulta administrativa paginada; permite filtrar itens com mais de 24 h sem sincronização e não altera anúncios |
-| `GET` | `/admin/catalog/sync-runs?page=&pageSize=` | Histórico de sincronizações com duração e erros traduzidos |
+| `GET` | `/admin/catalog/sync-runs?page=&pageSize=&search=&status=` | Histórico paginado de sincronizações, com busca por código de erro e filtro `all`, `complete`, `running` ou `failed` |
 | `GET` | `/admin/catalog/price-preview?markupPercent=&couponPercent=&sampleSize=` | Simulação somente leitura, com margem de 50–59% e cupom de 1–4% |
-| `GET` | `/admin/audit?page=&pageSize=` | Histórico de alterações administrativas e valores anterior/novo |
+| `GET` | `/admin/audit?page=&pageSize=&search=&action=` | Auditoria paginada, com busca por e-mail/ação/alvo e filtro por ação |
 | `PATCH` | `/admin/catalog/items/:id/visibility` | Define `{ "hidden": true|false }` para um anúncio |
 | `PATCH` | `/admin/catalog/sellers/:sellerId/visibility` | Define `{ "hidden": true|false }` para todos os anúncios daquele vendedor |
 
 Os controles de visibilidade também são aplicados nas consultas públicas e na última leitura de produto antes do checkout. A simulação de preço não salva alterações. A migração `011_admin_backlog_controls.sql` adiciona a tabela de exceções por anúncio e os detalhes de auditoria; o serviço da API aplica migrações versionadas no startup.
+
+Os parâmetros de busca dos históricos são limitados a 120 caracteres; `status` aceita apenas os estados documentados e `action` é comparado como valor literal. Os dois recursos mantêm ordenação mais recente primeiro e usam `pageSize` limitado pelo DTO administrativo.
 
 ## Idempotência e erros
 

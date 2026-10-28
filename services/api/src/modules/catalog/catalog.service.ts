@@ -216,7 +216,7 @@ export class CatalogService {
     finally { if (imagePending.get(cacheKey) === request) imagePending.delete(cacheKey); }
   }
 
-  async list(game?: string, page = 1, pageSize = 24, filters: { minPrice?: number; maxPrice?: number; minDaysOffline?: number; skinName?: string; steamGame?: string; rank?: string; minLevel?: number } = {}) {
+  async list(game?: string, page = 1, pageSize = 24, filters: { minPrice?: number; maxPrice?: number; minDaysOffline?: number; skinName?: string; steamGame?: string; rank?: string; minLevel?: number } = {}, sort: 'price_asc' | 'price_desc' | 'title_asc' = 'price_asc') {
     const minPriceCents = filters.minPrice === undefined ? null : Math.round(filters.minPrice * 100);
     const maxPriceCents = filters.maxPrice === undefined ? null : Math.round(filters.maxPrice * 100);
     const minDaysOffline = filters.minDaysOffline ?? null;
@@ -224,6 +224,16 @@ export class CatalogService {
     const steamGame = filters.steamGame?.trim() || null;
     const rank = filters.rank?.trim() || null;
     const minLevel = filters.minLevel ?? null;
+    const orderBy = sort === 'price_desc'
+      ? 'p.price_brl_cents DESC, p.created_at DESC, p.id DESC'
+      : sort === 'title_asc'
+        ? 'lower(p.generated_title) ASC, p.id ASC'
+        : `p.price_brl_cents ASC,
+           CASE WHEN sf.feedback_total > 0 THEN sf.positive_percentage END DESC NULLS LAST,
+           sf.feedback_total DESC NULLS LAST,
+           CASE WHEN p.attributes#>>'{seller_reputation,sold_items_count}' ~ '^[0-9]+$'
+             THEN (p.attributes#>>'{seller_reputation,sold_items_count}')::numeric END DESC NULLS LAST,
+           p.created_at DESC, p.id DESC`;
     const result = await this.db.query(
       `SELECT p.id,p.provider_item_id,p.game,p.generated_title,p.price_brl_cents,p.attributes,p.synced_at,
          sf.feedback_total AS seller_feedback_total,sf.positive_count AS seller_feedback_positive_count,
@@ -252,12 +262,7 @@ export class CatalogService {
           )))
           AND ($10::text IS NULL OR (p.game IN ('valorant','lol') AND lower(COALESCE(p.attributes#>>'{inventory,rank}',p.attributes#>>'{inventory,lol_rank}','')) LIKE '%'||lower($10)||'%'))
           AND ($11::integer IS NULL OR p.game IN ('valorant','lol') AND CASE WHEN COALESCE(p.attributes#>>'{inventory,level}',p.attributes#>>'{inventory,lol_level}') ~ '^[0-9]+$' THEN COALESCE(p.attributes#>>'{inventory,level}',p.attributes#>>'{inventory,lol_level}')::integer ELSE NULL END >= $11)
-      ORDER BY p.price_brl_cents ASC,
-         CASE WHEN sf.feedback_total > 0 THEN sf.positive_percentage END DESC NULLS LAST,
-         sf.feedback_total DESC NULLS LAST,
-         CASE WHEN p.attributes#>>'{seller_reputation,sold_items_count}' ~ '^[0-9]+$'
-           THEN (p.attributes#>>'{seller_reputation,sold_items_count}')::numeric END DESC NULLS LAST,
-         p.created_at DESC LIMIT $2 OFFSET $3`,
+       ORDER BY ${orderBy} LIMIT $2 OFFSET $3`,
         [game ?? null, pageSize, (page - 1) * pageSize, minPriceCents, maxPriceCents, minDaysOffline, [...STORE_CATALOG_GAMES], skinName, steamGame, rank, minLevel]);
     const count = await this.db.query<{ total: string }>(
       `SELECT count(*)::text AS total FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
@@ -283,7 +288,7 @@ export class CatalogService {
           AND ($8::text IS NULL OR (p.game IN ('valorant','lol') AND lower(COALESCE(p.attributes#>>'{inventory,rank}',p.attributes#>>'{inventory,lol_rank}','')) LIKE '%'||lower($8)||'%'))
           AND ($9::integer IS NULL OR p.game IN ('valorant','lol') AND CASE WHEN COALESCE(p.attributes#>>'{inventory,level}',p.attributes#>>'{inventory,lol_level}') ~ '^[0-9]+$' THEN COALESCE(p.attributes#>>'{inventory,level}',p.attributes#>>'{inventory,lol_level}')::integer ELSE NULL END >= $9)`,
         [game ?? null, minPriceCents, maxPriceCents, minDaysOffline, [...STORE_CATALOG_GAMES], skinName, steamGame, rank, minLevel]);
-    return { items: result.rows, page, pageSize, total: Number(count.rows[0]?.total ?? 0), currency: 'BRL' };
+    return { items: result.rows, page, pageSize, total: Number(count.rows[0]?.total ?? 0), currency: 'BRL', sort };
   }
 
   async detail(id: string) {
