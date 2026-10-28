@@ -381,3 +381,4 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 :root[data-theme="dark"] .button-primary{color:var(--paper)}
 .cancellation-request summary:focus-visible{outline-color:var(--focus-color)}
 @media(prefers-reduced-motion:reduce){.product-card:hover{transform:none}}
+.roblox-card-frame{position:absolute;inset:0;display:block}

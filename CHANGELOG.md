@@ -8,6 +8,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 - Atualiza o símbolo para o cristal geométrico gerado nesta revisão; o wordmark permanece como texto HTML nítido no cabeçalho e rodapé.
 - Reduz os atributos da listagem pública aos metadados necessários nos cards; arrays completos permanecem disponíveis somente no endpoint de detalhes.
 - Anuncia a contagem de resultados da vitrine a leitores de tela e reserva dimensões para miniaturas dos cards e do perfil Roblox.
+- Adia a busca de avatares Roblox até o card se aproximar da viewport, em vez de consultar todos os anúncios paginados ao abrir o catálogo.
 - Registra tokens de largura, espaçamento, densidade, raios, foco e movimento e aplica os valores compartilhados ao layout, botões e filtros.
 - Mostra horas ou minutos de jogo no inventário Steam quando esse metadado existe, sem preencher dados ausentes com exemplos em anúncios reais.
 - Registra itens descartados por motivo agregado na sincronização e os exibe junto com páginas, importados, duração e erros no histórico administrativo.

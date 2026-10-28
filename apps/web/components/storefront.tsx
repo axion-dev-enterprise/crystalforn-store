@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type StoreProduct = { id: string; game: string; generated_title: string; price_brl_cents: number | string; attributes: Record<string, unknown>; synced_at?: string | null; seller_feedback_total?: number | null; seller_feedback_positive_percentage?: number | null };
 type Catalog = { items: StoreProduct[]; page: number; pageSize: number; total: number; totalPages?: number; demoOnly?: boolean; catalogMode?: string; message?: string };
-type RobloxAvatars = Record<string, string>;
 type Filters = { minPrice: string; maxPrice: string; minDaysOffline: string; skinName: string; steamGame: string; rank: string; minLevel: string };
 type CatalogSort = 'price_asc' | 'price_desc' | 'title_asc';
 const EMPTY_FILTERS: Filters = { minPrice: '', maxPrice: '', minDaysOffline: '', skinName: '', steamGame: '', rank: '', minLevel: '' };
@@ -58,7 +57,6 @@ export function Storefront() {
   const [result, setResult] = useState<Catalog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [robloxAvatars, setRobloxAvatars] = useState<RobloxAvatars>({});
   const catalogRequest = useRef<AbortController | null>(null);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -129,19 +127,6 @@ export function Storefront() {
     void load();
     return () => { catalogRequest.current?.abort(); };
   }, [load, restoredFromUrl]);
-  useEffect(() => {
-    const userIds = [...new Set((result?.items ?? []).filter((product) => product.game === 'roblox').map((product) => {
-      const inventory = product.attributes.inventory as Record<string, unknown> | undefined;
-      return typeof inventory?.roblox_id === 'string' || typeof inventory?.roblox_id === 'number' ? String(inventory.roblox_id) : '';
-    }).filter((id) => /^\d{1,20}$/.test(id)))].slice(0, 24);
-    if (!userIds.length) { setRobloxAvatars({}); return; }
-    let active = true;
-    fetch(`/api/v1/catalog/roblox-avatars?userIds=${userIds.join(',')}`, { cache: 'force-cache' })
-      .then(async (response) => { if (!response.ok) throw new Error(); return response.json() as Promise<{ avatars?: RobloxAvatars }>; })
-      .then((body) => { if (active) setRobloxAvatars(body.avatars ?? {}); })
-      .catch(() => { if (active) setRobloxAvatars({}); });
-    return () => { active = false; };
-  }, [result]);
   const filteredDemoProducts = DEMO_PRODUCTS.filter((product) => {
     if (!result?.demoOnly) return false;
     const offlineDays = Number(product.attributes.days_offline ?? 0);
@@ -211,15 +196,15 @@ export function Storefront() {
     {error && <div className="state-panel error-state" role="alert"><div><h3>{result?.demoOnly ? 'A prévia segue disponível' : 'Catálogo temporariamente indisponível'}</h3><p>{error}</p></div><button className="button-outline" type="button" onClick={() => void load()}>Tentar novamente</button></div>}
     {loading && !result?.demoOnly && <div className="product-grid" aria-label="Carregando catálogo" aria-busy="true">{Array.from({ length: 6 }, (_, i) => <div className="product-skeleton" key={i}><span /><span /><span /></div>)}</div>}
     {!loading && !visibleProducts.length && <div className="state-panel empty-state"><div><h3>Nenhum item corresponde aos filtros</h3><p>Amplie a faixa de preço, reduza a inatividade ou escolha outra categoria.</p></div><button className="button-outline" type="button" onClick={() => { setGame(''); setFilters(EMPTY_FILTERS); setAppliedFilters(EMPTY_FILTERS); setPage(1); setSort('price_asc'); }}>Limpar filtros</button></div>}
-    {(!loading || result?.demoOnly) && !!visibleProducts.length && <><div className="product-grid">{visibleProducts.map((product, index) => <CatalogProductCard key={product.id} product={product} demo={Boolean(result?.demoOnly)} robloxAvatars={robloxAvatars} sequence={(page - 1) * (result?.pageSize ?? 24) + index + 1} returnTo={catalogReturnUrl} />)}</div><nav className="pagination" aria-label="Paginação do catálogo"><button className="button-outline" type="button" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Anterior</button><span>Página {page} de {pages}</span><button className="button-outline" type="button" disabled={page >= pages} onClick={() => setPage((value) => Math.min(pages, value + 1))}>Próxima</button></nav></>}
+    {(!loading || result?.demoOnly) && !!visibleProducts.length && <><div className="product-grid">{visibleProducts.map((product, index) => <CatalogProductCard key={product.id} product={product} demo={Boolean(result?.demoOnly)} sequence={(page - 1) * (result?.pageSize ?? 24) + index + 1} returnTo={catalogReturnUrl} />)}</div><nav className="pagination" aria-label="Paginação do catálogo"><button className="button-outline" type="button" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Anterior</button><span>Página {page} de {pages}</span><button className="button-outline" type="button" disabled={page >= pages} onClick={() => setPage((value) => Math.min(pages, value + 1))}>Próxima</button></nav></>}
   </section>;
 }
 
-export function CatalogProductCard({ product, demo, robloxAvatars = {}, sequence, returnTo = '/#catalogo' }: { product: StoreProduct; demo: boolean; robloxAvatars?: RobloxAvatars; sequence?: number; returnTo?: string }) {
+export function CatalogProductCard({ product, demo, sequence, returnTo = '/#catalogo' }: { product: StoreProduct; demo: boolean; sequence?: number; returnTo?: string }) {
   return <article className="product-card">
     <div className="product-badge">{demo ? 'Exemplo fictício' : 'No catálogo'}</div>
     <div className="card-topline"><span>{gameLabel(product.game)}</span>{sequence && <span className="card-sequence">{String(sequence).padStart(2, '0')}</span>}</div>
-    <ProductArt product={product} robloxAvatars={robloxAvatars} demo={demo} />
+    <ProductArt product={product} demo={demo} />
     <h3 aria-label={product.generated_title}>{displayTitle(product)}</h3>
     <ProductHighlights attributes={product.attributes} feedbackTotal={product.seller_feedback_total} positivePercentage={product.seller_feedback_positive_percentage} />
     {demo ? <ProductInventoryPreview game={product.game} attributes={product.attributes} /> : <p className={`product-updated${isStaleSync(product.synced_at) ? ' is-stale' : ''}`}>
@@ -258,15 +243,40 @@ function ProductInventoryPreview({ game, attributes }: { game: string; attribute
   </details>;
 }
 
-function ProductArt({ product, robloxAvatars, demo }: { product: StoreProduct; robloxAvatars: RobloxAvatars; demo: boolean }) {
+function ProductArt({ product, demo }: { product: StoreProduct; demo: boolean }) {
   const inventory = product.attributes.inventory as Record<string, unknown> | undefined;
   const id = inventory?.roblox_id === undefined ? '' : String(inventory.roblox_id);
-  const avatar = product.game === 'roblox' && /^\d{1,20}$/.test(id) ? robloxAvatars[id] : undefined;
   const mark = product.game === 'fortnite' ? 'F' : product.game === 'valorant' ? 'V' : product.game === 'roblox' ? 'R' : product.game === 'steam' ? 'S' : product.game === 'lol' ? 'L' : 'A';
   return <div className={`product-art art-${product.game}`}>
-    {avatar ? <img className="roblox-card-avatar" src={avatar} alt={`Avatar Roblox de ${String(inventory?.username ?? 'usuário')}`} width={400} height={150} loading="lazy" decoding="async" /> : product.game === 'fortnite' && !demo ? <FortniteCardPreview productId={product.id} title={product.generated_title} fallback={mark} /> : <span className="game-art-mark" aria-hidden="true">{mark}</span>}
+    {product.game === 'roblox' && /^\d{1,20}$/.test(id) && !demo ? <RobloxCardPreview userId={id} username={String(inventory?.username ?? 'usuário')} /> : product.game === 'fortnite' && !demo ? <FortniteCardPreview productId={product.id} title={product.generated_title} fallback={mark} /> : <span className="game-art-mark" aria-hidden="true">{mark}</span>}
     <span className="game-art-caption">{demo ? 'Item fictício · prévia' : product.game === 'roblox' && typeof inventory?.username === 'string' ? inventory.username : 'Disponível para consulta'}</span>
   </div>;
+}
+
+function RobloxCardPreview({ userId, username }: { userId: string; username: string }) {
+  const frame = useRef<HTMLSpanElement>(null);
+  const [visible, setVisible] = useState(false);
+  const [avatar, setAvatar] = useState('');
+  useEffect(() => {
+    const element = frame.current;
+    if (!element) return;
+    if (!('IntersectionObserver' in window)) { setVisible(true); return; }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) { setVisible(true); observer.disconnect(); }
+    }, { rootMargin: '120px' });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!visible) return;
+    let active = true;
+    fetch(`/api/v1/catalog/roblox-avatars?userIds=${encodeURIComponent(userId)}`, { cache: 'force-cache', signal: AbortSignal.timeout(15_000) })
+      .then(async (response) => { if (!response.ok) throw new Error(); return response.json() as Promise<{ avatars?: Record<string, string> }>; })
+      .then((body) => { const image = body.avatars?.[userId]; if (active && image) setAvatar(image); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [userId, visible]);
+  return <span className="roblox-card-frame" ref={frame}>{avatar ? <img className="roblox-card-avatar" src={avatar} alt={`Avatar Roblox de ${username}`} width={400} height={150} loading="lazy" decoding="async" /> : <span className="game-art-mark" aria-hidden="true">R</span>}</span>;
 }
 
 function FortniteCardPreview({ productId, title, fallback }: { productId: string; title: string; fallback: string }) {
