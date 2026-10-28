@@ -45,6 +45,7 @@ O CSS centraliza as cores e estados de foco nesses tokens e nos seletores `data-
 - Os detalhes identificam os itens como dados públicos fornecidos pelo catálogo e avisam que a cobertura pode ser parcial.
 - A biblioteca Steam apresenta o tempo jogado quando a API fornece `playtime_forever`; a ausência do campo não cria um valor fictício.
 - A listagem pública transfere somente atributos resumidos usados nos cards; inventários completos são consultados no detalhe do anúncio.
+- A quantidade de resultados é anunciada como estado polido; miniaturas assíncronas mantêm dimensões de exibição reservadas e decodificação assíncrona.
 - O inventário e a auditoria administrativas oferecem busca/filtro e navegação paginada em vez de limitar o histórico aos primeiros registros.
 - A prévia administrativa renderiza o mesmo cartão de produto usado na vitrine, com atributos, reputação agregada, atualização e preço em uma única fonte de interface.
 - Catálogo e detalhes sinalizam anúncios com sincronização acima de 24 horas ou sem data conhecida como dados cuja disponibilidade pode ter mudado.

@@ -233,7 +233,7 @@ function InventoryShowcase({ game, attributes, images }: { game: string; attribu
 }
 
 function RobloxProfile({ inventory, avatar }: { inventory: Record<string, unknown>; avatar?: string }) {
-  return <div className="roblox-profile">{avatar ? <img className="roblox-detail-avatar" src={avatar} alt={`Avatar Roblox de ${String(inventory.username ?? 'usuário')}`} /> : <div className="roblox-avatar-fallback" aria-hidden="true">R</div>}<div><p className="eyebrow">PERFIL ROBLOX</p><strong>{typeof inventory.username === 'string' ? inventory.username : 'Avatar da conta'}</strong><span>{typeof inventory.country === 'string' ? inventory.country : 'Miniatura pública do perfil consultada pelo ID Roblox.'}</span></div></div>;
+  return <div className="roblox-profile">{avatar ? <img className="roblox-detail-avatar" src={avatar} alt={`Avatar Roblox de ${String(inventory.username ?? 'usuário')}`} width={64} height={64} loading="lazy" decoding="async" /> : <div className="roblox-avatar-fallback" aria-hidden="true">R</div>}<div><p className="eyebrow">PERFIL ROBLOX</p><strong>{typeof inventory.username === 'string' ? inventory.username : 'Avatar da conta'}</strong><span>{typeof inventory.country === 'string' ? inventory.country : 'Miniatura pública do perfil consultada pelo ID Roblox.'}</span></div></div>;
 }
 
 function AttributeList({ attributes }: { attributes: Record<string, unknown> }) {
