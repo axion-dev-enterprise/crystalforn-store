@@ -7,6 +7,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 - Exibe no painel administrativo o estado de release do catálogo e marca ciclos LZT como históricos quando a sincronização está desativada ou o status não pode ser confirmado.
 - Consolida no backlog os requisitos acumulados de responsividade, marca/logo e temas, painel administrativo e área do cliente, com prioridades, estados, critérios de aceite e dependências mantendo o gate de demonstração.
 - Atualiza o backlog com a revisão mais recente do cliente: filtros essenciais por jogo, ranks em títulos apenas para LoL/Valorant, inventários visuais representativos e paginação de 20–40 mil ainda não validada; registra a intenção de avançar ao gateway sem remover o gate demo.
+- Alinha a busca demonstrativa de skins Fortnite e jogos Steam às mesmas variantes de inventário usadas nas sugestões, incluindo listas de objetos com nomes.
 - Reverte a publicação de anúncios reais para o modo demo aprovado: API sem catálogo real e worker LZT inativo; pagamentos e entrega continuam bloqueados.
 - Adiciona o símbolo facetado Crystalforn ao cabeçalho e ao rodapé.
 - Atualiza o símbolo para o cristal geométrico gerado nesta revisão; o wordmark permanece como texto HTML nítido no cabeçalho e rodapé.

@@ -13,22 +13,26 @@ const games = [{ id: '', label: 'Todos' }, { id: 'fortnite', label: 'Fortnite' }
 const money = (cents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100);
 const DEMO_PAGE_SIZE = 6;
 
+function inventoryLabels(inventory: Record<string, unknown> | undefined, keys: string[]): string[] {
+  return keys.flatMap((key) => {
+    const value = inventory?.[key];
+    const entries = Array.isArray(value) ? value : typeof value === 'string' ? [value] : [];
+    return entries.flatMap((entry) => {
+      if (typeof entry === 'string') return entry.trim() ? [entry.trim()] : [];
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];
+      const record = entry as Record<string, unknown>;
+      const label = record.title ?? record.name ?? record.label;
+      return typeof label === 'string' && label.trim() ? [label.trim()] : [];
+    });
+  });
+}
+
 function demoInventoryOptions(game: string, keys: string[]): string[] {
   const values = DEMO_PRODUCTS.filter((product) => product.game === game).flatMap((product) => {
     const inventory = product.attributes.inventory as Record<string, unknown> | undefined;
-    return keys.flatMap((key) => {
-      const value = inventory?.[key];
-      const entries = Array.isArray(value) ? value : typeof value === 'string' ? [value] : [];
-      return entries.flatMap((entry) => {
-        if (typeof entry === 'string') return [entry];
-        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];
-        const record = entry as Record<string, unknown>;
-        const label = record.title ?? record.name ?? record.label;
-        return typeof label === 'string' ? [label] : [];
-      });
-    });
+    return inventoryLabels(inventory, keys);
   });
-  return [...new Set(values.filter(Boolean))].sort((left, right) => left.localeCompare(right, 'pt-BR'));
+  return [...new Set(values)].sort((left, right) => left.localeCompare(right, 'pt-BR'));
 }
 
 function displayTitle(product: StoreProduct): string {
@@ -139,8 +143,8 @@ export function Storefront() {
     if (!result?.demoOnly) return false;
     const offlineDays = Number(product.attributes.days_offline ?? 0);
     const inventory = product.attributes.inventory as Record<string, unknown> | undefined;
-    const skinNames = Array.isArray(inventory?.skin_names) ? inventory.skin_names.map(String) : [];
-    const steamGames = Array.isArray(inventory?.game_names) ? inventory.game_names.map(String) : [];
+    const skinNames = inventoryLabels(inventory, ['skin_names', 'skins', 'featured_skins']);
+    const steamGames = inventoryLabels(inventory, ['game_names', 'games']);
     const rank = typeof inventory?.lol_rank === 'string' ? inventory.lol_rank : typeof inventory?.rank === 'string' ? inventory.rank : '';
     const level = Number(inventory?.level ?? 0);
     return (!game || product.game === game)
