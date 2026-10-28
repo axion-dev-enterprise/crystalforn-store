@@ -202,13 +202,13 @@ export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; ret
         </form>}
       </aside>
       {inventoryImageMessage && <p className="inventory-image-note" role="status">{inventoryImageMessage}</p>}
-      <InventoryShowcase productId={product.id} game={product.game} attributes={product.attributes} images={inventoryImages} sectionRef={setInventorySection} />
+      <InventoryShowcase productId={product.id} game={product.game} demoOnly={Boolean(product.demoOnly)} attributes={product.attributes} images={inventoryImages} sectionRef={setInventorySection} />
       <div className="attributes-panel"><h2>Outros dados da conta</h2><AttributeList attributes={product.attributes} /></div>
     </div>
   </section>;
 }
 
-function InventoryShowcase({ productId, game, attributes, images, sectionRef }: { productId: string; game: string; attributes: Record<string, unknown>; images: InventoryImages; sectionRef: (element: HTMLElement | null) => void }) {
+function InventoryShowcase({ productId, game, demoOnly, attributes, images, sectionRef }: { productId: string; game: string; demoOnly: boolean; attributes: Record<string, unknown>; images: InventoryImages; sectionRef: (element: HTMLElement | null) => void }) {
   const inventory = attributes.inventory && typeof attributes.inventory === 'object' ? attributes.inventory as Record<string, unknown> : {};
   const definitions: Array<{ key: string; fallback: string; aliases?: string[]; title: string; image?: string }> = game === 'fortnite' ? [
     { key: 'skins', fallback: 'featured_skins', aliases: ['skin_names'], title: 'Personagens e skins', image: images.skins },
@@ -249,7 +249,7 @@ function InventoryShowcase({ productId, game, attributes, images, sectionRef }: 
     return <li className="cosmetic-card" key={`${title}-${index}`}><span className={`cosmetic-mark ${tone}`} aria-hidden="true">{title.slice(0, 2).toUpperCase()}</span><span className="cosmetic-copy"><strong>{title}</strong>{translatedRarity && <small>{translatedRarity}</small>}{playtimeLabel && <small>{playtimeLabel}</small>}</span></li>;
   }
   return <section ref={sectionRef} className={`inventory-showcase inventory-${game}`} aria-labelledby="inventory-showcase-title">
-    <div className="inventory-showcase-heading"><div><p className="eyebrow">ITENS INFORMADOS PELO FORNECEDOR</p><h2 id="inventory-showcase-title">Itens do inventário</h2><p className="inventory-coverage-note">A lista depende dos campos públicos disponíveis para este anúncio e pode ser parcial.</p></div><span>{groups.reduce((total, group) => total + group.items.length, 0)} itens listados</span></div>
+    <div className="inventory-showcase-heading"><div><p className="eyebrow">{demoOnly ? 'AMOSTRA FICTÍCIA · ITENS ILUSTRATIVOS' : 'ITENS INFORMADOS PELO FORNECEDOR'}</p><h2 id="inventory-showcase-title">{demoOnly ? 'Inventário do exemplo' : 'Itens do inventário'}</h2><p className="inventory-coverage-note">{demoOnly ? 'Esta prévia mostra alguns itens fictícios; não representa uma conta real nem um inventário completo.' : 'A lista depende dos campos públicos disponíveis para este anúncio e pode ser parcial.'}</p></div><span>{groups.reduce((total, group) => total + group.items.length, 0)} itens listados</span></div>
     {game === 'roblox' && <RobloxProfile inventory={inventory} avatar={images.avatar} />}
     {groups.map((group) => <section className="inventory-group" key={group.key}>
       <div className="inventory-group-heading"><h3>{group.title}</h3><span>{group.items.length}</span></div>
@@ -257,7 +257,7 @@ function InventoryShowcase({ productId, game, attributes, images, sectionRef }: 
       <ul className="cosmetic-list">{group.items.slice(0, 36).map(itemCard)}</ul>
       {group.items.length > 36 && <details className="inventory-more"><summary>Ver os outros {group.items.length - 36} itens</summary><ul className="cosmetic-list">{group.items.slice(36).map((item, index) => itemCard(item, index + 36))}</ul></details>}
     </section>)}
-    {groups.length === 0 && <p className="inventory-empty">O fornecedor ainda não informou itens individuais para esta conta.</p>}
+    {groups.length === 0 && <p className="inventory-empty">{demoOnly ? 'Este exemplo não lista itens individuais.' : 'O fornecedor ainda não informou itens individuais para esta conta.'}</p>}
   </section>;
 }
 
@@ -292,7 +292,7 @@ function AttributeList({ attributes }: { attributes: Record<string, unknown> }) 
     rmax: 'Elo máximo Valorant', knife: 'Possui faca', valorant_knife_min: 'Facas Valorant',
     rp_min: 'Pontos radiantes', fa_min: 'Agentes gratuitos',
   };
-  const inventoryListKeys = new Set(['skins','featured_skins','pickaxes','featured_pickaxes','dances','featured_dances','gliders','featured_gliders','weapon_skins','agents','featured_agents','buddies','featured_buddies','champions','featured_champions','items','featured_items','fruits','featured_fruits','games','game_names','gifts','featured_gifts']);
+  const inventoryListKeys = new Set(['skins','skin_names','featured_skins','pickaxes','pickaxe_names','featured_pickaxes','dances','emote_names','featured_dances','gliders','glider_names','featured_gliders','weapon_skins','agents','featured_agents','buddies','featured_buddies','champions','featured_champions','items','featured_items','fruits','featured_fruits','games','game_names','gifts','featured_gifts']);
   function displayValue(key: string, value: string | number | boolean): string {
     if (typeof value === 'boolean') return value ? 'Sim' : 'Não';
     if (typeof value !== 'string') return String(value);
