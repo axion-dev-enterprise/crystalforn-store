@@ -8,6 +8,7 @@ Atualizado em 28/10/2026 após nova revisão da conversa de Mateus Alves Fernand
 - A API pode exibir resultados de integração em ambiente de desenvolvimento, mas isso não comprova capacidade de importar dezenas de milhares de anúncios, consistência de inventário ou prontidão para produção.
 - Toda tarefa que consulte dados reais da LZT, processe pagamentos, entregue credenciais ou movimente saldo depende de revisão própria de contrato, segurança e compatibilidade comercial. Os itens marcados como bloqueados não devem ser liberados por este backlog.
 - As quantidades de 20 mil a 40 mil anúncios são metas solicitadas pelo cliente, ainda sem validação de limites, cotas, custo ou garantias do fornecedor.
+- Verificação desta revisão: GitHub Actions Build #35 passou para `dd95d316765db57ff45a6cea1a515be02be0bcc6`, compilando web, API e workers; os auditores estáticos RSC, NestJS e UI também passaram. Isso não comprova paginação real da LZT, cobertura de payloads ou operação comercial.
 
 ## Prioridade P0 — Resolver antes de qualquer ativação comercial
 
@@ -61,7 +62,7 @@ Usar documentação e catálogos oficiais do Market API para mapear filtros supo
 
 ### BL-03 — Padronizar títulos de contas de LoL e Valorant por rank
 
-**Estado:** Implementado no normalizador e nos exemplos demonstrativos; falta comprovar a compilação e confrontar a regra com amostras autorizadas de payload por categoria.
+**Estado:** Implementado no normalizador e nos exemplos demonstrativos; o build remoto compila web, API e workers. Ainda falta confrontar a regra com amostras autorizadas de payload por categoria.
 
 Gerar títulos em português e no padrão Crystalforn, sem copiar nomes vagos ou em russo do fornecedor. Para LoL e Valorant, destacar o rank/divisão quando o dado existir e for confiável. A regra de rank descrita aqui vale somente para esses dois jogos.
 
