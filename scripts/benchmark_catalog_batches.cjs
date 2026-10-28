@@ -4,7 +4,7 @@ const { performance } = require('node:perf_hooks');
 const { catalogImportBodies } = require('../services/sync-worker/dist/catalog-import-batches.js');
 
 const MAX_BODY_BYTES = 1_500_000;
-const COUNTS = [20_000, 40_000];
+const DEFAULT_COUNTS = [20_000, 40_000];
 const MIB = 1024 * 1024;
 
 function syntheticProduct(index) {
@@ -89,4 +89,9 @@ function run(count) {
   }));
 }
 
-for (const count of COUNTS) run(count);
+const countArgument = process.argv.find((argument) => argument.startsWith('--count='));
+const counts = countArgument ? [Number(countArgument.slice('--count='.length))] : DEFAULT_COUNTS;
+for (const count of counts) {
+  assert(Number.isSafeInteger(count) && count > 0, `invalid_record_count:${count}`);
+  run(count);
+}

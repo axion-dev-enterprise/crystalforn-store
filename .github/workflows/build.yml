@@ -25,4 +25,6 @@ jobs:
       - name: Build web, API, and workers
         run: npm run build
       - name: Measure synthetic catalog batch scaling
-        run: node --expose-gc scripts/benchmark_catalog_batches.cjs
+        run: |
+          node --expose-gc scripts/benchmark_catalog_batches.cjs --count=20000
+          node --expose-gc scripts/benchmark_catalog_batches.cjs --count=40000
