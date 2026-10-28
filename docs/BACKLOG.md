@@ -1,6 +1,6 @@
 # Backlog Crystalforn
 
-Atualizado em 28/10/2026 após consolidação das mensagens de Mateus Alves Fernandes na Workana e das solicitações já registradas pelo operador. O cliente considera a integração próxima do esperado e pediu foco nos filtros essenciais por jogo, numa amostra visual de inventário com qualidade consistente e em títulos legíveis. Este documento reúne o backlog funcional, visual e operacional; status representam evidência no código/documentação, não autorização para ativar operações comerciais.
+Atualizado em 28/10/2026 após nova revisão das mensagens de Mateus Alves Fernandes na Workana. O cliente considera a API próxima do rumo esperado, condicionando a conclusão a filtros essenciais, amostras transparentes de inventário, títulos legíveis e melhor cobertura de paginação. Este documento reúne o backlog funcional, visual e operacional; status representam evidência no código/documentação, não autorização para ativar operações comerciais.
 
 ## Estado e limites atuais
 
@@ -10,20 +10,32 @@ Atualizado em 28/10/2026 após consolidação das mensagens de Mateus Alves Fern
 - As quantidades de 20 mil a 40 mil anúncios são metas solicitadas pelo cliente, ainda sem validação de limites, cotas, custo ou garantias do fornecedor.
 - Verificação da implementação mais recente: GitHub Actions Build #38 passou para `2c7582a5105f1c1c3ee573e58c6a39aefa616aa7`, compilando web, API e workers; auditores estáticos RSC (0 achados), NestJS (0 erros/avisos), UI anti-slop (15 arquivos, 0 achados) e `git diff --check` passaram. Isso não comprova paginação real da LZT, cobertura de payloads, autenticação em runtime ou operação comercial.
 
+## Delta das mensagens mais recentes do cliente — 28/10/2026
+
+- **Sinal de progresso:** Mateus disse que o resultado da API está agradável e que, com os ajustes de filtros, títulos e inventários, considera a parte da API concluída para avançar à etapa seguinte. Isso registra a percepção e o critério comercial do cliente; não prova capacidade técnica, cobertura de dados, desempenho em produção ou aceite formal do trabalho.
+- **Escopo mínimo de descoberta:** priorizar filtros úteis para personagens/skins de Fortnite, jogos desejados na Steam, rank em LoL e Valorant e nível quando o payload oferecer esse campo. O cliente esclareceu que não espera uma cópia integral do fórum russo ou da Legas; quer filtros essenciais e uma amostra de conteúdo com qualidade equivalente.
+- **Títulos:** mapear os ranks e divisões fornecidos para títulos de LoL e Valorant somente. Rank em título não substitui os filtros de descoberta; não inferir rank, divisão ou inventário quando o anúncio não trouxer o dado.
+- **Inventário:** exibir nomes e imagens quando os dados e recursos confiáveis existirem; incluir gamepasses Roblox e demais itens apenas se o contrato/payload realmente os fornecer. A meta é transparência e uma amostra representativa por jogo, identificando listas parciais.
+- **Paginação:** o cliente observou respostas pequenas (10–30 anúncios e 120 para Steam) e reiterou a expectativa de 20–40 mil. O alvo permanece não validado; o código e limites documentados não garantem sincronização em tempo real.
+- **Próxima etapa citada:** gateway e testes de entrega depois dos ajustes. Isso não altera o modo demo vigente: qualquer operação real segue bloqueada e requer revisão/aprovação independente.
+
+**Ordem de trabalho derivada:** concluir a checagem dos filtros e títulos; fechar uma amostra visual transparente por jogo; medir paginação com benchmark sintético e documentar o que ainda depende do fornecedor; então registrar a revisão do cliente. Gateway, compra, entrega e reembolso permanecem em trilha separada, fora da demo.
+
 ## Visão rápida de entrega
 
 | Ordem | Item | Situação | Resultado esperado |
 | --- | --- | --- | --- |
-| 1 | BL-01 Demonstração e compatibilidade comercial | Bloqueado para venda real; gate deve permanecer ativo | Demo sem catálogo comercial, cobrança, entrega ou reembolso real |
+| 1 | BL-01 Demonstração e compatibilidade comercial | Gate ativo; venda real bloqueada | Demo sem catálogo comercial, cobrança, entrega ou reembolso real |
 | 2 | BL-10 Responsividade de produto e catálogo | Implementação presente; inspeção visual renderizada pendente | Detalhes, filtros e navegação confortáveis em celular e desktop |
 | 3 | BL-11 Identidade Crystalforn e tema | Ativos integrados; validação visual completa pendente | Sistema visual escuro/claro consistente, marca aplicada e alternância acessível |
-| 4 | BL-02 a BL-04 Descoberta e detalhes por jogo | Parcial | Filtros úteis e detalhes fiéis aos campos que a API realmente entrega |
-| 5 | BL-03 Títulos localizados | Implementado parcialmente; amostras reais por categoria pendentes | Títulos em pt-BR, sem texto russo bruto ou atributos inventados |
-| 6 | BL-05 Importação em massa | Código de retomada presente; escala real não validada | Paginação resiliente, progresso observável e benchmark até 40 mil registros |
+| 4 | BL-02 a BL-04 Descoberta, títulos e inventários | Parcial; payloads representativos por jogo pendentes | Filtros essenciais, títulos localizados e amostras transparentes sustentadas por dados |
+| 5 | BL-08 Referência de anúncios e qualidade | Escopo reduzido; comparar só padrões úteis | Boa organização e amostra sem copiar integralmente fórum ou Legas |
+| 6 | BL-05 Paginação em massa | Retomada implementada; escala real não validada | Benchmark sintético e limites documentados até a meta de 40 mil |
 | 7 | BL-06 Concorrência e indisponibilidade | Parcial e bloqueado comercialmente | Nunca entregar anúncio indisponível; reconciliação/idempotência comprovadas |
-| 8 | BL-12 Painel administrativo | Parcial; controles implementados, runtime não verificado | Operação auditável para catálogo, pedidos, sincronização e políticas comerciais |
-| 9 | BL-13 Área do cliente e segurança de conta | Fluxo central e interface presentes; runtime/permissões não verificados | Histórico e dados de demonstração seguros; entrega real continua bloqueada |
-| 10 | BL-09 Pagamentos e testes de entrega | Futuro e bloqueado pelo modo demonstração | Plano validado antes de qualquer integração comercial |
+| 8 | BL-07 Revisão com o cliente | Condicionada aos ajustes mínimos; sem aceite formal registrado | Revisar filtros, títulos e amostras após correções e comunicar limites observados |
+| 9 | BL-12 Painel administrativo | Parcial; controles implementados, runtime não verificado | Operação auditável para catálogo, pedidos, sincronização e políticas comerciais |
+| 10 | BL-13 Área do cliente e segurança de conta | Fluxo central e interface presentes; runtime/permissões não verificados | Histórico e dados de demonstração seguros; entrega real continua bloqueada |
+| 11 | BL-09 Pagamentos e testes de entrega | Futuro e bloqueado pelo modo demonstração | Planejar validação somente após revisão comercial independente |
 
 **Regra de ordenação:** primeiro corrigir experiência visual e fechar os contratos de dados; medir sincronização isoladamente; só depois submeter qualquer mudança de modo de operação à revisão comercial e de segurança. Nenhum item abaixo desativa por si só o gate de demonstração.
 
@@ -79,7 +91,7 @@ Usar documentação e catálogos oficiais do Market API para mapear filtros supo
 
 ### BL-03 — Padronizar títulos de contas de LoL e Valorant por rank
 
-**Estado:** Implementado no normalizador e nos exemplos demonstrativos; o build remoto compila web, API e workers. Ainda falta confrontar a regra com amostras autorizadas de payload por categoria.
+**Estado:** Implementado no normalizador e nos exemplos demonstrativos; o build remoto compila web, API e workers. Mateus confirmou que a regra de títulos por rank se aplica somente a LoL e Valorant. Falta confrontar a regra com amostras autorizadas por categoria.
 
 Gerar títulos em português e no padrão Crystalforn, sem copiar nomes vagos ou em russo do fornecedor. Para LoL e Valorant, destacar o rank/divisão quando o dado existir e for confiável. A regra de rank descrita aqui vale somente para esses dois jogos.
 
@@ -171,9 +183,9 @@ O cliente quer que uma conta vendida na LZT desapareça do catálogo e que uma c
 
 ### BL-07 — Reavaliar o resultado da API com o cliente
 
-**Estado:** Pendente.
+**Estado:** Revisão condicionada aos ajustes mínimos. Mateus disse que o resultado da API está agradável e considera essa etapa concluída após filtros essenciais, títulos de LoL/Valorant e apresentação mais transparente dos inventários; apontou paginação pequena, ausência de imagens por item e cobertura de gamepasses Roblox como lacunas. Isso não equivale a verificação técnica ou aceite formal do projeto.
 
-Mateus disse que o resultado atual da integração parece agradável e que o projeto está perto do esperado. Registrar uma nova revisão do catálogo e dos títulos depois que os itens aplicáveis deste backlog forem concluídos, sem tratar a mensagem “Blzzz” como requisito adicional.
+Registrar uma revisão do catálogo e dos títulos depois dos itens aplicáveis de BL-02 a BL-05. O cliente não exige reproduzir todos os campos do fórum ou da Legas. A mensagem “Blzzz” não contém requisito identificável.
 
 **Critérios de aceite**
 
