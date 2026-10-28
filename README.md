@@ -2,11 +2,11 @@
 
 Loja de inventário de contas digitais, construída com Next.js, NestJS e PostgreSQL. O repositório contém a vitrine, API, painel administrativo, área do cliente, migrações, worker e configuração de contêineres.
 
-> **Estado desta versão: demonstração somente.** A vitrine usa oito exemplos fictícios; a API não publica anúncios reais e o worker não consulta nem sincroniza a LZT. Compras, recargas, entrega automática e webhooks de pagamento estão bloqueados.
+> **Estado desta versão: demonstração somente.** A vitrine usa dez exemplos fictícios; a API não publica anúncios reais e o worker não consulta nem sincroniza a LZT. Compras, recargas, entrega automática e webhooks de pagamento estão bloqueados.
 
 ## O que funciona
 
-- Vitrine responsiva em pt-BR com filtros por jogo, atributos de conta, faixa de preço, dias sem atividade, ordenação e paginação; o modo demo usa oito exemplos fictícios.
+- Vitrine responsiva em pt-BR com filtros por jogo, atributos de conta, faixa de preço, dias sem atividade, ordenação e paginação; o modo demo usa dez exemplos fictícios.
 - Páginas de entrada, detalhes, área do cliente, painel e termos, com estados de carregamento, erro e listas vazias.
 - API NestJS versionada sob `/api/v1`, PostgreSQL com migrações SQL numeradas e worker de sincronização separado.
 - API pública em modo `demoOnly`; registros de fornecedor eventualmente presentes no banco não são exibidos pela vitrine.

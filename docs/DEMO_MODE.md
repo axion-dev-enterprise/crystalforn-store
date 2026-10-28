@@ -2,7 +2,7 @@
 
 ## Estado atual
 
-Esta revisão apresenta oito exemplos fictícios no frontend. A API responde `demoOnly: true`, não serve anúncios de fornecedor e o worker não faz chamadas à LZT nem importa inventário. Registros antigos de fornecedor podem permanecer no banco para retenção operacional, mas não são publicados pela API ou pela vitrine.
+Esta revisão apresenta dez exemplos fictícios no frontend. A API responde `demoOnly: true`, não serve anúncios de fornecedor e o worker não faz chamadas à LZT nem importa inventário. Registros antigos de fornecedor podem permanecer no banco para retenção operacional, mas não são publicados pela API ou pela vitrine.
 
 O backend informa `catalogMode: demo`. A página de detalhes e a vitrine deixam claro que os itens são fictícios. Compra, cobrança Pix, saldo da carteira e entrega automática permanecem desativados.
 
