@@ -8,7 +8,7 @@ Atualizado em 28/10/2026 após nova revisão das mensagens de Mateus Alves Ferna
 - A API pode exibir resultados de integração em ambiente de desenvolvimento, mas isso não comprova capacidade de importar dezenas de milhares de anúncios, consistência de inventário ou prontidão para produção.
 - Toda tarefa que consulte dados reais da LZT, processe pagamentos, entregue credenciais ou movimente saldo depende de revisão própria de contrato, segurança e compatibilidade comercial. Os itens marcados como bloqueados não devem ser liberados por este backlog.
 - As quantidades de 20 mil a 40 mil anúncios são metas solicitadas pelo cliente, ainda sem validação de limites, cotas, custo ou garantias do fornecedor.
-- Verificação da implementação mais recente: GitHub Actions Build #38 passou para `2c7582a5105f1c1c3ee573e58c6a39aefa616aa7`, compilando web, API e workers; auditores estáticos RSC (0 achados), NestJS (0 erros/avisos), UI anti-slop (15 arquivos, 0 achados) e `git diff --check` passaram. Isso não comprova paginação real da LZT, cobertura de payloads, autenticação em runtime ou operação comercial.
+- Verificação da revisão atual: GitHub Actions Build [40778408292](https://github.com/axion-dev-enterprise/crystalforn-store/actions/runs/40778408292) passou para `3d70fd3`, compilando web, API e workers; `git diff --check` passou. Auditores estáticos RSC (0 achados), NestJS (0 erros/avisos) e UI anti-slop (15 arquivos, 0 achados) passaram na revisão imediatamente anterior e não foram repetidos após este ajuste. Isso não comprova paginação real da LZT, cobertura de payloads, autenticação em runtime ou operação comercial.
 
 ## Delta das mensagens mais recentes do cliente — 28/10/2026
 
