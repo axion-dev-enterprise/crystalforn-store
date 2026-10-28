@@ -5,25 +5,28 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 type Product = { id: string; game: string; generated_title: string; price_brl_cents: number; attributes: Record<string, unknown>; seller_feedback_total?: number | null; seller_feedback_positive_percentage?: number | null };
 type Catalog = { items: Product[]; page: number; pageSize: number; total: number; totalPages?: number; demoOnly?: boolean; message?: string };
 type RobloxAvatars = Record<string, string>;
-type Filters = { minPrice: string; maxPrice: string; minDaysOffline: string };
-const games = [{ id: '', label: 'Todos' }, { id: 'fortnite', label: 'Fortnite' }, { id: 'steam', label: 'Steam' }, { id: 'roblox', label: 'Roblox' }, { id: 'valorant', label: 'Valorant' }];
+type Filters = { minPrice: string; maxPrice: string; minDaysOffline: string; skinName: string; steamGame: string; rank: string; minLevel: string };
+const EMPTY_FILTERS: Filters = { minPrice: '', maxPrice: '', minDaysOffline: '', skinName: '', steamGame: '', rank: '', minLevel: '' };
+const games = [{ id: '', label: 'Todos' }, { id: 'fortnite', label: 'Fortnite' }, { id: 'steam', label: 'Steam' }, { id: 'roblox', label: 'Roblox' }, { id: 'valorant', label: 'Valorant' }, { id: 'lol', label: 'League of Legends' }];
 const money = (cents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100);
 const DEMO_PRODUCTS: Product[] = [
-  { id: 'demo-fortnite-01', game: 'fortnite', generated_title: 'Fortnite · inventário com 42 skins', price_brl_cents: 8990, attributes: { days_offline: 45, inventory: { skins_count: 42, pickaxes_count: 18, vbucks_balance: 1200 } } },
-  { id: 'demo-fortnite-02', game: 'fortnite', generated_title: 'Fortnite · coleção de 86 skins', price_brl_cents: 14990, attributes: { days_offline: 120, inventory: { skins_count: 86, pickaxes_count: 31, vbucks_balance: 2500 } } },
-  { id: 'demo-valorant-01', game: 'valorant', generated_title: 'Valorant · Platina · 24 skins', price_brl_cents: 11990, attributes: { days_offline: 60, inventory: { rank: 'Platina', level: 137, skins_count: 24 } } },
-  { id: 'demo-valorant-02', game: 'valorant', generated_title: 'Valorant · Diamante · 41 skins', price_brl_cents: 21990, attributes: { days_offline: 90, inventory: { rank: 'Diamante', level: 208, skins_count: 41 } } },
+  { id: 'demo-fortnite-01', game: 'fortnite', generated_title: 'Fortnite · inventário com 42 skins', price_brl_cents: 8990, attributes: { days_offline: 45, inventory: { skins_count: 42, skin_names: ['Travis Scott', 'Lynx', 'Peely'], pickaxe_names: ['Driver'], emote_names: ['Dance Moves'], glider_names: ['Discovery'], pickaxes_count: 18, vbucks_balance: 1200 } } },
+  { id: 'demo-fortnite-02', game: 'fortnite', generated_title: 'Fortnite · coleção de 86 skins', price_brl_cents: 14990, attributes: { days_offline: 120, inventory: { skins_count: 86, skin_names: ['Midas', 'Lynx', 'Raven'], pickaxe_names: ['Reaper'], emote_names: ['Scenario'], glider_names: ['Founder’s Umbrella'], pickaxes_count: 31, vbucks_balance: 2500 } } },
+  { id: 'demo-valorant-01', game: 'valorant', generated_title: 'Valorant · Platina · nível 137', price_brl_cents: 11990, attributes: { days_offline: 60, inventory: { rank: 'Platina', level: 137, skins_count: 24 } } },
+  { id: 'demo-valorant-02', game: 'valorant', generated_title: 'Valorant · Diamante · nível 208', price_brl_cents: 21990, attributes: { days_offline: 90, inventory: { rank: 'Diamante', level: 208, skins_count: 41 } } },
+  { id: 'demo-lol-01', game: 'lol', generated_title: 'League of Legends · Ouro · nível 76', price_brl_cents: 10990, attributes: { days_offline: 52, inventory: { rank: 'Ouro', lol_rank: 'Ouro II', level: 76, skins_count: 33 } } },
+  { id: 'demo-lol-02', game: 'lol', generated_title: 'League of Legends · Esmeralda · nível 184', price_brl_cents: 18990, attributes: { days_offline: 101, inventory: { rank: 'Esmeralda', lol_rank: 'Esmeralda III', level: 184, skins_count: 68 } } },
   { id: 'demo-roblox-01', game: 'roblox', generated_title: 'Roblox · nível 82 · 16 itens', price_brl_cents: 6990, attributes: { days_offline: 35, inventory: { level: 82, items_count: 16, robux_balance: 800 } } },
   { id: 'demo-roblox-02', game: 'roblox', generated_title: 'Roblox · nível 146 · 32 itens', price_brl_cents: 12990, attributes: { days_offline: 75, inventory: { level: 146, items_count: 32, robux_balance: 2100 } } },
-  { id: 'demo-steam-01', game: 'steam', generated_title: 'Steam · biblioteca com 38 jogos', price_brl_cents: 7990, attributes: { days_offline: 40, inventory: { level: 21, games_count: 38, vac_banned: false } } },
-  { id: 'demo-steam-02', game: 'steam', generated_title: 'Steam · biblioteca com 112 jogos', price_brl_cents: 18990, attributes: { days_offline: 100, inventory: { level: 54, games_count: 112, vac_banned: false } } },
+  { id: 'demo-steam-01', game: 'steam', generated_title: 'Steam · biblioteca com 38 jogos', price_brl_cents: 7990, attributes: { days_offline: 40, inventory: { level: 21, games_count: 38, game_names: ['Portal 2', 'Hades', 'Stardew Valley'], vac_banned: false } } },
+  { id: 'demo-steam-02', game: 'steam', generated_title: 'Steam · biblioteca com 112 jogos', price_brl_cents: 18990, attributes: { days_offline: 100, inventory: { level: 54, games_count: 112, game_names: ['Cyberpunk 2077', 'Elden Ring', 'Portal 2'], vac_banned: false } } },
 ];
 const DEMO_PAGE_SIZE = 6;
 
 export function Storefront() {
   const [game, setGame] = useState('');
-  const [filters, setFilters] = useState<Filters>({ minPrice: '', maxPrice: '', minDaysOffline: '' });
-  const [appliedFilters, setAppliedFilters] = useState<Filters>({ minPrice: '', maxPrice: '', minDaysOffline: '' });
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<Catalog | null>({ items: DEMO_PRODUCTS, page: 1, pageSize: DEMO_PAGE_SIZE, total: DEMO_PRODUCTS.length, demoOnly: true, message: 'Itens e preços fictícios para demonstrar a navegação. Não são anúncios reais e não podem ser comprados.' });
   const [loading, setLoading] = useState(true);
@@ -74,34 +77,77 @@ export function Storefront() {
   const filteredDemoProducts = DEMO_PRODUCTS.filter((product) => {
     if (!result?.demoOnly) return false;
     const offlineDays = Number(product.attributes.days_offline ?? 0);
+    const inventory = product.attributes.inventory as Record<string, unknown> | undefined;
+    const skinNames = Array.isArray(inventory?.skin_names) ? inventory.skin_names.map(String) : [];
+    const steamGames = Array.isArray(inventory?.game_names) ? inventory.game_names.map(String) : [];
+    const rank = typeof inventory?.lol_rank === 'string' ? inventory.lol_rank : typeof inventory?.rank === 'string' ? inventory.rank : '';
+    const level = Number(inventory?.level ?? 0);
     return (!game || product.game === game)
       && (!appliedFilters.minPrice || product.price_brl_cents >= Number(appliedFilters.minPrice) * 100)
       && (!appliedFilters.maxPrice || product.price_brl_cents <= Number(appliedFilters.maxPrice) * 100)
-      && (!appliedFilters.minDaysOffline || offlineDays >= Number(appliedFilters.minDaysOffline));
+      && (!appliedFilters.minDaysOffline || offlineDays >= Number(appliedFilters.minDaysOffline))
+      && (!appliedFilters.skinName || game !== 'fortnite' || skinNames.some((name) => name.toLocaleLowerCase('pt-BR').includes(appliedFilters.skinName.toLocaleLowerCase('pt-BR'))))
+      && (!appliedFilters.steamGame || game !== 'steam' || steamGames.some((name) => name.toLocaleLowerCase('pt-BR').includes(appliedFilters.steamGame.toLocaleLowerCase('pt-BR'))))
+      && (!appliedFilters.rank || !['valorant', 'lol'].includes(game) || rank.toLocaleLowerCase('pt-BR').includes(appliedFilters.rank.toLocaleLowerCase('pt-BR')))
+      && (!appliedFilters.minLevel || !['valorant', 'lol'].includes(game) || level >= Number(appliedFilters.minLevel));
   });
   const visibleProducts = result?.demoOnly ? filteredDemoProducts.slice((page - 1) * DEMO_PAGE_SIZE, page * DEMO_PAGE_SIZE) : result?.items ?? [];
   const pages = result?.demoOnly ? Math.max(1, Math.ceil(filteredDemoProducts.length / DEMO_PAGE_SIZE)) : Math.max(1, Math.ceil((result?.total ?? 0) / (result?.pageSize ?? 24)));
   return <section className="catalog-section shell" id="catalogo" aria-labelledby="catalog-title"><div className="section-heading"><div><p className="eyebrow">{result?.demoOnly ? 'PRÉVIA VISUAL · ITENS FICTÍCIOS' : 'INVENTÁRIO DISPONÍVEL'}</p><h2 id="catalog-title">{result?.demoOnly ? 'Veja como a vitrine funciona.' : 'Escolha pelo que importa.'}</h2></div><p className="section-aside">{result?.demoOnly ? `${filteredDemoProducts.length} exemplos · sem venda` : result ? `${result.total} contas listadas` : 'Preços em reais'}</p></div>
     {result?.demoOnly && <div className="demo-catalog-notice" role="note"><strong>Catálogo de demonstração</strong><span>Todos os itens, atributos e valores são fictícios. Não há anúncios reais nem opção de compra nesta prévia.</span></div>}
-    <div className="filter-row" role="group" aria-label="Filtrar catálogo por jogo">{games.map((item) => <button type="button" key={item.id || 'all'} className={`filter-chip ${game === item.id ? 'is-selected' : ''}`} aria-pressed={game === item.id} onClick={() => { setGame(item.id); setPage(1); }}>{item.label}</button>)}</div>
+    <div className="filter-row" role="group" aria-label="Filtrar catálogo por jogo">{games.map((item) => <button type="button" key={item.id || 'all'} className={`filter-chip ${game === item.id ? 'is-selected' : ''}`} aria-pressed={game === item.id} onClick={() => { setGame(item.id); setPage(1); setFilters((value) => ({ ...value, skinName: '', steamGame: '', rank: '', minLevel: '' })); setAppliedFilters((value) => ({ ...value, skinName: '', steamGame: '', rank: '', minLevel: '' })); }}>{item.label}</button>)}</div>
     <form className="catalog-filters" onSubmit={(event) => { event.preventDefault(); setPage(1); setAppliedFilters(filters); }}>
       <div className="filter-field"><label htmlFor="min-price">Preço mínimo</label><input id="min-price" type="number" min="0" step="0.01" inputMode="decimal" placeholder="R$ 0,00" value={filters.minPrice} onChange={(event) => setFilters((value) => ({ ...value, minPrice: event.target.value }))} /></div>
       <div className="filter-field"><label htmlFor="max-price">Preço máximo</label><input id="max-price" type="number" min="0" step="0.01" inputMode="decimal" placeholder="Sem limite" value={filters.maxPrice} onChange={(event) => setFilters((value) => ({ ...value, maxPrice: event.target.value }))} /></div>
       <div className="filter-field"><label htmlFor="offline-days">Inatividade</label><select id="offline-days" value={filters.minDaysOffline} onChange={(event) => setFilters((value) => ({ ...value, minDaysOffline: event.target.value }))}><option value="">Qualquer período</option><option value="30">30 dias ou mais</option><option value="60">60 dias ou mais</option><option value="90">90 dias ou mais</option></select></div>
+      {result?.demoOnly && <div className="demo-specific-filters" aria-label="Filtros específicos da demonstração">
+        {game === 'fortnite' && <div className="filter-field"><label htmlFor="skin-name">Personagem ou skin fictícia</label><input id="skin-name" type="search" placeholder="Ex.: Travis Scott" value={filters.skinName} onChange={(event) => setFilters((value) => ({ ...value, skinName: event.target.value }))} /></div>}
+        {game === 'steam' && <div className="filter-field"><label htmlFor="steam-game">Jogo fictício na biblioteca</label><input id="steam-game" type="search" placeholder="Ex.: Portal 2" value={filters.steamGame} onChange={(event) => setFilters((value) => ({ ...value, steamGame: event.target.value }))} /></div>}
+        {(game === 'valorant' || game === 'lol') && <>
+          <div className="filter-field"><label htmlFor="account-rank">Rank fictício</label><select id="account-rank" value={filters.rank} onChange={(event) => setFilters((value) => ({ ...value, rank: event.target.value }))}><option value="">Qualquer rank</option>{(game === 'lol' ? ['Ouro', 'Esmeralda'] : ['Platina', 'Diamante']).map((rank) => <option key={rank} value={rank}>{rank}</option>)}</select></div>
+          <div className="filter-field"><label htmlFor="account-level">Nível mínimo fictício</label><input id="account-level" type="number" min="1" inputMode="numeric" placeholder="Qualquer nível" value={filters.minLevel} onChange={(event) => setFilters((value) => ({ ...value, minLevel: event.target.value }))} /></div>
+        </>}
+      </div>}
       <button className="button-outline" type="submit">Aplicar filtros</button>
     </form>
     {error && <div className="state-panel error-state" role="alert"><div><h3>{result?.demoOnly ? 'A prévia segue disponível' : 'Catálogo temporariamente indisponível'}</h3><p>{error}</p></div><button className="button-outline" type="button" onClick={() => void load()}>Tentar novamente</button></div>}
     {loading && !result?.demoOnly && <div className="product-grid" aria-label="Carregando catálogo" aria-busy="true">{Array.from({ length: 6 }, (_, i) => <div className="product-skeleton" key={i}><span /><span /><span /></div>)}</div>}
-    {!loading && !visibleProducts.length && <div className="state-panel empty-state"><div><h3>Nenhum item corresponde aos filtros</h3><p>Amplie a faixa de preço, reduza a inatividade ou escolha outra categoria.</p></div><button className="button-outline" type="button" onClick={() => { setGame(''); setFilters({ minPrice: '', maxPrice: '', minDaysOffline: '' }); setAppliedFilters({ minPrice: '', maxPrice: '', minDaysOffline: '' }); setPage(1); }}>Limpar filtros</button></div>}
-    {(!loading || result?.demoOnly) && !!visibleProducts.length && <><div className="product-grid">{visibleProducts.map((product, index) => <article className="product-card" key={product.id}><div className="product-badge">{result?.demoOnly ? 'Exemplo fictício' : 'Full Acesso'}</div><div className="card-topline"><span>{product.game === 'valorant' ? 'Valorant' : product.game[0].toUpperCase() + product.game.slice(1)}</span><span className="card-sequence">{String((page - 1) * (result?.pageSize ?? 24) + index + 1).padStart(2, '0')}</span></div><ProductArt product={product} robloxAvatars={robloxAvatars} demo={Boolean(result?.demoOnly)} /><h3>{product.generated_title}</h3><ProductHighlights attributes={product.attributes} feedbackTotal={product.seller_feedback_total} positivePercentage={product.seller_feedback_positive_percentage} /><div className="product-bottom"><span className="demo-price"><strong>{money(Number(product.price_brl_cents))}</strong>{result?.demoOnly && <small>valor ilustrativo</small>}</span>{result?.demoOnly ? <span className="demo-no-sale">Sem compra</span> : <a className="text-link" href={`/produto/${product.id}`}>Ver detalhes <span aria-hidden="true">→</span></a>}</div></article>)}</div><nav className="pagination" aria-label="Paginação do catálogo"><button className="button-outline" type="button" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Anterior</button><span>Página {page} de {pages}</span><button className="button-outline" type="button" disabled={page >= pages} onClick={() => setPage((value) => Math.min(pages, value + 1))}>Próxima</button></nav></>}
+    {!loading && !visibleProducts.length && <div className="state-panel empty-state"><div><h3>Nenhum item corresponde aos filtros</h3><p>Amplie a faixa de preço, reduza a inatividade ou escolha outra categoria.</p></div><button className="button-outline" type="button" onClick={() => { setGame(''); setFilters(EMPTY_FILTERS); setAppliedFilters(EMPTY_FILTERS); setPage(1); }}>Limpar filtros</button></div>}
+    {(!loading || result?.demoOnly) && !!visibleProducts.length && <><div className="product-grid">{visibleProducts.map((product, index) => <article className="product-card" key={product.id}><div className="product-badge">{result?.demoOnly ? 'Exemplo fictício' : 'Full Acesso'}</div><div className="card-topline"><span>{gameLabel(product.game)}</span><span className="card-sequence">{String((page - 1) * (result?.pageSize ?? 24) + index + 1).padStart(2, '0')}</span></div><ProductArt product={product} robloxAvatars={robloxAvatars} demo={Boolean(result?.demoOnly)} /><h3>{product.generated_title}</h3><ProductHighlights attributes={product.attributes} feedbackTotal={product.seller_feedback_total} positivePercentage={product.seller_feedback_positive_percentage} />{result?.demoOnly && <ProductInventoryPreview game={product.game} attributes={product.attributes} />}<div className="product-bottom"><span className="demo-price"><strong>{money(Number(product.price_brl_cents))}</strong>{result?.demoOnly && <small>valor ilustrativo</small>}</span>{result?.demoOnly ? <span className="demo-no-sale">Sem compra</span> : <a className="text-link" href={`/produto/${product.id}`}>Ver detalhes <span aria-hidden="true">→</span></a>}</div></article>)}</div><nav className="pagination" aria-label="Paginação do catálogo"><button className="button-outline" type="button" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Anterior</button><span>Página {page} de {pages}</span><button className="button-outline" type="button" disabled={page >= pages} onClick={() => setPage((value) => Math.min(pages, value + 1))}>Próxima</button></nav></>}
   </section>;
+}
+
+function gameLabel(game: string): string {
+  if (game === 'lol') return 'League of Legends';
+  return game === 'valorant' ? 'Valorant' : game[0].toUpperCase() + game.slice(1);
+}
+
+function ProductInventoryPreview({ game, attributes }: { game: string; attributes: Record<string, unknown> }) {
+  const inventory = attributes.inventory as Record<string, unknown> | undefined;
+  if (!inventory) return null;
+  const groups = game === 'fortnite'
+    ? [
+        ['Personagens e skins', inventory.skin_names],
+        ['Picaretas', inventory.pickaxe_names],
+        ['Emotes', inventory.emote_names],
+        ['Asas-delta', inventory.glider_names],
+      ] as const
+    : game === 'steam' ? [['Jogos na biblioteca', inventory.game_names]] as const : [];
+  if (!groups.length) return null;
+  return <details className="demo-inventory">
+    <summary>Ver inventário fictício</summary>
+    <div className="demo-inventory-groups">{groups.map(([label, values]) => Array.isArray(values) && values.length > 0 && <section className="demo-inventory-group" key={label}>
+      <h4>{label}</h4>
+      <ul>{values.map((value) => <li key={String(value)}>{String(value)}</li>)}</ul>
+    </section>)}</div>
+  </details>;
 }
 
 function ProductArt({ product, robloxAvatars, demo }: { product: Product; robloxAvatars: RobloxAvatars; demo: boolean }) {
   const inventory = product.attributes.inventory as Record<string, unknown> | undefined;
   const id = inventory?.roblox_id === undefined ? '' : String(inventory.roblox_id);
   const avatar = product.game === 'roblox' && /^\d{1,20}$/.test(id) ? robloxAvatars[id] : undefined;
-  const mark = product.game === 'fortnite' ? 'F' : product.game === 'valorant' ? 'V' : product.game === 'roblox' ? 'R' : product.game === 'steam' ? 'S' : 'A';
+  const mark = product.game === 'fortnite' ? 'F' : product.game === 'valorant' ? 'V' : product.game === 'roblox' ? 'R' : product.game === 'steam' ? 'S' : product.game === 'lol' ? 'L' : 'A';
   return <div className={`product-art art-${product.game}`} aria-label={product.game === 'roblox' ? 'Avatar Roblox' : `Categoria ${product.game}`}>
     {avatar ? <img className="roblox-card-avatar" src={avatar} alt={`Avatar Roblox de ${String(inventory?.username ?? 'usuário')}`} loading="lazy" /> : product.game === 'fortnite' && !demo ? <FortniteCardPreview productId={product.id} title={product.generated_title} fallback={mark} /> : <span className="game-art-mark" aria-hidden="true">{mark}</span>}
     <span className="game-art-caption">{demo ? 'Item fictício · prévia' : product.game === 'roblox' && typeof inventory?.username === 'string' ? inventory.username : 'Conta verificada no checkout'}</span>

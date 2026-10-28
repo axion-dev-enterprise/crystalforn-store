@@ -2,7 +2,7 @@
 
 ## Estado atual
 
-Esta revisão publica somente uma prévia da experiência visual. A página inicial fornece oito itens fictícios para permitir navegação, filtragem por jogo, ordenação visual por faixa de preço e paginação. Os nomes, inventários, vendedores e valores são dados de apresentação e não representam produtos existentes.
+Esta revisão publica somente uma prévia da experiência visual. A página inicial fornece dez itens fictícios para permitir navegação, filtragem por jogo, preço, inatividade, skins/personagens Fortnite, jogos na biblioteca Steam e rank/nível de Valorant e LoL, além de paginação. A prévia de inventário é textual e também usa dados fictícios. Os nomes, inventários, vendedores e valores de apresentação não representam produtos existentes.
 
 O backend devolve `demoOnly: true` e uma lista comercial vazia. O frontend usa os exemplos locais identificados como fictícios. Portanto, os cards não abrem uma página de produto e não têm ação de compra.
 

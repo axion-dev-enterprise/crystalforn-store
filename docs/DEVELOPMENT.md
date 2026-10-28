@@ -21,6 +21,10 @@ docker compose up --build -d postgres api web
 
 Abra `http://localhost:3000` e consulte `http://localhost:4000/api/v1/health`. O health endpoint valida conectividade ao banco; não comprova os demais fluxos.
 
+## Aparência
+
+O cabeçalho permite alternar entre os temas claro e escuro. A preferência fica salva no `localStorage` do navegador sob `crystalforn-theme`; o padrão é o tema claro. Essa preferência é local ao navegador e não requer conta ou serviço remoto.
+
 ## Processos separados
 
 Com PostgreSQL acessível em `DATABASE_URL` e as variáveis necessárias definidas no processo:
