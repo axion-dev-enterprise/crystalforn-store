@@ -16,6 +16,7 @@ export class AdminCatalogQueryDto {
   @IsOptional() @IsIn(['available','invalid','banned','sold','hidden']) status?: string;
   @IsOptional() @IsIn(['all','visible','hidden']) visibility: 'all' | 'visible' | 'hidden' = 'all';
   @IsOptional() @IsIn(['all','needs_review']) quality: 'all' | 'needs_review' = 'all';
+  @IsOptional() @IsIn(['all','stale','fresh']) freshness: 'all' | 'stale' | 'fresh' = 'all';
   @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @Max(90071992547409.91) minPrice?: number;
   @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @Max(90071992547409.91) maxPrice?: number;
 }

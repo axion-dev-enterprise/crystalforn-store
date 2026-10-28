@@ -47,8 +47,8 @@ As rotas `/admin/*` exigem sessão e papel administrativo. As rotas `/internal/c
 
 | Método | Rota | Observação |
 | --- | --- | --- |
-| `GET` | `/admin/dashboard` | Resumo de pedidos, estado da última sincronização e contagens do inventário |
-| `GET` | `/admin/catalog?page=&pageSize=&search=&game=&sellerId=&status=&visibility=&quality=&minPrice=&maxPrice=` | Consulta administrativa paginada; não altera anúncios |
+| `GET` | `/admin/dashboard` | Resumo de pedidos, estado da última sincronização, idade da atualização mais recente de anúncio e contagens do inventário |
+| `GET` | `/admin/catalog?page=&pageSize=&search=&game=&sellerId=&status=&visibility=&quality=&freshness=&minPrice=&maxPrice=` | Consulta administrativa paginada; permite filtrar itens com mais de 24 h sem sincronização e não altera anúncios |
 | `GET` | `/admin/catalog/sync-runs?page=&pageSize=` | Histórico de sincronizações com duração e erros traduzidos |
 | `GET` | `/admin/catalog/price-preview?markupPercent=&couponPercent=&sampleSize=` | Simulação somente leitura, com margem de 50–59% e cupom de 1–4% |
 | `GET` | `/admin/audit?page=&pageSize=` | Histórico de alterações administrativas e valores anterior/novo |

@@ -42,7 +42,7 @@ type CatalogAdminRow = {
   item_hidden: boolean;
 };
 
-function catalogQualityFlags(product: Pick<CatalogAdminRow, 'game' | 'source_title' | 'generated_title' | 'attributes' | 'price_brl_cents'>): string[] {
+function catalogQualityFlags(product: Pick<CatalogAdminRow, 'game' | 'source_title' | 'generated_title' | 'attributes' | 'price_brl_cents' | 'synced_at'>): string[] {
   const flags: string[] = [];
   if (product.source_title && /\p{Script=Cyrillic}/u.test(product.source_title)) flags.push('source_title_cyrillic');
   const title = product.generated_title.trim().toLocaleLowerCase('pt-BR');
@@ -52,6 +52,7 @@ function catalogQualityFlags(product: Pick<CatalogAdminRow, 'game' | 'source_tit
     flags.push('missing_inventory');
   }
   if (!product.price_brl_cents || Number(product.price_brl_cents) <= 0) flags.push('price_unavailable');
+  if (Date.now() - product.synced_at.getTime() > 24 * 60 * 60 * 1000) flags.push('stale');
   return flags;
 }
 
@@ -149,17 +150,19 @@ export class AdminService {
           OR p.attributes->'inventory'='{}'::jsonb
           OR p.price_brl_cents IS NULL OR p.price_brl_cents <= 0
         ))
-        AND ($7::bigint IS NULL OR p.price_brl_cents >= $7)
-        AND ($8::bigint IS NULL OR p.price_brl_cents <= $8)`;
+        AND ($7::text='all' OR ($7='stale' AND p.synced_at < now()-interval '24 hours')
+          OR ($7='fresh' AND p.synced_at >= now()-interval '24 hours'))
+        AND ($8::bigint IS NULL OR p.price_brl_cents >= $8)
+        AND ($9::bigint IS NULL OR p.price_brl_cents <= $9)`;
     const values = [search, query.game ?? null, query.sellerId ?? null, query.status ?? null,
-      query.visibility ?? 'all', query.quality ?? 'all', minPrice, maxPrice];
+      query.visibility ?? 'all', query.quality ?? 'all', query.freshness ?? 'all', minPrice, maxPrice];
     const [rows, count] = await Promise.all([
       this.db.query<CatalogAdminRow>(
         `SELECT p.id,p.provider_item_id,p.seller_id,p.game,p.source_title,p.generated_title,p.source_currency,
           p.source_price::text,p.price_brl_cents::text,p.status,p.attributes,p.synced_at,
           (b.seller_id IS NOT NULL) AS seller_hidden,COALESCE(o.hidden,false) AS item_hidden
          ${fromWhere}
-         ORDER BY p.synced_at DESC,p.id DESC LIMIT $9 OFFSET $10`,
+         ORDER BY p.synced_at DESC,p.id DESC LIMIT $10 OFFSET $11`,
         [...values, pageSize, (page - 1) * pageSize],
       ),
       this.db.query<{ total: string }>(`SELECT count(*)::text AS total ${fromWhere}`, values),
@@ -314,8 +317,9 @@ export class AdminService {
       this.db.query<{ started_at: Date; finished_at: Date | null; pages_read: number; items_seen: number; items_upserted: number; complete: boolean; error_code: string | null }>(
         `SELECT started_at,finished_at,pages_read,items_seen,items_upserted,complete,error_code
          FROM catalog_sync_runs ORDER BY started_at DESC LIMIT 1`),
-      this.db.query<{ total: string; visible: string; hidden: string; unavailable: string; needs_review: string; waiting_sync: string }>(
+      this.db.query<{ total: string; visible: string; hidden: string; unavailable: string; needs_review: string; waiting_sync: string; last_product_synced_at: Date | null }>(
         `SELECT count(*)::text AS total,
+          max(p.synced_at) AS last_product_synced_at,
           count(*) FILTER (WHERE p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL
             AND COALESCE(o.hidden,false)=false)::text AS visible,
           count(*) FILTER (WHERE b.seller_id IS NOT NULL OR o.hidden=true OR p.status='hidden')::text AS hidden,
@@ -354,6 +358,7 @@ export class AdminService {
         unavailable: Number(inventory.rows[0]?.unavailable ?? 0),
         needsReview: Number(inventory.rows[0]?.needs_review ?? 0),
         waitingSync: Number(inventory.rows[0]?.waiting_sync ?? 0),
+        lastProductSyncedAt: inventory.rows[0]?.last_product_synced_at ?? null,
       },
     };
   }

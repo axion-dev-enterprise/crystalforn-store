@@ -251,7 +251,13 @@ export class CommerceService {
         "UPDATE supplier_fulfillments SET status='completed',error_code=NULL,completed_at=now(),updated_at=now() WHERE order_id=$1",
         [orderId]);
       await client.query(`UPDATE orders SET status='delivery_required',updated_at=now() WHERE id=$1`, [orderId]);
-      await client.query(`INSERT INTO admin_audit(actor_id,action,target_id) VALUES($1,'delivery_saved',$2)`, [adminId, orderId]);
+      await client.query(
+        `INSERT INTO admin_audit(actor_id,action,target_id,details) VALUES($1,'delivery_saved',$2,$3::jsonb)`,
+        [adminId, orderId, JSON.stringify({
+          before: { orderStatus: order.rows[0].status, fulfillmentStatus: fulfillment.rows[0]?.status ?? null },
+          after: { orderStatus: 'delivery_required', fulfillmentStatus: fulfillment.rows[0] ? 'completed' : null, credentialsStored: true },
+        })],
+      );
     });
     return { ok: true };
   }

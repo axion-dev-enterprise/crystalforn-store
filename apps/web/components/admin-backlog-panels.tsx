@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-type InventoryAvailability = { total: number; visible: number; hidden: number; unavailable: number; needsReview: number; waitingSync: number };
+type InventoryAvailability = { total: number; visible: number; hidden: number; unavailable: number; needsReview: number; waitingSync: number; lastProductSyncedAt: string | null };
 type CatalogItem = {
   id: string;
   provider_item_id: string;
@@ -37,7 +37,7 @@ type Props = { inventoryAvailability: InventoryAvailability | null; defaultMarku
 const gameName: Record<string, string> = { fortnite: 'Fortnite', valorant: 'Valorant', lol: 'League of Legends', roblox: 'Roblox', steam: 'Steam', other: 'Outro' };
 const qualityName: Record<string, string> = {
   source_title_cyrillic: 'Título original em cirílico', generic_title: 'Título genérico',
-  missing_inventory: 'Inventário ausente', price_unavailable: 'Preço indisponível',
+  missing_inventory: 'Inventário ausente', price_unavailable: 'Preço indisponível', stale: 'Sem atualização há mais de 24 h',
 };
 const actionName: Record<string, string> = {
   store_settings_updated: 'Configurações atualizadas', coupon_saved: 'Cupom salvo', coupon_active_changed: 'Estado do cupom alterado',
@@ -46,6 +46,17 @@ const actionName: Record<string, string> = {
 };
 const formatMoney = (cents: number | null) => cents === null ? 'Sem cotação' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100);
 const dateTime = (value: string | null) => value ? new Date(value).toLocaleString('pt-BR') : 'Em andamento';
+function relativeAge(value: string | null): string {
+  if (!value) return 'Nenhum anúncio sincronizado';
+  const elapsed = Math.max(0, Date.now() - new Date(value).getTime());
+  if (!Number.isFinite(elapsed)) return 'Data indisponível';
+  const minutes = Math.floor(elapsed / 60_000);
+  if (minutes < 1) return 'Atualizado agora';
+  if (minutes < 60) return `Há ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Há ${hours} h`;
+  return `Há ${Math.floor(hours / 24)} dias`;
+}
 
 async function readResponse<T>(response: Response, fallback: string): Promise<T> {
   const body = await response.json().catch(() => ({}));
@@ -66,6 +77,7 @@ export function AdminBacklogPanels({ inventoryAvailability, defaultMarkupPercent
   const [maxPrice, setMaxPrice] = useState('');
   const [visibility, setVisibilityFilter] = useState('all');
   const [quality, setQuality] = useState('all');
+  const [freshness, setFreshness] = useState('all');
   const [catalogRefresh, setCatalogRefresh] = useState(0);
   const [previewItemId, setPreviewItemId] = useState('');
   const [syncRuns, setSyncRuns] = useState<SyncRun[]>([]);
@@ -86,10 +98,11 @@ export function AdminBacklogPanels({ inventoryAvailability, defaultMarkupPercent
     if (game) params.set('game', game);
     if (sellerId.trim()) params.set('sellerId', sellerId.trim());
     if (status) params.set('status', status);
+    if (freshness) params.set('freshness', freshness);
     if (minPrice) params.set('minPrice', minPrice);
     if (maxPrice) params.set('maxPrice', maxPrice);
     return params;
-  }, [catalogPage, game, maxPrice, minPrice, quality, search, sellerId, status, visibility]);
+  }, [catalogPage, freshness, game, maxPrice, minPrice, quality, search, sellerId, status, visibility]);
 
   const loadCatalog = useCallback(async (signal?: AbortSignal) => {
     setCatalogLoading(true);
@@ -168,6 +181,7 @@ export function AdminBacklogPanels({ inventoryAvailability, defaultMarkupPercent
         <div><dt>Indisponível ou sem preço</dt><dd>{inventoryAvailability.unavailable.toLocaleString('pt-BR')}</dd></div>
         <div><dt>Precisa de revisão</dt><dd>{inventoryAvailability.needsReview.toLocaleString('pt-BR')}</dd></div>
         <div><dt>Aguardando sincronização</dt><dd>{inventoryAvailability.waitingSync.toLocaleString('pt-BR')}</dd></div>
+        <div><dt>Último anúncio atualizado</dt><dd title={dateTime(inventoryAvailability.lastProductSyncedAt)}>{relativeAge(inventoryAvailability.lastProductSyncedAt)}</dd></div>
       </dl> : <p className="empty-inline" role="status">As contagens do estoque ainda estão carregando.</p>}
     </section>
 
@@ -185,6 +199,7 @@ export function AdminBacklogPanels({ inventoryAvailability, defaultMarkupPercent
         <label htmlFor="admin-catalog-status">Estado<select id="admin-catalog-status" value={status} onChange={(event) => { setStatus(event.target.value); setCatalogPage(1); }}><option value="">Todos</option><option value="available">Disponível</option><option value="invalid">Inválido</option><option value="banned">Banido</option><option value="sold">Vendido</option><option value="hidden">Oculto</option></select></label>
         <label htmlFor="admin-catalog-visibility">Visibilidade<select id="admin-catalog-visibility" value={visibility} onChange={(event) => { setVisibilityFilter(event.target.value); setCatalogPage(1); }}><option value="all">Todas</option><option value="visible">Visíveis</option><option value="hidden">Ocultos</option></select></label>
         <label htmlFor="admin-catalog-quality">Qualidade dos dados<select id="admin-catalog-quality" value={quality} onChange={(event) => { setQuality(event.target.value); setCatalogPage(1); }}><option value="all">Todos</option><option value="needs_review">Precisa de revisão</option></select></label>
+        <label htmlFor="admin-catalog-freshness">Atualização<select id="admin-catalog-freshness" value={freshness} onChange={(event) => { setFreshness(event.target.value); setCatalogPage(1); }}><option value="all">Qualquer idade</option><option value="stale">Desatualizados (mais de 24 h)</option><option value="fresh">Atualizados nas últimas 24 h</option></select></label>
         <label htmlFor="admin-catalog-min-price">Preço mínimo (R$)<input id="admin-catalog-min-price" type="number" min="0" step="0.01" value={minPrice} onChange={(event) => { setMinPrice(event.target.value); setCatalogPage(1); }} /></label>
         <label htmlFor="admin-catalog-max-price">Preço máximo (R$)<input id="admin-catalog-max-price" type="number" min="0" step="0.01" value={maxPrice} onChange={(event) => { setMaxPrice(event.target.value); setCatalogPage(1); }} /></label>
       </div>
@@ -204,7 +219,7 @@ export function AdminBacklogPanels({ inventoryAvailability, defaultMarkupPercent
           {previewItemId === item.id && <article className="admin-listing-preview" id={`listing-preview-${item.id}`} aria-label={`Prévia pública de ${item.generated_title}`}><p className="eyebrow">PRÉVIA DA VITRINE PÚBLICA</p><p>{gameName[item.game] ?? item.game}</p><h4>{item.generated_title}</h4><strong>{formatMoney(item.price_brl_cents ? Number(item.price_brl_cents) : null)}</strong><p className="fine-print">O anúncio público exibe os atributos disponíveis no catálogo. Credenciais de acesso não são incluídas nesta prévia.</p></article>}
         </li>)}</ul>
         <div className="pagination" aria-label="Paginação do catálogo administrativo"><button className="button-outline" type="button" onClick={() => setCatalogPage((page) => Math.max(1, page - 1))} disabled={catalogPage <= 1 || catalogLoading}>Anterior</button><span>Página {catalog.page} de {catalog.totalPages}</span><button className="button-outline" type="button" onClick={() => setCatalogPage((page) => Math.min(catalog.totalPages, page + 1))} disabled={catalogLoading || catalogPage >= catalog.totalPages}>Próxima</button></div>
-      </> : <div className="empty-inline"><p>{catalog?.total ? 'Nenhum anúncio nesta página.' : 'Nenhum anúncio corresponde aos filtros.'}</p>{(search || game || sellerId || status || minPrice || maxPrice || visibility !== 'all' || quality !== 'all') && <button className="text-link-button" type="button" onClick={() => { setSearch(''); setGame(''); setSellerId(''); setStatus(''); setMinPrice(''); setMaxPrice(''); setVisibilityFilter('all'); setQuality('all'); setCatalogPage(1); }}>Limpar filtros</button>}</div>}
+      </> : <div className="empty-inline"><p>{catalog?.total ? 'Nenhum anúncio nesta página.' : 'Nenhum anúncio corresponde aos filtros.'}</p>{(search || game || sellerId || status || minPrice || maxPrice || visibility !== 'all' || quality !== 'all' || freshness !== 'all') && <button className="text-link-button" type="button" onClick={() => { setSearch(''); setGame(''); setSellerId(''); setStatus(''); setMinPrice(''); setMaxPrice(''); setVisibilityFilter('all'); setQuality('all'); setFreshness('all'); setCatalogPage(1); }}>Limpar filtros</button>}</div>}
     </section>
 
     <section className="admin-card admin-price-preview" id="simulador-precos-admin" aria-labelledby="price-preview-heading">
