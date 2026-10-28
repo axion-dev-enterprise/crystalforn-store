@@ -1,10 +1,38 @@
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsBoolean, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, Matches } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, Matches } from 'class-validator';
 
 export class AdminOrdersQueryDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100000) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(50) pageSize = 20;
   @IsOptional() @IsString() @MaxLength(120) search?: string;
+}
+
+export class AdminCatalogQueryDto {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100000) page = 1;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(50) pageSize = 20;
+  @IsOptional() @IsString() @MaxLength(120) search?: string;
+  @IsOptional() @IsIn(['fortnite','valorant','lol','roblox','steam','other']) game?: string;
+  @IsOptional() @Matches(/^[0-9]{1,40}$/) sellerId?: string;
+  @IsOptional() @IsIn(['available','invalid','banned','sold','hidden']) status?: string;
+  @IsOptional() @IsIn(['all','visible','hidden']) visibility: 'all' | 'visible' | 'hidden' = 'all';
+  @IsOptional() @IsIn(['all','needs_review']) quality: 'all' | 'needs_review' = 'all';
+  @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @Max(90071992547409.91) minPrice?: number;
+  @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @Max(90071992547409.91) maxPrice?: number;
+}
+
+export class AdminPageQueryDto {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100000) page = 1;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(50) pageSize = 20;
+}
+
+export class PricingPreviewQueryDto {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(50) @Max(59) markupPercent = 55;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(4) couponPercent?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(20) sampleSize = 10;
+}
+
+export class VisibilityDto {
+  @IsBoolean() hidden!: boolean;
 }
 
 export class StoreSettingsDto {

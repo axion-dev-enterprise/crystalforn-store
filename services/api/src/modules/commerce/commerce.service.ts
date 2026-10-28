@@ -89,7 +89,8 @@ export class CommerceService {
         const productRow = await client.query<{ id: string; provider_item_id: string; game: string; generated_title: string; price_brl_cents: string | null; status: string; seller_id: string | null; source_price: string; source_currency: string }>(
           `SELECT p.id,p.provider_item_id,p.game,p.generated_title,p.price_brl_cents,p.status,p.seller_id,p.source_price,p.source_currency
            FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
-            WHERE p.id=$1 AND p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL
+           LEFT JOIN catalog_item_overrides o ON o.product_id=p.id
+            WHERE p.id=$1 AND p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL AND COALESCE(o.hidden,false)=false
               AND p.game=ANY($2::text[]) FOR UPDATE OF p`, [input.productId, [...STORE_CATALOG_GAMES]]);
         const current = productRow.rows[0];
         if (!current || current.provider_item_id !== providerItemId) throw new ConflictException('O produto mudou de disponibilidade. Atualize o catálogo.');

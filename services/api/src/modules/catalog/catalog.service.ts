@@ -121,7 +121,8 @@ export class CatalogService {
     const listed = await this.db.query<{ user_id: string }>(
       `SELECT DISTINCT p.attributes #>> '{inventory,roblox_id}' AS user_id
        FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
-       WHERE p.game='roblox' AND p.status='available' AND b.seller_id IS NULL
+       LEFT JOIN catalog_item_overrides o ON o.product_id=p.id
+       WHERE p.game='roblox' AND p.status='available' AND b.seller_id IS NULL AND COALESCE(o.hidden,false)=false
          AND p.attributes #>> '{inventory,roblox_id}' = ANY($1::text[])`, [ids]);
     const allowedIds = listed.rows.map((row) => row.user_id).filter((id) => id && /^\d{1,20}$/.test(id));
     const now = Date.now();
@@ -166,7 +167,8 @@ export class CatalogService {
     if (!['skins', 'pickaxes', 'dances', 'gliders'].includes(type)) throw new NotFoundException('Prévia de inventário não encontrada.');
     const result = await this.db.query<{ provider_item_id: string }>(
       `SELECT p.provider_item_id FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
-       WHERE p.id=$1 AND p.game='fortnite' AND p.status='available' AND b.seller_id IS NULL`, [productId]);
+       LEFT JOIN catalog_item_overrides o ON o.product_id=p.id
+       WHERE p.id=$1 AND p.game='fortnite' AND p.status='available' AND b.seller_id IS NULL AND COALESCE(o.hidden,false)=false`, [productId]);
     const itemId = result.rows[0]?.provider_item_id;
     if (!itemId || !/^\d+$/.test(itemId)) throw new NotFoundException('Prévia de inventário não encontrada.');
     const cacheKey = `${itemId}:${type}`;
@@ -228,8 +230,9 @@ export class CatalogService {
          sf.negative_count AS seller_feedback_negative_count,sf.positive_percentage AS seller_feedback_positive_percentage,
          sf.checked_at AS seller_feedback_checked_at
        FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
+       LEFT JOIN catalog_item_overrides o ON o.product_id=p.id
        LEFT JOIN seller_feedback_cache sf ON sf.seller_id=p.seller_id AND sf.checked_at IS NOT NULL
-       WHERE p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL
+       WHERE p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL AND COALESCE(o.hidden,false)=false
          AND ($1::text IS NULL OR p.game=$1)
           AND p.game=ANY($7::text[])
          AND ($4::bigint IS NULL OR p.price_brl_cents >= $4)
@@ -258,7 +261,8 @@ export class CatalogService {
         [game ?? null, pageSize, (page - 1) * pageSize, minPriceCents, maxPriceCents, minDaysOffline, [...STORE_CATALOG_GAMES], skinName, steamGame, rank, minLevel]);
     const count = await this.db.query<{ total: string }>(
       `SELECT count(*)::text AS total FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
-       WHERE p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL
+       LEFT JOIN catalog_item_overrides o ON o.product_id=p.id
+       WHERE p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL AND COALESCE(o.hidden,false)=false
          AND ($1::text IS NULL OR p.game=$1)
           AND p.game=ANY($5::text[])
          AND ($2::bigint IS NULL OR p.price_brl_cents >= $2)
@@ -289,8 +293,9 @@ export class CatalogService {
          sf.negative_count AS seller_feedback_negative_count,sf.positive_percentage AS seller_feedback_positive_percentage,
          sf.checked_at AS seller_feedback_checked_at
        FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
+       LEFT JOIN catalog_item_overrides o ON o.product_id=p.id
        LEFT JOIN seller_feedback_cache sf ON sf.seller_id=p.seller_id AND sf.checked_at IS NOT NULL
-        WHERE p.id=$1 AND p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL
+        WHERE p.id=$1 AND p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL AND COALESCE(o.hidden,false)=false
           AND p.game=ANY($2::text[])`, [id, [...STORE_CATALOG_GAMES]]);
     return result.rows[0] ?? null;
   }

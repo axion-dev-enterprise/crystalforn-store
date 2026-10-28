@@ -43,6 +43,20 @@ As rotas a seguir exigem sessão de cliente válida e usam respostas privadas se
 
 As rotas `/admin/*` exigem sessão e papel administrativo. As rotas `/internal/catalog/*` são exclusivas de serviço: exigem `SYNC_WORKER_SECRET` via Bearer, e a importação exige o modo de sincronização publicado. O middleware de origem do navegador as exclui usando o caminho original com prefixo `/api/v1`; mantenha-as em rede privada entre Compose services e não as exponha a usuários finais. Webhooks de pagamento exigem assinatura/segredo do provedor, além do gate comercial.
 
+### Operação do catálogo no painel
+
+| Método | Rota | Observação |
+| --- | --- | --- |
+| `GET` | `/admin/dashboard` | Resumo de pedidos, estado da última sincronização e contagens do inventário |
+| `GET` | `/admin/catalog?page=&pageSize=&search=&game=&sellerId=&status=&visibility=&quality=&minPrice=&maxPrice=` | Consulta administrativa paginada; não altera anúncios |
+| `GET` | `/admin/catalog/sync-runs?page=&pageSize=` | Histórico de sincronizações com duração e erros traduzidos |
+| `GET` | `/admin/catalog/price-preview?markupPercent=&couponPercent=&sampleSize=` | Simulação somente leitura, com margem de 50–59% e cupom de 1–4% |
+| `GET` | `/admin/audit?page=&pageSize=` | Histórico de alterações administrativas e valores anterior/novo |
+| `PATCH` | `/admin/catalog/items/:id/visibility` | Define `{ "hidden": true|false }` para um anúncio |
+| `PATCH` | `/admin/catalog/sellers/:sellerId/visibility` | Define `{ "hidden": true|false }` para todos os anúncios daquele vendedor |
+
+Os controles de visibilidade também são aplicados nas consultas públicas e na última leitura de produto antes do checkout. A simulação de preço não salva alterações. A migração `011_admin_backlog_controls.sql` adiciona a tabela de exceções por anúncio e os detalhes de auditoria; o serviço da API aplica migrações versionadas no startup.
+
 ## Idempotência e erros
 
 Checkout e recargas exigem cabeçalho `Idempotency-Key` entre 16 e 128 caracteres do conjunto aceito pelo DTO. O catálogo pode estar ativo em modo somente leitura enquanto compras, recargas e entrega permanecem desligadas. Erros de regra são respostas HTTP do NestJS; integrações desligadas retornam indisponibilidade explícita. Não interprete uma rota presente como autorização para cobrança.

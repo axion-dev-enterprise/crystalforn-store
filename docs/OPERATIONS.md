@@ -46,6 +46,12 @@ O serviço API aplica migrações no início. Antes de atualizar uma instalaçã
 
 `GET /api/v1/health` verifica uma consulta simples ao banco. Combine essa verificação com logs, disponibilidade HTTP da página e inspeção das rotas específicas necessárias; health `200` não valida autenticação, catálogo, pagamentos ou workers.
 
+## Painel administrativo
+
+O painel exibe contagens do inventário local, histórico das execuções do sincronizador, busca paginada de anúncios, revisão de dados, simulador de preços e auditoria administrativa. O simulador é somente leitura. Ocultar um vendedor altera `seller_blocklist`; ocultar um anúncio individual grava uma exceção em `catalog_item_overrides`. Ambos os controles retiram anúncios das consultas públicas e da verificação final do produto antes de uma compra. A tabela de auditoria guarda o ator, a ação, o alvo e os valores anteriores/novos quando disponíveis. A migração `011_admin_backlog_controls.sql` é aditiva e aplicada pelo inicializador de migrações.
+
+Essas ações não habilitam checkout, pagamento ou entrega. Revise cada alteração pela seção Auditoria do painel; restaurar a visibilidade exige usar o controle correspondente com uma sessão administrativa válida.
+
 ## Proxy reverso
 
 `infra/nginx/digital-store.conf` é um exemplo de proxy. Antes de usá-lo, configure domínio, TLS, limites de corpo, cabeçalhos encaminhados, logs com minimização de dados e firewall. Mantenha banco e API em rede privada e publique somente o proxy necessário. Não copie um arquivo de proxy para produção sem revisar hostnames e certificados.
