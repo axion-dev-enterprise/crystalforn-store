@@ -239,6 +239,9 @@ async function synchronize(): Promise<void> {
       const feedIndex = feeds.indexOf(feed);
       const cursorKey = `lzt_sync_cursor_${feed.key}`;
       const scanStartedKey = `lzt_sync_started_at_${feed.key}`;
+      const resetLztPagination = async () => {
+        await lockClient.query('DELETE FROM store_settings WHERE setting_key=ANY($1::text[])', [[cursorKey, scanStartedKey]]);
+      };
       const savedCursor = apiProvider === 'lzt-market'
         ? await lockClient.query<{ setting_value: unknown }>('SELECT setting_value FROM store_settings WHERE setting_key=$1', [cursorKey])
         : { rows: [] as { setting_value: unknown }[] };
@@ -249,11 +252,13 @@ async function synchronize(): Promise<void> {
         ? Number(savedCursorValue.slice(5)) : null;
       const structuredPage = cursorState && Number.isSafeInteger(cursorState.nextPage) ? Number(cursorState.nextPage) : null;
       let lztPage = structuredPage ?? legacyPage ?? 1;
+      let lztItemsSeen = cursorState && Number.isSafeInteger(cursorState.itemsSeen) && Number(cursorState.itemsSeen) >= 0
+        ? Number(cursorState.itemsSeen) : 0;
       const hasSavedLztPage = (structuredPage !== null && structuredPage > 0) || (legacyPage !== null && legacyPage > 0);
       let lztPageFingerprints = Array.isArray(cursorState?.pageFingerprints)
         ? cursorState.pageFingerprints.filter((value): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value)).slice(-maxPages)
         : [];
-      if (!Number.isSafeInteger(lztPage) || lztPage < 1) { lztPage = 1; lztPageFingerprints = []; }
+      if (!Number.isSafeInteger(lztPage) || lztPage < 1) { lztPage = 1; lztItemsSeen = 0; lztPageFingerprints = []; }
       const savedScanStarted = apiProvider === 'lzt-market'
         ? await lockClient.query<{ setting_value: unknown }>('SELECT setting_value FROM store_settings WHERE setting_key=$1', [scanStartedKey])
         : { rows: [] as { setting_value: unknown }[] };
@@ -268,6 +273,7 @@ async function synchronize(): Promise<void> {
         if (!hasSavedLztPage || !scanStartedAt) {
           scanStartedAt = runStartedAt;
           lztPage = 1;
+          lztItemsSeen = 0;
           lztPageFingerprints = [];
           await lockClient.query(
             'INSERT INTO store_settings(setting_key,setting_value) VALUES($1,$2::jsonb) ON CONFLICT(setting_key) DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=now()',
@@ -307,13 +313,13 @@ async function synchronize(): Promise<void> {
         }
         if (!response.ok) {
           if (apiProvider === 'lzt-market' && lztPage > 1 && response.status === 400) {
-            await lockClient.query('DELETE FROM store_settings WHERE setting_key=$1', [cursorKey]);
+            await resetLztPagination();
             errorCode = 'pagination_page_rejected';
           } else errorCode = `provider_http_${response.status}`;
           break;
         }
-        let payload: { status?: unknown; items?: unknown[]; total_items?: number; totalItems?: number; hasNextPage?: boolean; page?: number; perPage?: number };
-        try { payload = await response.json() as { status?: unknown; items?: unknown[]; total_items?: number; totalItems?: number; hasNextPage?: boolean; page?: number; perPage?: number }; }
+        let payload: { status?: unknown; items?: unknown[]; total_items?: number; totalItems?: number; hasNextPage?: unknown; page?: unknown; perPage?: unknown };
+        try { payload = await response.json() as { status?: unknown; items?: unknown[]; total_items?: number; totalItems?: number; hasNextPage?: unknown; page?: unknown; perPage?: unknown }; }
         catch { errorCode = 'invalid_json'; break; }
         if (apiProvider === 'generic' && payload.status !== undefined
           && (typeof payload.status !== 'string' || payload.status.trim().toLowerCase() !== 'success')) {
@@ -321,16 +327,29 @@ async function synchronize(): Promise<void> {
           break;
         }
         const totalItems = payload.totalItems ?? payload.total_items;
-        if (!Array.isArray(payload.items) || (totalItems !== undefined && (!Number.isFinite(totalItems) || totalItems < 0))
-          || (apiProvider === 'lzt-market' && (typeof payload.hasNextPage !== 'boolean' || payload.page !== lztPage
-            || !Number.isSafeInteger(payload.perPage) || (payload.perPage as number) < 1))) {
+        if (!Array.isArray(payload.items) || (totalItems !== undefined && (!Number.isSafeInteger(totalItems) || totalItems < 0))
+          || (apiProvider === 'lzt-market' && (
+            (payload.hasNextPage !== undefined && typeof payload.hasNextPage !== 'boolean')
+            || (payload.page !== undefined && (typeof payload.page !== 'number' || !Number.isSafeInteger(payload.page) || payload.page !== lztPage))
+            || (payload.perPage !== undefined && (typeof payload.perPage !== 'number' || !Number.isSafeInteger(payload.perPage) || payload.perPage < 1))
+            || (payload.hasNextPage === undefined && typeof totalItems !== 'number')
+          ))) {
           errorCode = 'invalid_contract';
           break;
         }
         pages += 1;
         feedPage += 1;
+        if (apiProvider === 'lzt-market') lztItemsSeen += payload.items.length;
+        if (apiProvider === 'lzt-market' && typeof totalItems === 'number' && lztItemsSeen > totalItems) {
+          await resetLztPagination();
+          errorCode = 'pagination_total_diverged';
+          break;
+        }
         if (payload.items.length === 0) {
-          if (apiProvider === 'lzt-market' && payload.hasNextPage === true) {
+          const lztHasMore = payload.hasNextPage === true
+            || (typeof totalItems === 'number' && lztItemsSeen < totalItems);
+          if (apiProvider === 'lzt-market' && lztHasMore) {
+            await resetLztPagination();
             errorCode = 'pagination_incomplete';
             break;
           }
@@ -354,6 +373,7 @@ async function synchronize(): Promise<void> {
         }
         const fingerprint = apiProvider === 'lzt-market' ? pageFingerprint(payload.items) : null;
         if (fingerprint && lztPageFingerprints.includes(fingerprint)) {
+          await resetLztPagination();
           errorCode = 'pagination_repeated_page';
           nextRunDelayMs = Math.max(intervalMs, 60_000);
           break;
@@ -361,7 +381,7 @@ async function synchronize(): Promise<void> {
         const pageIds = payload.items.map(itemId).filter((value): value is string => Boolean(value));
         const newIds = pageIds.filter((id) => !seen.has(id));
         if (feedPage > 1 && newIds.length === 0) {
-          if (apiProvider === 'lzt-market') await lockClient.query('DELETE FROM store_settings WHERE setting_key=$1', [cursorKey]);
+          if (apiProvider === 'lzt-market') await resetLztPagination();
           else await resetGenericScan();
           errorCode = 'pagination_stalled';
           break;
@@ -391,6 +411,12 @@ async function synchronize(): Promise<void> {
           'UPDATE catalog_sync_runs SET pages_read=$2,items_seen=$3,items_upserted=$4,items_discarded=$5,items_discarded_reasons=$6::jsonb WHERE id=$1',
           [runId, pages, itemsSeen, upserted, discarded, JSON.stringify(discardedReasons)]);
         if (errorCode) break;
+        if (apiProvider === 'lzt-market' && payload.hasNextPage === false
+          && typeof totalItems === 'number' && lztItemsSeen < totalItems) {
+          await resetLztPagination();
+          errorCode = 'pagination_incomplete';
+          break;
+        }
         if (apiProvider === 'lzt-market' && !stopping) await refreshOneSellerFeedback();
         genericItemsSeen += apiProvider === 'generic' ? payload.items.length : 0;
         if (apiProvider === 'generic' && payload.hasNextPage === false
@@ -399,7 +425,7 @@ async function synchronize(): Promise<void> {
           break;
         }
         const hasMore = apiProvider === 'lzt-market'
-          ? payload.hasNextPage === true
+          ? payload.hasNextPage === true || (payload.hasNextPage === undefined && typeof totalItems === 'number' && lztItemsSeen < totalItems)
           : payload.hasNextPage !== false && !(typeof totalItems === 'number' && (totalItems === 0 || genericItemsSeen >= totalItems));
         if (apiProvider === 'lzt-market') {
           if (hasMore) {
@@ -407,7 +433,7 @@ async function synchronize(): Promise<void> {
             if (fingerprint) lztPageFingerprints = [...lztPageFingerprints, fingerprint].slice(-maxPages);
             await lockClient.query(
               'INSERT INTO store_settings(setting_key,setting_value) VALUES($1,$2::jsonb) ON CONFLICT(setting_key) DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=now()',
-              [cursorKey, JSON.stringify({ nextPage: lztPage, pageFingerprints: lztPageFingerprints })]);
+              [cursorKey, JSON.stringify({ nextPage: lztPage, itemsSeen: lztItemsSeen, pageFingerprints: lztPageFingerprints })]);
           } else await lockClient.query('DELETE FROM store_settings WHERE setting_key=$1', [cursorKey]);
         } else if (hasMore) {
           genericNextPage = feedPage + 1;
