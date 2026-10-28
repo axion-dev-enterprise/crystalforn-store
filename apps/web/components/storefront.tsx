@@ -159,9 +159,11 @@ export function Storefront() {
       && (!appliedFilters.rank || !['valorant', 'lol'].includes(game) || rank.toLocaleLowerCase('pt-BR').includes(appliedFilters.rank.toLocaleLowerCase('pt-BR')))
       && (!appliedFilters.minLevel || !['valorant', 'lol'].includes(game) || level >= Number(appliedFilters.minLevel));
   });
-  const sortedDemoProducts = [...filteredDemoProducts].sort((left, right) => sort === 'price_desc'
-    ? right.price_brl_cents - left.price_brl_cents
-    : sort === 'title_asc' ? displayTitle(left).localeCompare(displayTitle(right), 'pt-BR') : left.price_brl_cents - right.price_brl_cents);
+  const sortedDemoProducts = [...filteredDemoProducts].sort((left, right) => {
+    if (sort === 'title_asc') return displayTitle(left).localeCompare(displayTitle(right), 'pt-BR');
+    const difference = Number(left.price_brl_cents) - Number(right.price_brl_cents);
+    return sort === 'price_desc' ? -difference : difference;
+  });
   const visibleProducts = result?.demoOnly ? sortedDemoProducts.slice((page - 1) * DEMO_PAGE_SIZE, page * DEMO_PAGE_SIZE) : result?.items ?? [];
   const pages = result?.demoOnly ? Math.max(1, Math.ceil(filteredDemoProducts.length / DEMO_PAGE_SIZE)) : Math.max(1, Math.ceil((result?.total ?? 0) / (result?.pageSize ?? 24)));
   const activeFilterTokens = [
