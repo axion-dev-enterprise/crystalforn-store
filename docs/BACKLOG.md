@@ -19,7 +19,27 @@ Atualizado em 28/10/2026 após nova revisão das mensagens de Mateus Alves Ferna
 - **Paginação:** o cliente observou respostas pequenas (10–30 anúncios e 120 para Steam) e reiterou a expectativa de 20–40 mil. O alvo permanece não validado; o código e limites documentados não garantem sincronização em tempo real.
 - **Próxima etapa citada:** gateway e testes de entrega depois dos ajustes. Isso não altera o modo demo vigente: qualquer operação real segue bloqueada e requer revisão/aprovação independente.
 
-**Ordem de trabalho derivada:** concluir a checagem dos filtros e títulos; fechar uma amostra visual transparente por jogo; medir paginação com benchmark sintético e documentar o que ainda depende do fornecedor; então registrar a revisão do cliente. Gateway, compra, entrega e reembolso permanecem em trilha separada, fora da demo.
+## Novo backlog — próximo ciclo de entrega
+
+Este recorte transforma as mensagens mais recentes em tarefas executáveis. A sequência abaixo vale para a demonstração atual e não autoriza consultas autenticadas ao fornecedor, venda, pagamento ou entrega real.
+
+| Ordem | Tarefa | Itens | Pronto quando |
+| --- | --- | --- | --- |
+| 1 | Fazer revisão visual responsiva do catálogo e detalhe | BL-10, BL-11 | Capturas em larguras móvel e desktop confirmam hierarquia legível, inventário organizado, navegação sem overflow e os dois temas com contraste/foco adequados; defeitos encontrados viram correções pontuais. |
+| 2 | Fechar matriz de filtros e títulos por categoria | BL-02, BL-03 | Uma tabela liga cada filtro e regra de título ao campo documentado; LoL/Valorant exibem rank apenas quando fornecido; exemplos sem dado ficam neutros; fixtures demonstrativas cobrem Fortnite, Steam, Roblox, Valorant e LoL. |
+| 3 | Preparar amostras visuais honestas de inventário | BL-04, BL-08 | Cada categoria mostra os atributos que o payload realmente sustenta; imagens ausentes têm fallback consistente; listas parciais são identificadas; gamepasses Roblox não são prometidos sem campo correspondente. |
+| 4 | Medir o importador em escala sintética | BL-05 | Benchmark controlado de 20 mil e 40 mil registros registra duração, memória, taxa de erro, retomada e limites; resultados são separados de qualquer garantia de velocidade ou quota do fornecedor. |
+| 5 | Consolidar estado operacional do painel em modo demo | BL-12, BL-13 | Revisão autenticada permitida confirma permissões, origem dos indicadores e estados de erro; sem autenticação legítima, registrar o bloqueio sem criar atalho ou sessão simulada. |
+| 6 | Registrar revisão e pendências com o cliente | BL-07 | A revisão reporta o que foi demonstrado, o que depende de dados da LZT e o que continua bloqueado; não declarar aceite formal sem confirmação explícita do cliente. |
+
+### Trilha bloqueada — sem execução neste ciclo
+
+- **API LZT em produção e catálogo real:** depende de reavaliação contratual, credencial e autorização operacional próprias; nunca usar dados reais como se fossem fixtures.
+- **Checkout, gateways, carteira, entrega automática e reembolso:** permanecem desligados pelo modo demo. Só replanejar após revisão comercial, segurança, identidade e autorização de release.
+- **Remoção “instantânea” e garantia contra venda dupla na LZT:** depende de semântica oficial de eventos/reserva e medição de concorrência; não prometer tempo real sem evidência do fornecedor.
+- **Domínio e VPS:** escolher/registrar domínio ou mudar infraestrutura exige titularidade, custo e procedimento de release definidos; não faz parte da implementação demo deste backlog.
+
+**Ordem de trabalho derivada:** executar tarefas 1–3 com fixtures e documentação pública; medir a tarefa 4 no caminho de validação aprovado; completar a tarefa 5 somente dentro de uma sessão autenticada legítima; então preparar a tarefa 6. Os itens bloqueados continuam fora da demonstração.
 
 ## Visão rápida de entrega
 
