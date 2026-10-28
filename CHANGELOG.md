@@ -9,3 +9,4 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 - Vitrine demonstrativa com dados fictícios, filtros por jogo e paginação.
 - Gates de código mantêm catálogo real, sincronização, pedidos, carteira e pagamentos desativados.
 - Inclui orientações de segurança e compatibilidade comercial para evitar confundir integração técnica com autorização de oferta.
+- Inclui checklist de release, canal responsável de relato de vulnerabilidades e aviso de licenciamento; ainda não há licença de reutilização concedida.
