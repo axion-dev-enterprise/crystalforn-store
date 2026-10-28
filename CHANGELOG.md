@@ -7,7 +7,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 - Adiciona o símbolo facetado Crystalforn ao cabeçalho e ao rodapé.
 - Registra tokens de largura, espaçamento, densidade, raios, foco e movimento e aplica os valores compartilhados ao layout, botões e filtros.
 - Mostra horas ou minutos de jogo no inventário Steam quando esse metadado existe, sem preencher dados ausentes com exemplos em anúncios reais.
-- Registra itens descartados ou duplicados por lote na sincronização e os exibe junto com páginas, importados, duração e erros no histórico administrativo.
+- Registra itens descartados por motivo agregado na sincronização e os exibe junto com páginas, importados, duração e erros no histórico administrativo.
 - Reorganiza os detalhes do produto com título curto, atributos em destaques, painel de preço equilibrado e data real de sincronização.
 - Ajusta navegação móvel, tipografia fluida, espaçamento, cards, filtros ativos e estados de consulta em tema claro/escuro.
 - Preserva filtros, ordenação e página no endereço compartilhável e ao voltar dos detalhes; adiciona ordenação por preço ou nome estável no catálogo.

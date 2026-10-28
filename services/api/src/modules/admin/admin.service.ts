@@ -193,9 +193,9 @@ export class AdminService {
     const [rows, count] = await Promise.all([
       this.db.query<{
         id: string; started_at: Date; finished_at: Date | null; pages_read: number; items_seen: number;
-        items_upserted: number; items_discarded: number; complete: boolean; error_code: string | null; duration_ms: string | null;
+        items_upserted: number; items_discarded: number; items_discarded_reasons: Record<string, number>; complete: boolean; error_code: string | null; duration_ms: string | null;
       }>(
-        `SELECT id,started_at,finished_at,pages_read,items_seen,items_upserted,items_discarded,complete,error_code,
+        `SELECT id,started_at,finished_at,pages_read,items_seen,items_upserted,items_discarded,items_discarded_reasons,complete,error_code,
           CASE WHEN finished_at IS NULL THEN NULL ELSE GREATEST(0,(extract(epoch FROM finished_at-started_at)*1000)::bigint)::text END AS duration_ms
          FROM catalog_sync_runs ${where} ORDER BY started_at DESC,id DESC LIMIT $3 OFFSET $4`,
         [...filters, pageSize, (page - 1) * pageSize],
@@ -330,8 +330,8 @@ export class AdminService {
       this.db.query<{ status: string; count: string; revenue_cents: string }>(
       `SELECT status,count(*)::text AS count,COALESCE(sum(total_cents) FILTER (WHERE status IN ('paid','delivery_required','delivered')),0)::text AS revenue_cents
        FROM orders GROUP BY status`),
-      this.db.query<{ started_at: Date; finished_at: Date | null; pages_read: number; items_seen: number; items_upserted: number; items_discarded: number; complete: boolean; error_code: string | null }>(
-        `SELECT started_at,finished_at,pages_read,items_seen,items_upserted,items_discarded,complete,error_code
+      this.db.query<{ started_at: Date; finished_at: Date | null; pages_read: number; items_seen: number; items_upserted: number; items_discarded: number; items_discarded_reasons: Record<string, number>; complete: boolean; error_code: string | null }>(
+        `SELECT started_at,finished_at,pages_read,items_seen,items_upserted,items_discarded,items_discarded_reasons,complete,error_code
          FROM catalog_sync_runs ORDER BY started_at DESC LIMIT 1`),
       this.db.query<{ total: string; visible: string; hidden: string; unavailable: string; needs_review: string; waiting_sync: string; last_product_synced_at: Date | null }>(
         `SELECT count(*)::text AS total,
@@ -364,6 +364,7 @@ export class AdminService {
         itemsSeen: latestSync.items_seen,
         itemsUpserted: latestSync.items_upserted,
         itemsDiscarded: latestSync.items_discarded,
+        itemsDiscardedReasons: latestSync.items_discarded_reasons,
         durationMs: latestSync.finished_at ? Math.max(0, latestSync.finished_at.getTime() - latestSync.started_at.getTime()) : null,
         lastSuccessAt: latestSuccess.rows[0]?.finished_at ?? null,
         errorMessage: syncErrorText(latestSync.error_code),

@@ -330,10 +330,18 @@ export class CatalogService {
       provider_updated_at: null;
     }>();
     const sellerIds = new Set<string>();
+    const discardedReasons: Record<string, number> = {};
+    const discard = (reason: string) => { discardedReasons[reason] = (discardedReasons[reason] ?? 0) + 1; };
     for (const value of items) {
-      if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
-      const product = normalizeProduct(value as Record<string, unknown>);
-      if (!product || !storeGameSet.has(product.game)) continue;
+      if (!value || typeof value !== 'object' || Array.isArray(value)) { discard('invalid_shape'); continue; }
+      const source = value as Record<string, unknown>;
+      const sourceId = String(source.item_id ?? '').trim();
+      if (!sourceId || sourceId.length > 100) { discard('invalid_identifier'); continue; }
+      if (source.item_origin !== undefined && source.item_origin !== 'personal') { discard('ineligible_origin'); continue; }
+      const product = normalizeProduct(source);
+      if (!product) { discard('invalid_or_incomplete_data'); continue; }
+      if (!storeGameSet.has(product.game)) { discard('unsupported_game'); continue; }
+      if (rowsByItemId.has(product.itemId)) discard('duplicate_item_id');
       if (product.sellerId && /^\d{1,40}$/.test(product.sellerId)) sellerIds.add(product.sellerId);
       const rate = rates[product.currency];
       let priceCents = rate === null ? null : Math.round(product.sourcePrice * rate * (1 + markup / 100) * 100);
@@ -383,7 +391,8 @@ export class CatalogService {
          WHERE seller_id ~ '^[0-9]{1,40}$' ON CONFLICT(seller_id) DO NOTHING`,
         [[...sellerIds]]);
     }
-    return { imported: rows.length, discarded: Math.max(0, items.length - rows.length) };
+    const discarded = Object.values(discardedReasons).reduce((total, count) => total + count, 0);
+    return { imported: rows.length, discarded, discardedReasons };
   }
 
   async revalidateProviderItem(itemId: string, expectedGame?: string): Promise<Record<string, unknown> | null> {
