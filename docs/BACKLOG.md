@@ -5,6 +5,8 @@ Atualizado em 28/10/2026 após nova leitura da conversa de Mateus Alves Fernande
 ## Estado e limites atuais
 
 - A loja permanece em **demonstração somente**, sem catálogo real, cobrança, compra, entrega automática ou integração ativa com gateway. Ver [DEMO_MODE.md](DEMO_MODE.md) e [COMPATIBILIDADE_COMERCIAL.md](COMPATIBILIDADE_COMERCIAL.md).
+- A release de aplicação `f4e8e13` foi promovida à produção em 28/10/2026: API e web ficaram saudáveis, `/`, `/api/v1/health`, `/api/v1/legal/terms/status` e `/api/v1/catalog` responderam HTTP 200, com modo demo ativo, catálogo público vazio e pagamentos/sincronização desativados. A release anterior permanece preservada para rollback.
+- A inspeção renderizada da vitrine confirmou 10 exemplos fictícios em duas páginas; o detalhe Fortnite mostrou seis itens textuais em quatro grupos, sem imagens individuais. A implementação que acrescenta capas Steam aos exemplos foi criada depois dessa release e ainda aguarda build/deploy; as URLs testadas são somente arte pública de jogos e não validam inventário real.
 - A API pode exibir resultados de integração em ambiente de desenvolvimento, mas isso não comprova capacidade de importar dezenas de milhares de anúncios, consistência de inventário ou prontidão para produção.
 - Toda tarefa que consulte dados reais da LZT, processe pagamentos, entregue credenciais ou movimente saldo depende de revisão própria de contrato, segurança e compatibilidade comercial. Os itens marcados como bloqueados não devem ser liberados por este backlog.
 - As quantidades de 20 mil a 40 mil anúncios são metas solicitadas pelo cliente, ainda sem validação de limites, cotas, custo ou garantias do fornecedor.

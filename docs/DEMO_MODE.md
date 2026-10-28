@@ -4,6 +4,8 @@
 
 Esta revisão apresenta dez exemplos fictícios no frontend, com páginas de detalhe demonstrativas disponíveis em `/produto/demo-*`. Os detalhes usam os mesmos dados locais do catálogo, não consultam o fornecedor e não oferecem compra ou entrega. A API responde `demoOnly: true`, não serve anúncios de fornecedor e o worker não faz chamadas à LZT nem importa inventário. Registros antigos de fornecedor podem permanecer no banco para retenção operacional, mas não são publicados pela API ou pela vitrine.
 
+Os exemplos Steam usam capas públicas da loja Steam para mostrar como as imagens do inventário aparecem na interface. Nomes, valores e bibliotecas continuam fictícios; as capas são ilustrativas e não comprovam titularidade ou conteúdo de qualquer conta real. Se a imagem externa não carregar, o cartão mantém o fallback textual acessível.
+
 O backend informa `catalogMode: demo`. A página de detalhes e a vitrine deixam claro que os itens são fictícios. Compra, cobrança Pix, saldo da carteira e entrega automática permanecem desativados.
 
 ## Travas efetivas
