@@ -8,7 +8,7 @@ Atualizado em 28/10/2026 após nova leitura das mensagens de Mateus Alves Fernan
 - O cliente pediu acesso de administrador/colaborador à Hostinger e relatou instabilidade no SSH, dizendo que irá verificar. A concessão de acesso não foi realizada; o estado do SSH aguarda confirmação do cliente.
 - A release atualmente verificada é `085baa6`. API, web e PostgreSQL estavam saudáveis; catálogo em modo demo retornava zero anúncios comerciais, autenticação central sem configuração falhava com `503` seguro e `/api/v1/auth/me` sem sessão retornava `401`. O worker continua desligado.
 - A abertura e os metadados da página inicial identificam a vitrine como prévia e informam que os anúncios são fictícios e não podem ser comprados. O Build `40794964577` passou para a cópia da home; a validação da atualização de metadados aguarda CI e a inspeção visual em produção depende da publicação.
-- O título do detalhe de produto agora usa escala fluida em celulares e quebra balanceada; falta CI e validação visual da versão publicada.
+- O título do detalhe de produto agora usa escala fluida em celulares e quebra balanceada. Build `40795662357` passou para o ajuste; falta validar a versão publicada em viewport móvel.
 - Permanecem sem autorização/validação: estoque real LZT, sincronização ativa, pagamentos, carteira, compra, entrega de credenciais e reembolsos reais.
 
 ## Limites de produto
