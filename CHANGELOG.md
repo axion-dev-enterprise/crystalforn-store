@@ -4,6 +4,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
+- Consolida o backlog executivo em itens priorizados com estado factual, critérios de conclusão, dependências e gates atuais; mantém a loja em modo demonstração e a sincronização LZT desligada.
 - Registra no backlog que os fluxos de cadastro e troca de código do Auth Center existem no código, mas dependem de segredo compartilhado ausente do Vault e de validação de runtime; mantém autenticação fechada sem bypass.
 - Atualiza o worker LZT para paginar com `nextCursor`/`after`, detectar cursores ausentes ou repetidos, preservar fallback legado e versionar o checkpoint; sincronização permanece desligada no modo demo.
 - Atualiza o backlog com a paginação pública da LZT: cursor `after`, resposta `nextCursor` e limite de 20 buscas de categoria por minuto; runtime continua sem validação e a sincronização desligada.
