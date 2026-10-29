@@ -5,7 +5,8 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 ## Não lançado
 
 - Atualiza o backlog após a última leitura da Workana: Mateus aguarda o e-mail correto da conta Hostinger para convite de colaborador; convite e resposta continuam pendentes, sem inferir identidade por e-mails de outras plataformas.
-- Atualiza o backlog após nova leitura das mensagens do cliente, registra a release verificada `085baa6` e separa pendências de produto, Auth Center, escala, Hostinger/SSH e decisão comercial.
+- Atualiza o backlog após releitura integral da conversa: inclui limites de paginação relatados, imagens Fortnite ausentes, pedido de gamepasses/inventários Roblox, filtros essenciais, preferência por amostras úteis sem copiar o fórum inteiro e dependência de convite Hostinger.
+- Registra a publicação verificada da release `361a117` na Hostinger: health e catálogo demo HTTP 200, zero anúncios reais, pagamentos/sincronização desativados, worker parado e PostgreSQL saudável.
 - Identifica a página inicial como prévia demonstrativa já no título e no texto de abertura, antes de apresentar os exemplos fictícios.
 - Atualiza o título e a descrição da página para identificar a prévia como fictícia também na aba do navegador e em metadados.
 - Ajusta o título longo do detalhe com tipografia fluida em telas estreitas e quebra balanceada para reduzir altura e prevenir overflow.
