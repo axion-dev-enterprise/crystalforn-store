@@ -4,6 +4,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
+- Registra a auditoria estática da interface e a verificação atual da produção: health `200`, catálogo em demo com zero anúncios reais e CI aprovado para o backlog consolidado; esclarece quais filtros/inventários já existem nas fixtures e quais dependem de payload real ou inspeção visual.
 - Consolida o backlog executivo em itens priorizados com estado factual, critérios de conclusão, dependências e gates atuais; mantém a loja em modo demonstração e a sincronização LZT desligada.
 - Registra no backlog que os fluxos de cadastro e troca de código do Auth Center existem no código, mas dependem de segredo compartilhado ausente do Vault e de validação de runtime; mantém autenticação fechada sem bypass.
 - Atualiza o worker LZT para paginar com `nextCursor`/`after`, detectar cursores ausentes ou repetidos, preservar fallback legado e versionar o checkpoint; sincronização permanece desligada no modo demo.
