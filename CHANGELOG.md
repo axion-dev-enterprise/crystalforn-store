@@ -4,6 +4,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
+- Atualiza o backlog após a última leitura da Workana: Mateus aguarda o e-mail correto da conta Hostinger para convite de colaborador; convite e resposta continuam pendentes, sem inferir identidade por e-mails de outras plataformas.
 - Atualiza o backlog após nova leitura das mensagens do cliente, registra a release verificada `085baa6` e separa pendências de produto, Auth Center, escala, Hostinger/SSH e decisão comercial.
 - Identifica a página inicial como prévia demonstrativa já no título e no texto de abertura, antes de apresentar os exemplos fictícios.
 - Atualiza o título e a descrição da página para identificar a prévia como fictícia também na aba do navegador e em metadados.

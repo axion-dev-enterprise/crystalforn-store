@@ -470,13 +470,18 @@ Leitura direta da conversa com Mateus Alves Fernandes na guia Workana aberta no 
 
 ### Nova dependência operacional: acesso à Hostinger e SSH
 
-Mateus pediu para ser adicionado como administrador/colaborador na Hostinger e informou que o SSH está instável, dizendo que fará uma verificação. Registrar como dependência operacional, separada dos requisitos funcionais:
+Mateus pediu para ser adicionado como administrador/colaborador na Hostinger, informou que o SSH está instável e perguntou qual e-mail deve receber o convite. Registrar como dependência operacional, separada dos requisitos funcionais:
 
-- **Estado:** convite não concedido nesta atualização; instabilidade reportada pelo cliente, ainda sem diagnóstico confirmado.
+- **Estado:** o cliente aguarda o e-mail da conta Hostinger; esse identificador não foi confirmado neste backlog e nenhum convite foi enviado. Instabilidade reportada pelo cliente, ainda sem diagnóstico confirmado.
+- **Próximo passo de governança:** confirmar o e-mail correto da conta Hostinger e o escopo mínimo necessário antes de qualquer convite. Não inferir que o e-mail de perfil de outra plataforma seja o endereço correto.
 - **Antes de conceder acesso:** o titular da conta deve confirmar a identidade, o motivo e o escopo. Preferir convite individual de colaborador com menor privilégio necessário, MFA, duração/revisão e trilha de auditoria.
 - **Credenciais:** não compartilhar senha root, tokens ou chave privada; nenhum segredo deve entrar neste backlog.
 - **Retomada de SSH:** aguardar confirmação de estabilidade; antes de operação remota, validar usuário, host key e alvo Hostinger autorizado. Não tocar outros servidores.
 - **Conclusão:** acesso revisado pelo titular e limitado ao escopo aprovado, ou decisão explícita de não conceder; canal SSH estável e identidade do destino verificados antes de qualquer operação autorizada.
+
+### Adendo — mensagem mais recente do cliente, 28/10/2026
+
+Na última mensagem visível da conversa, Mateus perguntou qual é o e-mail da conta Hostinger para adicioná-la como colaboradora. O pedido é uma dependência de acesso, não autorização para enviar resposta ou aceitar convite. O backlog não registra nem deve inferir um endereço de e-mail: a identidade correta da conta Hostinger permanece pendente. O cliente também havia informado que verificaria a instabilidade do SSH; não há diagnóstico novo confirmado nesta leitura.
 
 Essas mensagens não alteram o limite vigente: a loja permanece em demonstração, sem catálogo real, sincronização LZT ativa, pagamentos, saldo, entrega de credenciais ou reembolsos.
 
@@ -488,5 +493,5 @@ Essas mensagens não alteram o limite vigente: a loja permanece em demonstraçã
 4. **Especificar a paginação antes de alegar escala:** registrar limites e semântica da API, cursor/página, rate limit, checkpoint, retomada, memória, duração e reconciliação. Separar resultados sintéticos de qualquer medição autorizada no fornecedor; worker permanece inativo.
 5. **Documentar concorrência e indisponibilidade:** detalhar revalidação, timeout ambíguo, não entrega de produto indisponível e idempotência de eventual reembolso, sem ativar pedido, carteira ou fornecedor real.
 6. **Melhorar operações do painel somente dentro do demo:** priorizar origem dos dados, estado/falhas da sincronização, histórico e permissões. Nenhum controle deve abrir integração ou comércio.
-7. **Aguardar retorno do cliente sobre Hostinger/SSH:** registrar a decisão do titular sobre eventual convite de colaborador com privilégio mínimo e aguardar confirmação de estabilidade do SSH antes de operações remotas.
+7. **Resolver a dependência de Hostinger/SSH:** confirmar qual e-mail corresponde à conta Hostinger que receberia o convite, definir o escopo mínimo com o titular e aguardar confirmação de estabilidade do SSH antes de qualquer operação remota. Nenhum convite ou resposta foi enviado nesta revisão.
 8. **Manter checkout e entrega em backlog bloqueado:** gateway, saldo, credenciais e reembolsos só avançam após revisão de compatibilidade comercial e autorização explícita da mudança de escopo.

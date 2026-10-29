@@ -1,11 +1,11 @@
 # Backlog executivo atual — Crystalforn
 
-Atualizado em 28/10/2026 após nova leitura das mensagens de Mateus Alves Fernandes no Brave. Este documento organiza a próxima fase em entregas verificáveis e diferencia pedidos do cliente, evidência técnica e decisões operacionais ainda pendentes.
+Atualizado em 28/10/2026 após leitura das mensagens mais recentes de Mateus Alves Fernandes no Brave. A mensagem final desta leitura pergunta qual e-mail usar para um convite de colaborador Hostinger. Este documento organiza a próxima fase em entregas verificáveis e diferencia pedidos do cliente, evidência técnica e decisões operacionais ainda pendentes.
 
 ## Delta desta revisão
 
 - O cliente considera a integração próxima do resultado esperado, mas ainda pede filtros por jogo, inventários mais completos e visuais, títulos em pt-BR e paginação em massa. O elogio é feedback, não aceite formal nem evidência de capacidade técnica.
-- O cliente pediu acesso de administrador/colaborador à Hostinger e relatou instabilidade no SSH, dizendo que irá verificar. A concessão de acesso não foi realizada; o estado do SSH aguarda confirmação do cliente.
+- O cliente pediu acesso de administrador/colaborador à Hostinger, relatou instabilidade no SSH e perguntou qual e-mail deve receber o convite. A concessão não foi realizada nem o convite enviado; não há e-mail da conta Hostinger confirmado neste backlog. O estado do SSH aguarda confirmação do cliente.
 - A release atualmente verificada é `085baa6`. API, web e PostgreSQL estavam saudáveis; catálogo em modo demo retornava zero anúncios comerciais, autenticação central sem configuração falhava com `503` seguro e `/api/v1/auth/me` sem sessão retornava `401`. O worker continua desligado.
 - A abertura e os metadados da página inicial identificam a vitrine como prévia e informam que os anúncios são fictícios e não podem ser comprados. O Build `40794964577` passou para a cópia da home; a validação da atualização de metadados aguarda CI e a inspeção visual em produção depende da publicação.
 - Os títulos do detalhe, da home e do catálogo agora usam escala fluida em celulares e quebra balanceada. Build `40795662357` passou para o ajuste do detalhe e Build `40795918894` passou para home/catálogo; falta validar a renderização em viewport móvel publicado.
@@ -34,7 +34,7 @@ Atualizado em 28/10/2026 após nova leitura das mensagens de Mateus Alves Fernan
 | 9 | P2 | Especificar concorrência e indisponibilidade | Revalidação e idempotência existem em partes do código, mas não foram verificadas em runtime comercial. | Documentar revalidação, reserva concorrente, timeout ambíguo, não entrega de item indisponível e reconciliação. Qualquer crédito futuro deve ser transacional e idempotente. Só prometer remoção imediata se houver mecanismo e latência medidos. |
 | 10 | P2 | Preparar a próxima revisão de release | Release `085baa6` foi publicada na Hostinger e verificada: API/web/PostgreSQL saudáveis; health, status legal, catálogo demo e home responderam conforme esperado; zero anúncios comerciais e worker desligado. Login central sem configuração falha com `503` seguro. | Para a próxima release, conferir branch e diff, passar build/CI, preservar backup e rollback, publicar somente API/web quando necessário e confirmar health, catálogo demo, status legal, home e fluxo de autenticação indisponível. Não registrar segredo em documentação pública. |
 | 11 | P3 | Reavaliar eventual produto comercial | Checkout, gateway e entrega real foram citados pelo cliente como etapa posterior, mas seguem bloqueados pela decisão de demo e pela revisão de compatibilidade. | Só planejar ativação após decisão explícita de produto, autorização aplicável dos titulares, aprovação escrita dos gateways, termos/privacidade, identidade, segurança e plano de testes isolados. Até lá, não integrar cobranças, carteira, entrega ou reembolso real. |
-| 12 | P1 | Resolver governança de acesso à Hostinger e estabilidade SSH | Mateus pediu acesso de administrador/colaborador na Hostinger e informou que verificará a instabilidade do SSH. Nenhuma concessão ou alteração foi feita nesta atualização. | Antes de qualquer convite, confirmar titularidade, pessoa e escopo necessários; preferir colaborador com menor privilégio, prazo e MFA, com trilha de auditoria. Não compartilhar senha root. Retomar operação SSH somente após confirmação de estabilidade e validação da identidade do host. Registrar a decisão sem credenciais. |
+| 12 | P1 | Resolver governança de acesso à Hostinger e estabilidade SSH | Mateus pediu acesso de administrador/colaborador, informou que verificará a instabilidade do SSH e perguntou qual e-mail usar para o convite. Não há e-mail da conta Hostinger confirmado e nenhum convite foi enviado. | Registrar o identificador correto da conta Hostinger e confirmar escopo/titularidade antes de qualquer convite; preferir colaborador com menor privilégio, prazo e MFA, com trilha de auditoria. Não compartilhar senha root. Retomar operação SSH somente após confirmação de estabilidade e validação da identidade do host. Registrar a decisão sem credenciais. |
 
 ## Portões para avançar
 
@@ -43,7 +43,7 @@ Atualizado em 28/10/2026 após nova leitura das mensagens de Mateus Alves Fernan
 3. **Identidade:** proteger cada rota por sessão, tenant e papel verificados pelo Auth Center.
 4. **Operação:** manter ações administrativas sem efeito comercial enquanto o gate demo estiver ativo.
 5. **Comercial:** não liberar contas, pagamentos, entrega nem reembolsos enquanto a revisão de compatibilidade estiver pendente.
-6. **Acesso operacional:** convite de colaborador e alteração de privilégios na Hostinger são decisões do titular da conta; manter pendente até haver escopo mínimo e identidade confirmados. A instabilidade de SSH reportada pelo cliente também precisa de confirmação antes de operação remota.
+6. **Acesso operacional:** o cliente aguarda o e-mail correto para enviar convite de colaborador Hostinger. O identificador da conta e o escopo mínimo continuam pendentes; nenhum acesso foi concedido. A instabilidade de SSH também precisa de confirmação antes de operação remota.
 
 ## Definição de pronto desta fase
 
