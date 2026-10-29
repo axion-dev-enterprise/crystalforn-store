@@ -388,6 +388,22 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media(prefers-reduced-motion:reduce){.product-card:hover{transform:none}}
 
 .catalog-mobile-toolbar{display:none}
+.product-compare-toggle{align-self:flex-start;min-height:44px;margin-top:10px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);color:var(--green);font-size:12px;font-weight:700;cursor:pointer}
+.product-compare-toggle:disabled{color:var(--muted);cursor:not-allowed}
+.catalog-comparison-controls{min-width:0;margin:24px 0;padding:clamp(16px,2.5vw,24px);border:1px solid var(--line);border-radius:var(--radius-panel);background:var(--surface)}
+.catalog-comparison-heading{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.catalog-comparison-heading h3{margin:0;font:500 clamp(20px,2.8vw,28px) var(--serif);line-height:1.15}
+.catalog-comparison-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.catalog-comparison-selection{display:grid;gap:8px;margin:16px 0 0;padding:0;list-style:none}
+.catalog-comparison-selection li{display:flex;min-width:0;align-items:center;justify-content:space-between;gap:12px;padding:8px 10px;border:1px solid var(--line);background:var(--paper);font-size:12px}
+.catalog-comparison-selection li>span{min-width:0;overflow-wrap:anywhere}
+.catalog-comparison-help{margin:12px 0 0;color:var(--muted);font-size:12px;line-height:1.5}
+.catalog-comparison-table-wrap{max-width:100%;margin-top:16px;overflow-x:auto;border:1px solid var(--line);overscroll-behavior-inline:contain}
+.catalog-comparison-table{width:100%;min-width:560px;border-collapse:collapse;text-align:left;font-size:12px}
+.catalog-comparison-table caption{padding:10px;color:var(--muted);text-align:left}
+.catalog-comparison-table th,.catalog-comparison-table td{min-width:120px;padding:11px 12px;border-top:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
+.catalog-comparison-table thead th,.catalog-comparison-table tbody th{background:var(--soft);color:var(--ink);font-weight:700}
+@media(max-width:600px){.catalog-comparison-heading{align-items:flex-start;flex-direction:column}.catalog-comparison-actions{width:100%}.catalog-comparison-actions>*{flex:1}.catalog-comparison-selection li{align-items:flex-start}.catalog-comparison-selection .text-link-button{flex:0 0 auto}}
 @media(max-width:700px){
   .site-header{position:relative;top:auto}
   .catalog-mobile-toolbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:18;display:block;margin:0 0 8px;padding:8px 0;background:var(--paper)}

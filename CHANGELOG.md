@@ -4,6 +4,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
+- Permite selecionar até três exemplos fictícios e comparar jogo, rank, nível, inatividade e grupos de inventário; a tabela não mostra preço e mantém rótulos de ausência dos dados.
 - Adiciona ao catálogo móvel uma barra sticky recolhível com quantidade de resultados e quantidade de filtros ativos; em desktop os filtros permanecem visíveis.
 - Fecha sem merge a PR #1 de catálogo LZT ao vivo, preservando seus commits/branch e mantendo a decisão vigente de demonstração; PR #3 continua em rascunho.
 - Registra a auditoria estática da interface e a verificação atual da produção: health `200`, catálogo em demo com zero anúncios reais e CI aprovado para o backlog consolidado; esclarece quais filtros/inventários já existem nas fixtures e quais dependem de payload real ou inspeção visual.

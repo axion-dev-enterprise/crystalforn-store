@@ -78,6 +78,8 @@ export function Storefront() {
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<CatalogSort>('price_asc');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [comparisonIds, setComparisonIds] = useState<string[]>([]);
+  const [comparisonOpen, setComparisonOpen] = useState(false);
   const [restoredFromUrl, setRestoredFromUrl] = useState(false);
   const [result, setResult] = useState<Catalog | null>(null);
   const [loading, setLoading] = useState(true);
@@ -183,6 +185,17 @@ export function Storefront() {
     return sort === 'price_desc' ? -difference : difference;
   });
   const visibleProducts = result?.demoOnly ? sortedDemoProducts.slice((page - 1) * DEMO_PAGE_SIZE, page * DEMO_PAGE_SIZE) : result?.items ?? [];
+  const selectedDemoProducts = comparisonIds.flatMap((id) => {
+    const product = DEMO_PRODUCTS.find((item) => item.id === id);
+    return product ? [product] : [];
+  });
+  const comparisonRows: Array<{ label: string; value: (product: StoreProduct) => string }> = [
+    { label: 'Jogo', value: (product) => gameLabel(product.game) },
+    { label: 'Rank', value: (product) => { const inventory = product.attributes.inventory as Record<string, unknown> | undefined; return ['lol', 'valorant'].includes(product.game) ? (typeof inventory?.lol_rank === 'string' ? inventory.lol_rank : typeof inventory?.rank === 'string' ? inventory.rank : 'Não informado') : 'Não se aplica'; } },
+    { label: 'Nível', value: (product) => { const inventory = product.attributes.inventory as Record<string, unknown> | undefined; return typeof inventory?.level === 'number' ? String(inventory.level) : 'Não informado'; } },
+    { label: 'Inatividade', value: (product) => typeof product.attributes.days_offline === 'number' ? `${product.attributes.days_offline} dias` : 'Não informado' },
+    { label: 'Campos disponíveis', value: demoComparisonFields },
+  ];
   const pages = result?.demoOnly ? Math.max(1, Math.ceil(filteredDemoProducts.length / DEMO_PAGE_SIZE)) : Math.max(1, Math.ceil((result?.total ?? 0) / (result?.pageSize ?? 24)));
   const resultsLabel = result?.demoOnly ? `${filteredDemoProducts.length} exemplos fictícios` : result ? `${result.total} anúncios` : loading ? 'Carregando resultados' : 'Resultados indisponíveis';
   const demoSkinOptions = useMemo(() => demoInventoryOptions('fortnite', ['skin_names', 'skins', 'featured_skins']), []);
@@ -211,6 +224,18 @@ export function Storefront() {
     }
     setPage(1);
   }
+  function toggleDemoComparison(productId: string) {
+    if (comparisonIds.includes(productId)) {
+      setComparisonIds((current) => current.filter((id) => id !== productId));
+      if (comparisonIds.length <= 2) setComparisonOpen(false);
+      return;
+    }
+    setComparisonIds((current) => current.includes(productId) || current.length >= 3 ? current : [...current, productId]);
+  }
+  function clearComparison() {
+    setComparisonIds([]);
+    setComparisonOpen(false);
+  }
   return <section className="catalog-section shell" id="catalogo" aria-labelledby="catalog-title"><div className="section-heading"><div><p className="eyebrow">{result?.demoOnly ? 'PRÉVIA VISUAL · ITENS FICTÍCIOS' : 'INVENTÁRIO DISPONÍVEL'}</p><h2 id="catalog-title">{result?.demoOnly ? 'Veja como a vitrine funciona.' : 'Escolha pelo que importa.'}</h2></div><p className="section-aside" role="status" aria-live="polite" aria-atomic="true">{result?.demoOnly ? `${filteredDemoProducts.length} exemplos · sem venda` : result ? `${result.total} contas listadas` : 'Preços em reais'}</p></div>
     {result?.catalogMode === 'live_read_only' && <p className="catalog-readonly-note" role="status">Catálogo real sincronizado com o fornecedor. A visualização está ativa; compras e entregas automáticas continuam desativadas.</p>}
     {result?.demoOnly && <div className="demo-catalog-notice" role="note"><strong>Catálogo de demonstração</strong><span>Todos os itens, atributos e valores são fictícios. Não há anúncios reais nem opção de compra nesta prévia.</span></div>}
@@ -234,14 +259,15 @@ export function Storefront() {
     </form>
     {activeFilterTokens.length > 0 && <div className="active-filters" role="group" aria-label="Filtros aplicados"><span className="active-filters-label">Filtros ativos</span>{activeFilterTokens.map((token) => <button className="active-filter" key={token.key} type="button" onClick={() => removeFilter(token.key)}><span>{token.label}</span><span>Remover</span></button>)}<button className="active-filters-clear" type="button" onClick={() => { setGame(''); setFilters(EMPTY_FILTERS); setAppliedFilters(EMPTY_FILTERS); setPage(1); }}>Limpar filtros</button></div>}
     </div>
+    {result?.demoOnly && selectedDemoProducts.length > 0 && <section className="catalog-comparison-controls" aria-labelledby="comparison-controls-title"><div className="catalog-comparison-heading"><div><p className="eyebrow">COMPARAÇÃO · DADOS FICTÍCIOS</p><h3 id="comparison-controls-title">{selectedDemoProducts.length} de 3 exemplos selecionados</h3></div><div className="catalog-comparison-actions"><button className="button-outline" type="button" disabled={selectedDemoProducts.length < 2} aria-expanded={comparisonOpen} aria-controls="catalog-comparison-table" onClick={() => setComparisonOpen((open) => !open)}>{comparisonOpen ? 'Ocultar comparação' : 'Comparar exemplos'}</button><button className="text-link-button" type="button" onClick={clearComparison}>Limpar seleção</button></div></div><ul className="catalog-comparison-selection">{selectedDemoProducts.map((product, index) => <li key={product.id}><span>Exemplo {index + 1}: {gameLabel(product.game)} · {displayTitle(product)}</span><button className="text-link-button" type="button" onClick={() => toggleDemoComparison(product.id)} aria-label={`Remover exemplo ${index + 1} da comparação`}>Remover</button></li>)}</ul><p className="catalog-comparison-help" role="status" aria-live="polite">{selectedDemoProducts.length < 2 ? 'Selecione pelo menos mais um exemplo para comparar.' : 'A comparação usa somente campos presentes nos exemplos e não representa ofertas disponíveis.'}</p><div id="catalog-comparison-table" className="catalog-comparison-table-wrap" role="region" aria-label="Tabela de comparação dos exemplos" tabIndex={0} hidden={!comparisonOpen || selectedDemoProducts.length < 2}><table className="catalog-comparison-table"><caption>Comparação ilustrativa de exemplos fictícios</caption><thead><tr><th scope="col">Atributo</th>{selectedDemoProducts.map((product, index) => <th scope="col" key={product.id}>Exemplo {index + 1}: {gameLabel(product.game)} · {displayTitle(product)}</th>)}</tr></thead><tbody>{comparisonRows.map((row) => <tr key={row.label}><th scope="row">{row.label}</th>{selectedDemoProducts.map((product) => <td key={product.id}>{row.value(product)}</td>)}</tr>)}</tbody></table></div></section>}
     {error && <div className="state-panel error-state" role="alert"><div><h3>{result?.demoOnly ? 'A prévia segue disponível' : 'Catálogo temporariamente indisponível'}</h3><p>{error}</p></div><button className="button-outline" type="button" onClick={() => void load()}>Tentar novamente</button></div>}
     {loading && !result?.demoOnly && <div className="product-grid" aria-label="Carregando catálogo" aria-busy="true">{Array.from({ length: 6 }, (_, i) => <div className="product-skeleton" key={i}><span /><span /><span /></div>)}</div>}
     {!loading && !visibleProducts.length && <div className="state-panel empty-state"><div><h3>Nenhum item corresponde aos filtros</h3><p>Amplie a faixa de preço, reduza a inatividade ou escolha outra categoria.</p></div><button className="button-outline" type="button" onClick={() => { setGame(''); setFilters(EMPTY_FILTERS); setAppliedFilters(EMPTY_FILTERS); setPage(1); setSort('price_asc'); }}>Limpar filtros</button></div>}
-    {(!loading || result?.demoOnly) && !!visibleProducts.length && <><div className="product-grid">{visibleProducts.map((product, index) => <CatalogProductCard key={product.id} product={product} demo={Boolean(result?.demoOnly)} sequence={(page - 1) * (result?.pageSize ?? 24) + index + 1} returnTo={catalogReturnUrl} />)}</div><nav className="pagination" aria-label="Paginação do catálogo"><button className="button-outline" type="button" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Anterior</button><span>Página {page} de {pages}</span><button className="button-outline" type="button" disabled={page >= pages} onClick={() => setPage((value) => Math.min(pages, value + 1))}>Próxima</button></nav></>}
+    {(!loading || result?.demoOnly) && !!visibleProducts.length && <><div className="product-grid">{visibleProducts.map((product, index) => <CatalogProductCard key={product.id} product={product} demo={Boolean(result?.demoOnly)} sequence={(page - 1) * (result?.pageSize ?? 24) + index + 1} returnTo={catalogReturnUrl} compareSelected={comparisonIds.includes(product.id)} compareDisabled={comparisonIds.length >= 3} onToggleCompare={() => toggleDemoComparison(product.id)} />)}</div><nav className="pagination" aria-label="Paginação do catálogo"><button className="button-outline" type="button" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Anterior</button><span>Página {page} de {pages}</span><button className="button-outline" type="button" disabled={page >= pages} onClick={() => setPage((value) => Math.min(pages, value + 1))}>Próxima</button></nav></>}
   </section>;
 }
 
-export function CatalogProductCard({ product, demo, sequence, returnTo = '/#catalogo' }: { product: StoreProduct; demo: boolean; sequence?: number; returnTo?: string }) {
+export function CatalogProductCard({ product, demo, sequence, returnTo = '/#catalogo', compareSelected = false, compareDisabled = false, onToggleCompare }: { product: StoreProduct; demo: boolean; sequence?: number; returnTo?: string; compareSelected?: boolean; compareDisabled?: boolean; onToggleCompare?: () => void }) {
   return <article className="product-card">
     <div className="product-badge">{demo ? 'Exemplo fictício' : 'No catálogo'}</div>
     <div className="card-topline"><span>{gameLabel(product.game)}</span>{sequence && <span className="card-sequence">{String(sequence).padStart(2, '0')}</span>}</div>
@@ -261,6 +287,42 @@ export function CatalogProductCard({ product, demo, sequence, returnTo = '/#cata
 function gameLabel(game: string): string {
   if (game === 'lol') return 'League of Legends';
   return game === 'valorant' ? 'Valorant' : game[0].toUpperCase() + game.slice(1);
+}
+
+function demoComparisonFields(product: StoreProduct): string {
+  const inventory = product.attributes.inventory as Record<string, unknown> | undefined;
+  const definitions: Record<string, Array<{ label: string; keys: string[]; counts?: string[] }>> = {
+    fortnite: [
+      { label: 'Skins', keys: ['skin_names', 'skins', 'featured_skins'], counts: ['skins_count'] },
+      { label: 'Picaretas', keys: ['pickaxe_names', 'pickaxes', 'featured_pickaxes'], counts: ['pickaxes_count'] },
+      { label: 'Emotes', keys: ['emote_names', 'dances', 'featured_dances'], counts: ['dances_count'] },
+      { label: 'Asas-delta', keys: ['glider_names', 'gliders', 'featured_gliders'], counts: ['gliders_count'] },
+    ],
+    steam: [{ label: 'Jogos', keys: ['game_names', 'games'], counts: ['games_count'] }],
+    roblox: [
+      { label: 'Itens', keys: ['featured_items', 'items'], counts: ['items_count'] },
+      { label: 'Frutas', keys: ['featured_fruits', 'fruits'], counts: ['fruits_count'] },
+      { label: 'Gamepasses', keys: ['gamepasses', 'game_passes', 'gamepass'] },
+    ],
+    valorant: [
+      { label: 'Skins de armas', keys: ['weapon_skins', 'featured_skins'], counts: ['skins_count'] },
+      { label: 'Agentes', keys: ['agents', 'featured_agents'] },
+      { label: 'Chaveiros', keys: ['buddies', 'featured_buddies'] },
+    ],
+    lol: [
+      { label: 'Skins', keys: ['skins', 'featured_skins'], counts: ['skins_count'] },
+      { label: 'Campeões', keys: ['champions', 'featured_champions'] },
+    ],
+  };
+  const available = (definitions[product.game] ?? []).filter(({ keys, counts = [] }) => {
+    const hasNamedItems = inventoryLabels(inventory, keys).length > 0;
+    const hasCount = counts.some((key) => typeof inventory?.[key] === 'number');
+    return hasNamedItems || hasCount;
+  }).map(({ label }) => label);
+  if (inventory?.rank !== undefined || inventory?.lol_rank !== undefined) available.unshift('Rank');
+  if (inventory?.level !== undefined) available.push('Nível');
+  if (typeof product.attributes.days_offline === 'number') available.push('Dias offline');
+  return [...new Set(available)].join(' · ') || 'Nenhum campo de inventário informado';
 }
 
 function ProductInventoryPreview({ game, attributes }: { game: string; attributes: Record<string, unknown> }) {
