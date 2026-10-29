@@ -7,6 +7,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 - Atualiza o backlog após nova leitura das mensagens do cliente, registra a release verificada `085baa6` e separa pendências de produto, Auth Center, escala, Hostinger/SSH e decisão comercial.
 - Identifica a página inicial como prévia demonstrativa já no título e no texto de abertura, antes de apresentar os exemplos fictícios.
 - Atualiza o título e a descrição da página para identificar a prévia como fictícia também na aba do navegador e em metadados.
+- Ajusta o título longo do detalhe com tipografia fluida em telas estreitas e quebra balanceada para reduzir altura e prevenir overflow.
 - Explicita a ausência de imagens individuais por grupo no detalhe do produto e substitui iniciais que podiam parecer arte real por um ícone neutro; imagens com origem confiável continuam visíveis, e falhas de carregamento mostram a ausência.
 - Preserva uma explicação segura de configuração ausente na resposta 503 do login central da Crystalforn; respostas internas não relacionadas continuam genéricas.
 - Registra a publicação do commit `eb9371b` no Hostinger com API/web saudáveis, modo demo e worker desligado.
