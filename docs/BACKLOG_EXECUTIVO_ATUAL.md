@@ -7,7 +7,7 @@ Atualizado em 28/10/2026 após nova leitura das mensagens de Mateus Alves Fernan
 - O cliente considera a integração próxima do resultado esperado, mas ainda pede filtros por jogo, inventários mais completos e visuais, títulos em pt-BR e paginação em massa. O elogio é feedback, não aceite formal nem evidência de capacidade técnica.
 - O cliente pediu acesso de administrador/colaborador à Hostinger e relatou instabilidade no SSH, dizendo que irá verificar. A concessão de acesso não foi realizada; o estado do SSH aguarda confirmação do cliente.
 - A release atualmente verificada é `085baa6`. API, web e PostgreSQL estavam saudáveis; catálogo em modo demo retornava zero anúncios comerciais, autenticação central sem configuração falhava com `503` seguro e `/api/v1/auth/me` sem sessão retornava `401`. O worker continua desligado.
-- A abertura da página inicial agora identifica a vitrine como prévia e informa que os anúncios são fictícios e não podem ser comprados; falta validar a alteração pelo CI e no navegador publicado.
+- A abertura da página inicial agora identifica a vitrine como prévia e informa que os anúncios são fictícios e não podem ser comprados. O Build `40794964577` passou; a inspeção visual da nova cópia em produção depende da publicação.
 - Permanecem sem autorização/validação: estoque real LZT, sincronização ativa, pagamentos, carteira, compra, entrega de credenciais e reembolsos reais.
 
 ## Limites de produto
