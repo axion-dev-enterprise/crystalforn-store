@@ -4,7 +4,8 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
-- Atualiza o backlog com a paginação pública da LZT: cursor `after` e limite de 20 buscas de categoria por minuto; destaca que tamanho de página e cursor retornado ainda não foram confirmados e mantém a sincronização desligada.
+- Atualiza o worker LZT para paginar com `nextCursor`/`after`, detectar cursores ausentes ou repetidos, preservar fallback legado e versionar o checkpoint; sincronização permanece desligada no modo demo.
+- Atualiza o backlog com a paginação pública da LZT: cursor `after`, resposta `nextCursor` e limite de 20 buscas de categoria por minuto; runtime continua sem validação e a sincronização desligada.
 - Atualiza o backlog após a última leitura da Workana: Mateus aguarda o e-mail correto da conta Hostinger para convite de colaborador; convite e resposta continuam pendentes, sem inferir identidade por e-mails de outras plataformas.
 - Atualiza o backlog após releitura integral da conversa: inclui limites de paginação relatados, imagens Fortnite ausentes, pedido de gamepasses/inventários Roblox, filtros essenciais, preferência por amostras úteis sem copiar o fórum inteiro e dependência de convite Hostinger.
 - Registra a publicação verificada da release `361a117` na Hostinger: health e catálogo demo HTTP 200, zero anúncios reais, pagamentos/sincronização desativados, worker parado e PostgreSQL saudável.

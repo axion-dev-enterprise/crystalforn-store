@@ -38,7 +38,7 @@ const lztFeeds = [
   { key: 'roblox', path: 'roblox', params: [] as string[][] },
   { key: 'steam', path: 'steam', params: [] as string[][] },
 ];
-const lztOrderVersion = 'pdate_to_down_page_v2';
+const lztOrderVersion = 'pdate_to_down_cursor_v3';
 
 function itemId(item: unknown): string | null {
   if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
@@ -50,6 +50,10 @@ function pageFingerprint(items: unknown[]): string | null {
   const ids = items.map(itemId).filter((value): value is string => Boolean(value));
   if (ids.length === 0) return null;
   return createHash('sha256').update([...new Set(ids)].sort().join('\n')).digest('hex');
+}
+
+function cursorFingerprint(cursor: string): string {
+  return createHash('sha256').update(cursor).digest('hex');
 }
 
 async function refreshOneSellerFeedback(): Promise<void> {
@@ -226,13 +230,20 @@ async function synchronize(): Promise<void> {
         ? Number(savedCursorValue.slice(5)) : null;
       const structuredPage = cursorState && Number.isSafeInteger(cursorState.nextPage) ? Number(cursorState.nextPage) : null;
       let lztPage = structuredPage ?? legacyPage ?? 1;
+      let lztCursor = typeof cursorState?.nextCursor === 'string' && cursorState.nextCursor.length > 0 && cursorState.nextCursor.length <= 4096
+        ? cursorState.nextCursor : null;
+      let lztCursorHashes = Array.isArray(cursorState?.cursorHashes)
+        ? cursorState.cursorHashes.filter((value): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value)).slice(-maxPages)
+        : [];
       let lztItemsSeen = cursorState && Number.isSafeInteger(cursorState.itemsSeen) && Number(cursorState.itemsSeen) >= 0
         ? Number(cursorState.itemsSeen) : 0;
       const hasSavedLztPage = (structuredPage !== null && structuredPage > 0) || (legacyPage !== null && legacyPage > 0);
       let lztPageFingerprints = Array.isArray(cursorState?.pageFingerprints)
         ? cursorState.pageFingerprints.filter((value): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value)).slice(-maxPages)
         : [];
-      if (!Number.isSafeInteger(lztPage) || lztPage < 1) { lztPage = 1; lztItemsSeen = 0; lztPageFingerprints = []; }
+      if (!Number.isSafeInteger(lztPage) || lztPage < 1 || (cursorState?.nextCursor !== undefined && lztCursor === null)) {
+        lztPage = 1; lztCursor = null; lztCursorHashes = []; lztItemsSeen = 0; lztPageFingerprints = [];
+      }
       const savedScanStarted = apiProvider === 'lzt-market'
         ? await lockClient.query<{ setting_value: unknown }>('SELECT setting_value FROM store_settings WHERE setting_key=$1', [scanStartedKey])
         : { rows: [] as { setting_value: unknown }[] };
@@ -247,6 +258,8 @@ async function synchronize(): Promise<void> {
         if (!hasSavedLztPage || !scanStartedAt) {
           scanStartedAt = runStartedAt;
           lztPage = 1;
+          lztCursor = null;
+          lztCursorHashes = [];
           lztItemsSeen = 0;
           lztPageFingerprints = [];
           await lockClient.query(
@@ -260,7 +273,8 @@ async function synchronize(): Promise<void> {
       while (pages < maxPages && !stopping) {
         const requestUrl = new URL(feed.path, apiRoot);
         if (apiProvider === 'lzt-market') {
-          requestUrl.searchParams.set('page', String(lztPage));
+          if (lztCursor) requestUrl.searchParams.set('after', lztCursor);
+          else requestUrl.searchParams.set('page', String(lztPage));
           for (const [key, value] of feed.params) requestUrl.searchParams.append(key, value);
           requestUrl.searchParams.set('order_by', 'pdate_to_down');
           requestUrl.searchParams.set('currency', 'rub');
@@ -292,8 +306,8 @@ async function synchronize(): Promise<void> {
           } else errorCode = `provider_http_${response.status}`;
           break;
         }
-        let payload: { status?: unknown; items?: unknown[]; total_items?: number; totalItems?: number; hasNextPage?: unknown; page?: unknown; perPage?: unknown };
-        try { payload = await response.json() as { status?: unknown; items?: unknown[]; total_items?: number; totalItems?: number; hasNextPage?: unknown; page?: unknown; perPage?: unknown }; }
+        let payload: { status?: unknown; items?: unknown[]; total_items?: number; totalItems?: number; hasNextPage?: unknown; nextCursor?: unknown; page?: unknown; perPage?: unknown };
+        try { payload = await response.json() as { status?: unknown; items?: unknown[]; total_items?: number; totalItems?: number; hasNextPage?: unknown; nextCursor?: unknown; page?: unknown; perPage?: unknown }; }
         catch {
           if (apiProvider === 'lzt-market') await resetLztPagination();
           errorCode = 'invalid_json';
@@ -308,6 +322,9 @@ async function synchronize(): Promise<void> {
         if (!Array.isArray(payload.items) || (totalItems !== undefined && (!Number.isSafeInteger(totalItems) || totalItems < 0))
           || (apiProvider === 'lzt-market' && (
             (payload.hasNextPage !== undefined && typeof payload.hasNextPage !== 'boolean')
+            || (payload.nextCursor !== undefined && typeof payload.nextCursor !== 'string')
+            || (payload.hasNextPage === true && (typeof payload.nextCursor !== 'string' || payload.nextCursor.trim().length === 0 || payload.nextCursor.length > 4096))
+            || (lztCursor !== null && payload.hasNextPage === undefined)
             || (payload.page !== undefined && (typeof payload.page !== 'number' || !Number.isSafeInteger(payload.page) || payload.page !== lztPage))
             || (payload.perPage !== undefined && (typeof payload.perPage !== 'number' || !Number.isSafeInteger(payload.perPage) || payload.perPage < 1))
             || (payload.hasNextPage === undefined && typeof totalItems !== 'number')
@@ -408,12 +425,35 @@ async function synchronize(): Promise<void> {
           : payload.hasNextPage !== false && !(typeof totalItems === 'number' && (totalItems === 0 || genericItemsSeen >= totalItems));
         if (apiProvider === 'lzt-market') {
           if (hasMore) {
+            const nextCursor = typeof payload.nextCursor === 'string' && payload.nextCursor.trim().length > 0
+              ? payload.nextCursor : null;
+            if (payload.hasNextPage === true && nextCursor === null) {
+              await resetLztPagination();
+              errorCode = 'pagination_cursor_missing';
+              break;
+            }
+            if (nextCursor !== null) {
+              const nextCursorHash = cursorFingerprint(nextCursor);
+              const requestedCursorHash = lztCursor ? cursorFingerprint(lztCursor) : null;
+              if (nextCursor === lztCursor || lztCursorHashes.includes(nextCursorHash)) {
+                await resetLztPagination();
+                errorCode = 'pagination_repeated_cursor';
+                nextRunDelayMs = Math.max(intervalMs, 60_000);
+                break;
+              }
+              if (requestedCursorHash) lztCursorHashes = [...lztCursorHashes, requestedCursorHash].slice(-maxPages);
+              lztCursor = nextCursor;
+            }
             lztPage += 1;
             if (fingerprint) lztPageFingerprints = [...lztPageFingerprints, fingerprint].slice(-maxPages);
             await lockClient.query(
               'INSERT INTO store_settings(setting_key,setting_value) VALUES($1,$2::jsonb) ON CONFLICT(setting_key) DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=now()',
-              [cursorKey, JSON.stringify({ nextPage: lztPage, itemsSeen: lztItemsSeen, pageFingerprints: lztPageFingerprints })]);
-          } else await lockClient.query('DELETE FROM store_settings WHERE setting_key=$1', [cursorKey]);
+              [cursorKey, JSON.stringify({ nextPage: lztPage, nextCursor: lztCursor, itemsSeen: lztItemsSeen, pageFingerprints: lztPageFingerprints, cursorHashes: lztCursorHashes })]);
+          } else {
+            lztCursor = null;
+            lztCursorHashes = [];
+            await lockClient.query('DELETE FROM store_settings WHERE setting_key=$1', [cursorKey]);
+          }
         } else if (hasMore) {
           genericNextPage = feedPage + 1;
           await lockClient.query(
