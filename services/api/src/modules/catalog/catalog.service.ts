@@ -322,7 +322,10 @@ export class CatalogService {
             OR EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p.attributes#>'{inventory,game_names}')='array' THEN p.attributes#>'{inventory,game_names}' ELSE '[]'::jsonb END) AS game_entry(value)
               WHERE lower(COALESCE(game_entry.value->>'name',game_entry.value->>'title',game_entry.value#>>'{}','')) LIKE '%'||lower($9)||'%')
           )))
-          AND ($10::text IS NULL OR (p.game IN ('valorant','lol') AND lower(COALESCE(p.attributes#>>'{inventory,rank}',p.attributes#>>'{inventory,lol_rank}','')) LIKE '%'||lower($10)||'%'))
+          AND ($10::text IS NULL OR (p.game IN ('valorant','lol') AND (
+            lower(COALESCE(p.attributes#>>'{inventory,rank}',p.attributes#>>'{inventory,lol_rank}','')) = lower($10)
+            OR left(lower(COALESCE(p.attributes#>>'{inventory,rank}',p.attributes#>>'{inventory,lol_rank}','')), length(lower($10)) + 1) = lower($10) || ' '
+          )))
           AND ($11::integer IS NULL OR p.game IN ('valorant','lol') AND CASE WHEN COALESCE(p.attributes#>>'{inventory,level}',p.attributes#>>'{inventory,lol_level}') ~ '^[0-9]+$' THEN COALESCE(p.attributes#>>'{inventory,level}',p.attributes#>>'{inventory,lol_level}')::integer ELSE NULL END >= $11)
        ORDER BY ${orderBy} LIMIT $2 OFFSET $3`,
         [game ?? null, pageSize, (page - 1) * pageSize, minPriceCents, maxPriceCents, minDaysOffline, [...STORE_CATALOG_GAMES], skinName, steamGame, rank, minLevel]);
@@ -347,7 +350,10 @@ export class CatalogService {
             OR EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p.attributes#>'{inventory,game_names}')='array' THEN p.attributes#>'{inventory,game_names}' ELSE '[]'::jsonb END) AS game_entry(value)
               WHERE lower(COALESCE(game_entry.value->>'name',game_entry.value->>'title',game_entry.value#>>'{}','')) LIKE '%'||lower($7)||'%')
           )))
-          AND ($8::text IS NULL OR (p.game IN ('valorant','lol') AND lower(COALESCE(p.attributes#>>'{inventory,rank}',p.attributes#>>'{inventory,lol_rank}','')) LIKE '%'||lower($8)||'%'))
+          AND ($8::text IS NULL OR (p.game IN ('valorant','lol') AND (
+            lower(COALESCE(p.attributes#>>'{inventory,rank}',p.attributes#>>'{inventory,lol_rank}','')) = lower($8)
+            OR left(lower(COALESCE(p.attributes#>>'{inventory,rank}',p.attributes#>>'{inventory,lol_rank}','')), length(lower($8)) + 1) = lower($8) || ' '
+          )))
           AND ($9::integer IS NULL OR p.game IN ('valorant','lol') AND CASE WHEN COALESCE(p.attributes#>>'{inventory,level}',p.attributes#>>'{inventory,lol_level}') ~ '^[0-9]+$' THEN COALESCE(p.attributes#>>'{inventory,level}',p.attributes#>>'{inventory,lol_level}')::integer ELSE NULL END >= $9)`,
         [game ?? null, minPriceCents, maxPriceCents, minDaysOffline, [...STORE_CATALOG_GAMES], skinName, steamGame, rank, minLevel]);
     return { items: result.rows, page, pageSize, total: Number(count.rows[0]?.total ?? 0), currency: 'BRL', sort };

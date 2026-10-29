@@ -32,6 +32,13 @@ function inventoryLabels(inventory: Record<string, unknown> | undefined, keys: s
   });
 }
 
+function rankMatches(value: string, query: string): boolean {
+  const normalize = (rank: string) => rank.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase('pt-BR').replace(/\s+/g, ' ');
+  const actual = normalize(value);
+  const requested = normalize(query);
+  return actual === requested || actual.startsWith(`${requested} `);
+}
+
 function demoInventoryOptions(game: string, keys: string[]): string[] {
   const values = DEMO_PRODUCTS.filter((product) => product.game === game).flatMap((product) => {
     const inventory = product.attributes.inventory as Record<string, unknown> | undefined;
@@ -166,7 +173,7 @@ export function Storefront() {
       && (!appliedFilters.minDaysOffline || offlineDays >= Number(appliedFilters.minDaysOffline))
       && (!appliedFilters.skinName || (product.game === 'fortnite' && skinNames.some((name) => name.toLocaleLowerCase('pt-BR').includes(appliedFilters.skinName.toLocaleLowerCase('pt-BR')))))
       && (!appliedFilters.steamGame || (product.game === 'steam' && steamGames.some((name) => name.toLocaleLowerCase('pt-BR').includes(appliedFilters.steamGame.toLocaleLowerCase('pt-BR')))))
-      && (!appliedFilters.rank || (['valorant', 'lol'].includes(product.game) && rank.toLocaleLowerCase('pt-BR').includes(appliedFilters.rank.toLocaleLowerCase('pt-BR'))))
+      && (!appliedFilters.rank || (['valorant', 'lol'].includes(product.game) && rankMatches(rank, appliedFilters.rank)))
       && (!appliedFilters.minLevel || (['valorant', 'lol'].includes(product.game) && level >= Number(appliedFilters.minLevel)));
   });
   const sortedDemoProducts = [...filteredDemoProducts].sort((left, right) => {
