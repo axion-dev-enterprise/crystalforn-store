@@ -77,6 +77,7 @@ export function Storefront() {
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<CatalogSort>('price_asc');
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [restoredFromUrl, setRestoredFromUrl] = useState(false);
   const [result, setResult] = useState<Catalog | null>(null);
   const [loading, setLoading] = useState(true);
@@ -183,6 +184,7 @@ export function Storefront() {
   });
   const visibleProducts = result?.demoOnly ? sortedDemoProducts.slice((page - 1) * DEMO_PAGE_SIZE, page * DEMO_PAGE_SIZE) : result?.items ?? [];
   const pages = result?.demoOnly ? Math.max(1, Math.ceil(filteredDemoProducts.length / DEMO_PAGE_SIZE)) : Math.max(1, Math.ceil((result?.total ?? 0) / (result?.pageSize ?? 24)));
+  const resultsLabel = result?.demoOnly ? `${filteredDemoProducts.length} exemplos fictícios` : result ? `${result.total} anúncios` : loading ? 'Carregando resultados' : 'Resultados indisponíveis';
   const demoSkinOptions = useMemo(() => demoInventoryOptions('fortnite', ['skin_names', 'skins', 'featured_skins']), []);
   const demoSteamOptions = useMemo(() => demoInventoryOptions('steam', ['game_names', 'games']), []);
   const demoValorantRanks = useMemo(() => [...new Set([...DEMO_VALORANT_RANKS, ...demoInventoryOptions('valorant', ['rank'])])], []);
@@ -212,8 +214,10 @@ export function Storefront() {
   return <section className="catalog-section shell" id="catalogo" aria-labelledby="catalog-title"><div className="section-heading"><div><p className="eyebrow">{result?.demoOnly ? 'PRÉVIA VISUAL · ITENS FICTÍCIOS' : 'INVENTÁRIO DISPONÍVEL'}</p><h2 id="catalog-title">{result?.demoOnly ? 'Veja como a vitrine funciona.' : 'Escolha pelo que importa.'}</h2></div><p className="section-aside" role="status" aria-live="polite" aria-atomic="true">{result?.demoOnly ? `${filteredDemoProducts.length} exemplos · sem venda` : result ? `${result.total} contas listadas` : 'Preços em reais'}</p></div>
     {result?.catalogMode === 'live_read_only' && <p className="catalog-readonly-note" role="status">Catálogo real sincronizado com o fornecedor. A visualização está ativa; compras e entregas automáticas continuam desativadas.</p>}
     {result?.demoOnly && <div className="demo-catalog-notice" role="note"><strong>Catálogo de demonstração</strong><span>Todos os itens, atributos e valores são fictícios. Não há anúncios reais nem opção de compra nesta prévia.</span></div>}
+    <div className="catalog-mobile-toolbar"><button className="catalog-mobile-toggle" type="button" aria-expanded={mobileFiltersOpen} aria-controls="catalog-filter-controls" onClick={() => setMobileFiltersOpen((open) => !open)}><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M7 12h10m-7 6h4" /></svg><span>{mobileFiltersOpen ? 'Ocultar filtros' : 'Filtrar catálogo'}</span>{activeFilterTokens.length > 0 && <span className="catalog-mobile-active-count">{activeFilterTokens.length} ativos</span>}<span className="catalog-mobile-results">{resultsLabel}</span></button></div>
+    <div id="catalog-filter-controls" className={`catalog-filter-controls${mobileFiltersOpen ? ' is-open' : ''}`}>
     <div className="filter-row" role="group" aria-label="Filtrar catálogo por jogo">{games.map((item) => <button type="button" key={item.id || 'all'} className={`filter-chip ${game === item.id ? 'is-selected' : ''}`} aria-pressed={game === item.id} onClick={() => { setGame(item.id); setPage(1); setFilters((value) => ({ ...value, skinName: '', steamGame: '', rank: '', minLevel: '' })); setAppliedFilters((value) => ({ ...value, skinName: '', steamGame: '', rank: '', minLevel: '' })); }}>{item.label}</button>)}</div>
-    <form className="catalog-filters" onSubmit={(event) => { event.preventDefault(); setPage(1); setAppliedFilters(filters); }}>
+    <form className="catalog-filters" onSubmit={(event) => { event.preventDefault(); setPage(1); setAppliedFilters(filters); setMobileFiltersOpen(false); }}>
       <div className="filter-field"><label htmlFor="min-price">Preço mínimo</label><input id="min-price" type="number" min="0" step="0.01" inputMode="decimal" placeholder="R$ 0,00" value={filters.minPrice} onChange={(event) => setFilters((value) => ({ ...value, minPrice: event.target.value }))} /></div>
       <div className="filter-field"><label htmlFor="max-price">Preço máximo</label><input id="max-price" type="number" min="0" step="0.01" inputMode="decimal" placeholder="Sem limite" value={filters.maxPrice} onChange={(event) => setFilters((value) => ({ ...value, maxPrice: event.target.value }))} /></div>
       <div className="filter-field"><label htmlFor="offline-days">Inatividade</label><select id="offline-days" value={filters.minDaysOffline} onChange={(event) => setFilters((value) => ({ ...value, minDaysOffline: event.target.value }))}><option value="">Qualquer período</option><option value="30">30 dias ou mais</option><option value="60">60 dias ou mais</option><option value="90">90 dias ou mais</option></select></div>
@@ -229,6 +233,7 @@ export function Storefront() {
       <button className="button-outline" type="submit">Aplicar filtros</button>
     </form>
     {activeFilterTokens.length > 0 && <div className="active-filters" role="group" aria-label="Filtros aplicados"><span className="active-filters-label">Filtros ativos</span>{activeFilterTokens.map((token) => <button className="active-filter" key={token.key} type="button" onClick={() => removeFilter(token.key)}><span>{token.label}</span><span>Remover</span></button>)}<button className="active-filters-clear" type="button" onClick={() => { setGame(''); setFilters(EMPTY_FILTERS); setAppliedFilters(EMPTY_FILTERS); setPage(1); }}>Limpar filtros</button></div>}
+    </div>
     {error && <div className="state-panel error-state" role="alert"><div><h3>{result?.demoOnly ? 'A prévia segue disponível' : 'Catálogo temporariamente indisponível'}</h3><p>{error}</p></div><button className="button-outline" type="button" onClick={() => void load()}>Tentar novamente</button></div>}
     {loading && !result?.demoOnly && <div className="product-grid" aria-label="Carregando catálogo" aria-busy="true">{Array.from({ length: 6 }, (_, i) => <div className="product-skeleton" key={i}><span /><span /><span /></div>)}</div>}
     {!loading && !visibleProducts.length && <div className="state-panel empty-state"><div><h3>Nenhum item corresponde aos filtros</h3><p>Amplie a faixa de preço, reduza a inatividade ou escolha outra categoria.</p></div><button className="button-outline" type="button" onClick={() => { setGame(''); setFilters(EMPTY_FILTERS); setAppliedFilters(EMPTY_FILTERS); setPage(1); setSort('price_asc'); }}>Limpar filtros</button></div>}

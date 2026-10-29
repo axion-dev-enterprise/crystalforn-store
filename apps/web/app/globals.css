@@ -387,6 +387,18 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .cancellation-request summary:focus-visible{outline-color:var(--focus-color)}
 @media(prefers-reduced-motion:reduce){.product-card:hover{transform:none}}
 
+.catalog-mobile-toolbar{display:none}
+@media(max-width:700px){
+  .site-header{position:relative;top:auto}
+  .catalog-mobile-toolbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:18;display:block;margin:0 0 8px;padding:8px 0;background:var(--paper)}
+  .catalog-mobile-toggle{display:grid;width:100%;min-height:52px;grid-template-columns:22px auto minmax(0,1fr);align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);color:var(--ink);text-align:left;cursor:pointer}
+  .catalog-mobile-toggle svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round}
+  .catalog-mobile-toggle>span:nth-of-type(1){font-size:13px;font-weight:700}
+  .catalog-mobile-active-count{grid-column:2;color:var(--green);font:10px var(--mono);letter-spacing:.02em}
+  .catalog-mobile-results{grid-column:3;grid-row:1 / span 2;justify-self:end;color:var(--muted);font-size:11px;text-align:right}
+  .catalog-filter-controls:not(.is-open){display:none}
+}
+
 .brand-wordmark-window{position:relative;display:block;width:220px;height:60px;flex:0 0 auto;overflow:hidden}
 .brand-wordmark{position:absolute;top:50%;left:0;display:block;width:100%;height:auto;transform:translateY(-50%)}
 .brand-wordmark-light{display:none}

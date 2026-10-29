@@ -15,6 +15,7 @@ Revisado em 28/10/2026. Este documento consolida as solicitações mais recentes
 
 | ID | Prioridade | Entrega | Situação factual | Critério de conclusão |
 | --- | --- | --- | --- | --- |
+| CF-13 | P0 | Barra móvel de filtros recolhível e persistente | Implementação iniciada no branch: alternância semântica, contagem de resultados e filtros recolhíveis em larguras de até 700 px; aguardando CI e inspeção visual renderizada. | Barra sticky legível nos dois temas, estado aberto/fechado anunciado, contagem atualizada, alvos de toque adequados e nenhum overflow; desktop mantém os filtros visíveis. |
 | CF-01 | P1 | Completar filtros essenciais por jogo | Filtros locais para skins/personagens Fortnite, biblioteca Steam, rank/divisão LoL/Valorant e nível estão implementados para fixtures. A API de produção confirmou `demoOnly: true` e zero anúncios reais. Filtros do fornecedor não estão conectados, por decisão de manter demo. O relato do cliente de 10–30 resultados (até 120 Steam) não foi confirmado em runtime. | Demonstração oferece esses filtros sem misturar categorias, preserva filtros/paginação no endereço e identifica os dados como fictícios. Consulta LZT e comparação com os volumes relatados só entram em revisão autorizada do modo de operação. |
 | CF-02 | P1 | Padronizar títulos em pt-BR | O normalizador gera títulos com atributos estruturados por jogo e remove segmentos em cirílico; destaque de rank ocorre em LoL/Valorant. Respostas reais não foram validadas porque a sincronização está desligada. | Demonstrar títulos da fixture em português; cobrir fallback neutro e campos ausentes. Validar a cobertura real somente com payload autorizado, sem inventar atributos. |
 | CF-03 | P1 | Exibir inventários úteis e honestos | Detalhes agrupam itens por jogo, distinguem quantidade total de nomes exibidos, avisam sobre listas parciais e sobre imagens ausentes. Gamepasses são exibidos quando existe array no payload; a fixture inclui exemplos. Imagens reais individuais não foram validadas quanto a disponibilidade e direito de exibição. | Manter agrupamento por categoria, contagem/parcialidade e fallback. Adicionar imagens apenas com URL/origem permitida; não afirmar cobertura integral. Confirmar campos e conteúdo somente em payload autorizado. |
@@ -30,12 +31,13 @@ Revisado em 28/10/2026. Este documento consolida as solicitações mais recentes
 
 ## Próxima sequência
 
-1. Fechar CF-01 a CF-03 com documentação e fixtures demonstrativas, distinguindo campos do contrato, exemplo entregue, fixture e resposta runtime.
-2. Realizar a auditoria visual CF-04 e consolidar defeitos responsivos/acessíveis em correções pequenas.
-3. Resolver os pré-requisitos de identidade (CF-05) e acesso operacional (CF-06) antes de qualquer validação autenticada.
-4. Manter CF-07 como medição pendente enquanto a sincronização está desligada; preservar a distinção entre CI sintético e capacidade da LZT.
-5. Melhorar painel e documentar concorrência (CF-08/CF-09), sempre sem habilitar operações comerciais.
-6. Revisar identidade e preparar eventual release (CF-10/CF-11). CF-12 permanece bloqueado pela decisão vigente.
+1. Validar CF-13 no CI e em viewport móvel renderizado; depois continuar os itens P0 da Issue #5: comparação de até três exemplos, âncoras de detalhe e galeria demonstrativa.
+2. Fechar CF-01 a CF-03 com documentação e fixtures demonstrativas, distinguindo campos do contrato, exemplo entregue, fixture e resposta runtime.
+3. Realizar a auditoria visual CF-04 e consolidar defeitos responsivos/acessíveis em correções pequenas.
+4. Resolver os pré-requisitos de identidade (CF-05) e acesso operacional (CF-06) antes de qualquer validação autenticada.
+5. Manter CF-07 como medição pendente enquanto a sincronização está desligada; preservar a distinção entre CI sintético e capacidade da LZT.
+6. Melhorar painel e documentar concorrência (CF-08/CF-09), sempre sem habilitar operações comerciais.
+7. Revisar identidade e preparar eventual release (CF-10/CF-11). CF-12 permanece bloqueado pela decisão vigente.
 
 ## Portões
 
