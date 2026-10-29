@@ -405,3 +405,4 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .sync-discard-reasons li{display:flex;min-height:36px;align-items:center;gap:12px;padding:6px 10px;border:1px solid var(--line);background:var(--soft);color:var(--ink);font-size:12px}
 .sync-discard-reasons strong{font-family:var(--mono);font-variant-numeric:tabular-nums}
 .roblox-card-frame{position:absolute;inset:0;display:block}
+.cosmetic-mark svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}

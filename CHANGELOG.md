@@ -4,6 +4,8 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
+- Explicita a ausência de imagens individuais por grupo no detalhe do produto e substitui iniciais que podiam parecer arte real por um ícone neutro; imagens com origem confiável continuam visíveis, e falhas de carregamento mostram a ausência.
+- Registra a publicação do commit `eb9371b` no Hostinger com API/web saudáveis, modo demo e worker desligado.
 - Mostra destaques do inventário nos cartões demonstrativos para Fortnite, Valorant, LoL, Roblox e Steam; limita a prévia a três nomes por grupo e identifica a amostra sem sugerir inventário completo.
 - Torna a busca por tier/divisão de rank precisa: filtrar só o tier inclui suas divisões; filtrar com divisão exige correspondência exata em fixtures e consulta local.
 - Registra no backlog executivo os estados atuais dos destaques de inventário e da correspondência de rank.

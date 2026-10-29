@@ -1,6 +1,6 @@
 # Backlog executivo atual — Crystalforn
 
-Este documento organiza a próxima fase de trabalho em entregas verificáveis. Os requisitos do cliente abaixo foram extraídos das mensagens já registradas neste workspace e no contexto da tarefa. A conversa da Workana não pôde ser reaberta nesta sessão porque o site apresentou uma verificação de segurança; este backlog não presume mensagens posteriores.
+Atualizado em 28/10/2026 após releitura da conversa de Mateus Alves Fernandes no Brave. Este documento organiza a próxima fase em entregas verificáveis e diferencia pedidos do cliente, evidência técnica e decisões operacionais ainda pendentes.
 
 ## Limites de produto
 
@@ -22,8 +22,9 @@ Este documento organiza a próxima fase de trabalho em entregas verificáveis. O
 | 7 | P2 | Melhorar painel administrativo em modo demo | Há estrutura de resumo, catálogo e histórico; permissões e origem de cada indicador precisam de verificação. | Mostrar origem e estado dos dados, falhas e histórico de sincronização, pedidos fictícios e controles de catálogo claramente inativos. Validar autorização no servidor e registrar ações sem segredos ou credenciais de conta. |
 | 8 | P2 | Validar paginação em massa e retomada | Benchmark sintético de 20 mil/40 mil registros passou; não representa LZT, rede, banco ou tempo real. Worker permanece desligado. | Antes de qualquer sincronização real, comprovar contrato de paginação/cursor, cotas, limite de páginas, memória, duração, checkpoint, retomada, rate limit e falhas em ambiente autorizado. Uma varredura incompleta não pode reconciliar ou ocultar produtos. |
 | 9 | P2 | Especificar concorrência e indisponibilidade | Revalidação e idempotência existem em partes do código, mas não foram verificadas em runtime comercial. | Documentar revalidação, reserva concorrente, timeout ambíguo, não entrega de item indisponível e reconciliação. Qualquer crédito futuro deve ser transacional e idempotente. Só prometer remoção imediata se houver mecanismo e latência medidos. |
-| 10 | P2 | Preparar revisão de release e implantação | A versão atual não recebeu confirmação de deploy dos commits recentes. | Fazer preflight de acesso ao ambiente autorizado, conferir versão/branch e plano de rollback; implantar apenas após passar pelos gates de build e release e confirmar endpoints e conteúdo esperados. Não registrar host, IP ou segredo em documentação pública. |
+| 10 | P2 | Preparar a próxima revisão de release | Commit `eb9371b` foi publicado no Hostinger e verificado: API/web saudáveis, health HTTP 200, modo demo ativo, zero itens comerciais e worker desligado. Alterações locais posteriores no backlog ainda não fazem parte dessa release. | Para a próxima release, conferir branch e diff, passar build/CI, preservar backup e rollback, publicar somente API/web quando necessário e confirmar health, catálogo demo, status legal e home. Não registrar segredo em documentação pública. |
 | 11 | P3 | Reavaliar eventual produto comercial | Checkout, gateway e entrega real foram citados pelo cliente como etapa posterior, mas seguem bloqueados pela decisão de demo e pela revisão de compatibilidade. | Só planejar ativação após decisão explícita de produto, autorização aplicável dos titulares, aprovação escrita dos gateways, termos/privacidade, identidade, segurança e plano de testes isolados. Até lá, não integrar cobranças, carteira, entrega ou reembolso real. |
+| 12 | P1 | Resolver governança de acesso à Hostinger e estabilidade SSH | Mateus pediu acesso de administrador/colaborador na Hostinger e informou que verificará a instabilidade do SSH. Nenhuma concessão ou alteração foi feita nesta atualização. | Antes de qualquer convite, confirmar titularidade, pessoa e escopo necessários; preferir colaborador com menor privilégio, prazo e MFA, com trilha de auditoria. Não compartilhar senha root. Retomar operação SSH somente após confirmação de estabilidade e validação da identidade do host. Registrar a decisão sem credenciais. |
 
 ## Portões para avançar
 
@@ -32,6 +33,7 @@ Este documento organiza a próxima fase de trabalho em entregas verificáveis. O
 3. **Identidade:** proteger cada rota por sessão, tenant e papel verificados pelo Auth Center.
 4. **Operação:** manter ações administrativas sem efeito comercial enquanto o gate demo estiver ativo.
 5. **Comercial:** não liberar contas, pagamentos, entrega nem reembolsos enquanto a revisão de compatibilidade estiver pendente.
+6. **Acesso operacional:** convite de colaborador e alteração de privilégios na Hostinger são decisões do titular da conta; manter pendente até haver escopo mínimo e identidade confirmados. A instabilidade de SSH reportada pelo cliente também precisa de confirmação antes de operação remota.
 
 ## Definição de pronto desta fase
 

@@ -272,7 +272,13 @@ function InventoryShowcase({ productId, game, demoOnly, attributes, images, fail
     const items = candidates.find((value) => value.length > 0) ?? candidates[0];
     const rawCount = group.countKey ? inventory[group.countKey] : undefined;
     const itemCount = typeof rawCount === 'number' && Number.isFinite(rawCount) && rawCount >= 0 ? Math.floor(rawCount) : (items?.length ?? 0);
-    return items?.length || itemCount > 0 ? [{ ...group, items: items ?? [], itemCount }] : [];
+    const hasIndividualImages = (items ?? []).some((item, index) => {
+      const record = item && typeof item === 'object' ? item as Record<string, unknown> : {};
+      const title = typeof item === 'string' ? item : String(record.title ?? record.name ?? record.label ?? `Item ${index + 1}`);
+      const imageUrl = safeInventoryImageUrl(record.image_url ?? record.imageUrl ?? record.icon_url ?? record.iconUrl ?? record.thumbnail ?? record.image ?? record.icon);
+      return Boolean(imageUrl && !failedImageKeys.has(`${group.key}-${index}-${title}`));
+    });
+    return items?.length || itemCount > 0 ? [{ ...group, items: items ?? [], itemCount, hasIndividualImages }] : [];
   });
   function itemCard(item: unknown, index: number, groupKey: string) {
     const record = item && typeof item === 'object' ? item as Record<string, unknown> : {};
@@ -290,13 +296,14 @@ function InventoryShowcase({ productId, game, demoOnly, attributes, images, fail
         : `${Math.floor(playtimeMinutes / 60).toLocaleString('pt-BR')} h jogadas`
       : '';
     const tone = /mythic|icon/i.test(rarity) ? 'cosmetic-mythic' : /legendary/i.test(rarity) ? 'cosmetic-legendary' : /epic/i.test(rarity) ? 'cosmetic-epic' : 'cosmetic-standard';
-    return <li className="cosmetic-card" key={`${title}-${index}`}>{imageUrl && !imageFailed ? <img className="cosmetic-image" src={imageUrl} alt={`Imagem de ${title}`} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => onImageError(imageKey)} /> : <span className={`cosmetic-mark ${tone}`} aria-hidden="true">{title.slice(0, 2).toUpperCase()}</span>}<span className="cosmetic-copy"><strong>{title}</strong>{translatedRarity && <small>{translatedRarity}</small>}{playtimeLabel && <small>{playtimeLabel}</small>}</span></li>;
+    return <li className="cosmetic-card" key={`${title}-${index}`}>{imageUrl && !imageFailed ? <img className="cosmetic-image" src={imageUrl} alt={`Imagem de ${title}`} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => onImageError(imageKey)} /> : <span className={`cosmetic-mark ${tone}`} aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5" /><circle cx="9" cy="9" r="1.5" /><path d="m5 17 5-5 3 3 2.5-2.5L19 16" /></svg></span>}<span className="cosmetic-copy"><strong>{title}</strong>{translatedRarity && <small>{translatedRarity}</small>}{playtimeLabel && <small>{playtimeLabel}</small>}</span></li>;
   }
   return <section ref={sectionRef} className={`inventory-showcase inventory-${game}`} aria-labelledby="inventory-showcase-title">
     <div className="inventory-showcase-heading"><div><p className="eyebrow">{demoOnly ? 'AMOSTRA FICTÍCIA · ITENS ILUSTRATIVOS' : 'ITENS INFORMADOS PELO FORNECEDOR'}</p><h2 id="inventory-showcase-title">{demoOnly ? 'Inventário do exemplo' : 'Itens do inventário'}</h2><p className="inventory-coverage-note">{demoOnly ? 'Esta prévia mostra alguns itens fictícios; não representa uma conta real nem um inventário completo.' : 'A lista depende dos campos públicos disponíveis para este anúncio e pode ser parcial.'}</p></div><span>{groups.reduce((total, group) => total + group.items.length, 0)} itens listados</span></div>
     {game === 'roblox' && <RobloxProfile inventory={inventory} avatar={images.avatar} demoOnly={demoOnly} />}
     {groups.map((group) => <section className="inventory-group" key={group.key}>
       <div className="inventory-group-heading"><h3>{group.title}</h3><span>{group.items.length < group.itemCount ? `${group.items.length} nomes · ${group.itemCount} no total` : `${group.itemCount} itens listados`}</span></div>
+      {group.items.length > 0 && !group.hasIndividualImages && <p className="inventory-image-note" role="note">{demoOnly ? 'Este exemplo não inclui imagens individuais para estes itens.' : 'O anúncio não forneceu imagens individuais para estes itens.'}</p>}
       {group.image && <img className="inventory-provider-image" src={`/api/v1/catalog/${encodeURIComponent(productId)}/inventory-image/${group.imageType ?? group.key}/640`} srcSet={imageSrcSet(productId, group.imageType ?? group.key)} sizes="(max-width: 700px) calc(100vw - 32px), 680px" alt={`Prévia visual do fornecedor: ${group.title.toLowerCase()}`} width={680} height={280} loading="lazy" decoding="async" />}
       {group.items.length > 0 ? <ul className="cosmetic-list">{group.items.slice(0, 36).map((item, index) => itemCard(item, index, group.key))}</ul> : <p className="inventory-empty">O anúncio informa a quantidade, mas não traz nomes individuais destes itens.</p>}
       {group.items.length > 36 && <details className="inventory-more"><summary>Ver os outros {group.items.length - 36} itens</summary><ul className="cosmetic-list">{group.items.slice(36).map((item, index) => itemCard(item, index + 36, group.key))}</ul></details>}

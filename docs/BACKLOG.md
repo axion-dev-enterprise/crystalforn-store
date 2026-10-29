@@ -54,7 +54,7 @@ Atualizado em 28/10/2026 após nova leitura da conversa de Mateus Alves Fernande
 ## Estado e limites atuais
 
 - A loja permanece em **demonstração somente**, sem catálogo real, cobrança, compra, entrega automática ou integração ativa com gateway. Ver [DEMO_MODE.md](DEMO_MODE.md) e [COMPATIBILIDADE_COMERCIAL.md](COMPATIBILIDADE_COMERCIAL.md).
-- A API `f8b271b` e a web `c2185da` estão na produção desde 28/10/2026; API, web e Postgres estão saudáveis. `/api/v1/health`, `/api/v1/legal/terms/status` e `/api/v1/catalog` responderam HTTP 200, com modo demo ativo, catálogo público vazio e pagamentos/sincronização desativados. Imagens prévias das releases foram preservadas para rollback.
+- A API e a web do commit `eb9371b` foram publicadas no Hostinger em 29/10/2026. Sondas posteriores confirmaram API/web/Postgres saudáveis, `/api/v1/health` e `/api/v1/legal/terms/status` HTTP 200, catálogo `demoOnly: true` com zero anúncios comerciais e worker parado. As imagens anteriores permanecem etiquetadas para rollback; o registro operacional fica na documentação local de implantação.
 - Uma inspeção anterior encontrou capas Steam externas nos fixtures; nesta revisão, elas foram removidas até a análise de origem/licença. Os nomes e horas continuam no inventário textual. A observação anterior de respostas HTTP `200 image/jpeg` só demonstra disponibilidade técnica e não é autorização de uso. O detalhe Fortnite ainda não dispõe de imagens individuais do JSON de exemplo.
 - A API pode exibir resultados de integração em ambiente de desenvolvimento, mas isso não comprova capacidade de importar dezenas de milhares de anúncios, consistência de inventário ou prontidão para produção.
 - Toda tarefa que consulte dados reais da LZT, processe pagamentos, entregue credenciais ou movimente saldo depende de revisão própria de contrato, segurança e compatibilidade comercial. Os itens marcados como bloqueados não devem ser liberados por este backlog.
@@ -285,7 +285,7 @@ Gerar títulos em português e no padrão Crystalforn, sem copiar nomes vagos ou
 
 ### BL-04 — Melhorar a amostra visual de inventário por jogo
 
-**Estado:** Parcial. O detalhe Fortnite apresenta os dois nomes de `featured_skins` do JSON de exemplo e as contagens de skins, picaretas, emotes e asas-delta; os grupos sem nomes individuais mostram essa lacuna explicitamente. A demonstração continua identificada como fictícia e incompleta. A página aceita miniaturas de inventário para fontes HTTPS permitidas e usa fallback textual em caso de erro; a revisão de direitos de quaisquer imagens de terceiros ainda é requisito antes da ativação comercial. Para Fortnite, Valorant e LoL, a integração prevê prévias agregadas pelos tipos de imagem documentados, mas o gate demo impede consultá-las. Capas Steam foram removidas dos fixtures e não são mais geradas por `appid`; o inventário continua com nomes e tempo de jogo em cartões tipográficos. Gamepasses só aparecem quando a lista é fornecida, e o detalhe Roblox explicita a ausência de nomes individuais. O exemplo do cliente não contém imagens/ícones por item, listas individuais de picaretas/emotes/asas-delta ou gamepasses Roblox; a documentação também não confirma inventários individuais Steam. Cobertura efetiva de payloads permanece pendente.
+**Estado:** Parcial. O detalhe Fortnite apresenta os dois nomes de `featured_skins` do JSON de exemplo e as contagens de skins, picaretas, emotes e asas-delta; os grupos sem nomes individuais mostram essa lacuna explicitamente. Quando não há imagem individual, o detalhe agora usa um ícone neutro e informa a ausência por grupo; miniaturas confiáveis continuam aceitas e erros de carregamento entram no estado sem imagem. A demonstração continua identificada como fictícia e incompleta. A revisão de direitos de quaisquer imagens de terceiros ainda é requisito antes da ativação comercial. Para Fortnite, Valorant e LoL, a integração prevê prévias agregadas pelos tipos de imagem documentados, mas o gate demo impede consultá-las. Capas Steam foram removidas dos fixtures e não são mais geradas por `appid`; o inventário continua com nomes e tempo de jogo em cartões tipográficos. Gamepasses só aparecem quando a lista é fornecida, e o detalhe Roblox explicita a ausência de nomes individuais. O exemplo do cliente não contém imagens/ícones por item, listas individuais de picaretas/emotes/asas-delta ou gamepasses Roblox; a documentação também não confirma inventários individuais Steam. Cobertura efetiva de payloads permanece pendente.
 
 Mostrar imagens junto aos nomes das skins e ampliar os detalhes visuais do inventário. Para Roblox, investigar gamepasses e os demais itens efetivamente disponibilizados pelo Market API. Fornecer uma amostra organizada e representativa para cada jogo, deixando explícito quando a lista retornada for parcial; o cliente não exige copiar todos os campos do fórum ou da Legas.
 
@@ -451,3 +451,31 @@ Entregar uma área de cliente que exponha apenas a identidade autenticada e regi
 - O texto “Blzzz” não contém requisito técnico identificável.
 - O botão de alternância entre tema claro e escuro e os refinamentos administrativos agora estão registrados em BL-11 e BL-12.
 - Nenhum pedido neste backlog altera a decisão vigente de manter a loja somente em demonstração.
+
+## Atualização — mensagens mais recentes no Brave, 28/10/2026
+
+Leitura direta da conversa com Mateus Alves Fernandes na guia Workana aberta no Brave. O cliente avaliou a amostra atual como próxima do esperado e reiterou que a etapa da API depende de filtros essenciais, inventários mais transparentes e paginação. Essa avaliação não representa medição independente, aceite formal ou autorização para abrir vendas.
+
+### Requisitos reafirmados
+
+| Prioridade | Item | Critério de conclusão | Evidência e limite atual |
+| --- | --- | --- | --- |
+| P1 | Filtros essenciais por jogo | Fortnite pesquisa personagens/skins disponíveis; Steam filtra por jogos contidos no anúncio; LoL e Valorant filtram por rank/divisão e nível somente quando os dados existem. A regra de ranks informada pelo cliente vale apenas para LoL e Valorant. | O cliente relata respostas atuais de 10–30 itens e até 120 na Steam. Isso é observação do cliente, ainda sem medição independente contra a API. Fixtures continuam sendo demonstração. |
+| P1 | Títulos Crystalforn em pt-BR | Normalizar títulos vagos ou russos usando somente campos estruturados confirmados; título neutro quando atributos necessários faltarem. | A normalização já existe no código, mas a cobertura de dados reais por jogo ainda não foi demonstrada. |
+| P1 | Inventário mais completo e visual | Exibir nomes, contagens e imagens junto aos itens quando payload, URL/origem e permissões sustentarem isso. Cobrir skins e categorias Fortnite, inventário dos demais jogos, itens Steam e gamepasses Roblox quando realmente fornecidos. Marcar lista parcial e campos indisponíveis. | O cliente informou que os nomes Fortnite aparecem, mas faltam imagens individuais; pediu gamepasses Roblox e amostras de todos os jogos. A API pode não fornecer todos os dados ou recursos visuais. Não fabricar conteúdo nem assumir direitos de imagem. |
+| P2 | Paginação em massa e sincronização | Investigar páginas/cursor, cotas, limites, checkpoint, retomada, memória, duração, erros e volume de 20–40 mil anúncios. Medir separadamente processamento local e chamadas reais autorizadas. | O benchmark sintético de 20 mil/40 mil não comprova capacidade, cotas ou tempo real da LZT. O worker segue desligado em modo demo. |
+| P2 | Evitar entrega obsoleta em venda concorrente | Desenhar revalidação de disponibilidade, reserva/conflito, timeout ambíguo, idempotência e reconciliação. Só afirmar remoção “instantânea” após comprovar evento/mecanismo do fornecedor e latência. | A entrega de credenciais, compra e reembolso de carteira não estão ativos. O requisito comercial depende de revisão de compatibilidade e política do fornecedor. |
+| P1 | Alternância de tema | Confirmar alternância claro/escuro acessível, persistente e consistente em catálogo, detalhe, acesso e administração. | Implementada parcialmente; revisão responsiva e visual consolidada continua pendente. |
+| P3 | Gateway e testes de entrega | Preparar escopo e critérios para uma fase futura de gateway, checkout e entrega automática. | Bloqueado pela decisão vigente de demonstração. Não ligar pagamento, carteira, entrega ou reembolso real nesta fase. |
+
+### Nova dependência operacional: acesso à Hostinger e SSH
+
+Mateus pediu para ser adicionado como administrador/colaborador na Hostinger e informou que o SSH está instável, dizendo que fará uma verificação. Registrar como dependência operacional, separada dos requisitos funcionais:
+
+- **Estado:** convite não concedido nesta atualização; instabilidade reportada pelo cliente, ainda sem diagnóstico confirmado.
+- **Antes de conceder acesso:** o titular da conta deve confirmar a identidade, o motivo e o escopo. Preferir convite individual de colaborador com menor privilégio necessário, MFA, duração/revisão e trilha de auditoria.
+- **Credenciais:** não compartilhar senha root, tokens ou chave privada; nenhum segredo deve entrar neste backlog.
+- **Retomada de SSH:** aguardar confirmação de estabilidade; antes de operação remota, validar usuário, host key e alvo Hostinger autorizado. Não tocar outros servidores.
+- **Conclusão:** acesso revisado pelo titular e limitado ao escopo aprovado, ou decisão explícita de não conceder; canal SSH estável e identidade do destino verificados antes de qualquer operação autorizada.
+
+Essas mensagens não alteram o limite vigente: a loja permanece em demonstração, sem catálogo real, sincronização LZT ativa, pagamentos, saldo, entrega de credenciais ou reembolsos.
