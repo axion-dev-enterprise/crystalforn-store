@@ -5,8 +5,8 @@ import './globals.css';
 import { SiteHeader } from '@/components/site-header';
 
 export const metadata: Metadata = {
-  title: 'Crystalforn — contas digitais de jogos',
-  description: 'Explore contas digitais por jogo, filtre atributos e consulte inventários. Compras, pagamentos e entregas estão desativados nesta versão.',
+  title: 'Crystalforn — prévia demonstrativa',
+  description: 'Conheça uma prévia fictícia da vitrine Crystalforn. Os anúncios não são reais e não podem ser comprados; pagamentos e entregas estão desativados.',
   robots: { index: false, follow: false },
   icons: { icon: '/brand/crystalforn-mark.png' },
 };
