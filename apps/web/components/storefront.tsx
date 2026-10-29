@@ -254,20 +254,32 @@ function gameLabel(game: string): string {
 function ProductInventoryPreview({ game, attributes }: { game: string; attributes: Record<string, unknown> }) {
   const inventory = attributes.inventory as Record<string, unknown> | undefined;
   if (!inventory) return null;
-  const groups = game === 'fortnite'
-    ? [
-        ['Personagens e skins', inventory.skin_names ?? inventory.featured_skins],
-        ['Picaretas', inventory.pickaxe_names ?? inventory.featured_pickaxes],
-        ['Emotes', inventory.emote_names ?? inventory.featured_dances],
-        ['Asas-delta', inventory.glider_names ?? inventory.featured_gliders],
-      ] as const
-    : game === 'steam' ? [['Jogos na biblioteca', inventory.game_names]] as const : [];
+  const definitions: Array<{ title: string; keys: string[] }> = game === 'fortnite' ? [
+    { title: 'Personagens e skins', keys: ['skin_names', 'skins', 'featured_skins'] },
+    { title: 'Picaretas', keys: ['pickaxe_names', 'pickaxes', 'featured_pickaxes'] },
+    { title: 'Emotes', keys: ['emote_names', 'dances', 'featured_dances'] },
+    { title: 'Asas-delta', keys: ['glider_names', 'gliders', 'featured_gliders'] },
+  ] : game === 'valorant' ? [
+    { title: 'Skins de armas', keys: ['weapon_skins', 'featured_skins'] },
+    { title: 'Agentes', keys: ['agents', 'featured_agents'] },
+    { title: 'Chaveiros', keys: ['buddies', 'featured_buddies'] },
+  ] : game === 'lol' ? [
+    { title: 'Skins', keys: ['skins', 'featured_skins'] },
+    { title: 'Campeões', keys: ['champions', 'featured_champions'] },
+  ] : game === 'roblox' ? [
+    { title: 'Itens', keys: ['featured_items', 'items'] },
+    { title: 'Frutas', keys: ['featured_fruits', 'fruits'] },
+    { title: 'Gamepasses', keys: ['gamepasses', 'game_passes', 'gamepass'] },
+  ] : game === 'steam' ? [
+    { title: 'Jogos na biblioteca', keys: ['game_names', 'games'] },
+  ] : [];
+  const groups = definitions.map(({ title, keys }) => ({ title, values: inventoryLabels(inventory, keys) })).filter(({ values }) => values.length > 0);
   if (!groups.length) return null;
   return <details className="demo-inventory">
-    <summary>Ver inventário fictício</summary>
-    <div className="demo-inventory-groups">{groups.map(([label, values]) => Array.isArray(values) && values.length > 0 && <section className="demo-inventory-group" key={label}>
-      <h4>{label}</h4>
-      <ul>{values.map((value) => <li key={String(value)}>{String(value)}</li>)}</ul>
+    <summary>Ver destaques do inventário</summary>
+    <div className="demo-inventory-groups">{groups.map(({ title, values }) => <section className="demo-inventory-group" key={title}>
+      <h4>{title}</h4>
+      <ul>{values.slice(0, 3).map((value, index) => <li key={`${title}-${value}-${index}`}>{value}</li>)}{values.length > 3 && <li>+ {values.length - 3} nomes</li>}</ul>
     </section>)}</div>
   </details>;
 }
