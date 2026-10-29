@@ -89,7 +89,8 @@ export class CommerceService {
         const productRow = await client.query<{ id: string; provider_item_id: string; game: string; generated_title: string; price_brl_cents: string | null; status: string; seller_id: string | null; source_price: string; source_currency: string }>(
           `SELECT p.id,p.provider_item_id,p.game,p.generated_title,p.price_brl_cents,p.status,p.seller_id,p.source_price,p.source_currency
            FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
-            WHERE p.id=$1 AND p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL
+           LEFT JOIN catalog_item_overrides o ON o.product_id=p.id
+            WHERE p.id=$1 AND p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL AND COALESCE(o.hidden,false)=false
               AND p.game=ANY($2::text[]) FOR UPDATE OF p`, [input.productId, [...STORE_CATALOG_GAMES]]);
         const current = productRow.rows[0];
         if (!current || current.provider_item_id !== providerItemId) throw new ConflictException('O produto mudou de disponibilidade. Atualize o catálogo.');
@@ -232,6 +233,7 @@ export class CommerceService {
   }
 
   async saveDelivery(orderId: string, credentials: string, adminId: string) {
+    requireMarketplaceCompliance();
     if (!credentials.trim()) throw new ConflictException('Informe as credenciais de entrega.');
     const key = deliveryKey();
     const nonce = randomBytes(12);
@@ -250,12 +252,19 @@ export class CommerceService {
         "UPDATE supplier_fulfillments SET status='completed',error_code=NULL,completed_at=now(),updated_at=now() WHERE order_id=$1",
         [orderId]);
       await client.query(`UPDATE orders SET status='delivery_required',updated_at=now() WHERE id=$1`, [orderId]);
-      await client.query(`INSERT INTO admin_audit(actor_id,action,target_id) VALUES($1,'delivery_saved',$2)`, [adminId, orderId]);
+      await client.query(
+        `INSERT INTO admin_audit(actor_id,action,target_id,details) VALUES($1,'delivery_saved',$2,$3::jsonb)`,
+        [adminId, orderId, JSON.stringify({
+          before: { orderStatus: order.rows[0].status, fulfillmentStatus: fulfillment.rows[0]?.status ?? null },
+          after: { orderStatus: 'delivery_required', fulfillmentStatus: fulfillment.rows[0] ? 'completed' : null, credentialsStored: true },
+        })],
+      );
     });
     return { ok: true };
   }
 
   async deliveryForCustomer(orderId: string, userId: string) {
+    requireMarketplaceCompliance();
     return this.db.transaction(async (client: PoolClient) => {
       const result = await client.query<{ status: string; ciphertext: Buffer; nonce: Buffer; auth_tag: Buffer }>(
         `SELECT o.status,d.ciphertext,d.nonce,d.auth_tag FROM orders o JOIN account_deliveries d ON d.order_id=o.id

@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Headers, Post, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { timingSafeEqual } from 'node:crypto';
 import { CatalogService } from './catalog.service';
-import { commerceReleaseStatus, requireMarketplaceCompliance } from '../legal/commerce-release-status';
+import { commerceReleaseStatus, requireCatalogSyncEnabled } from '../legal/commerce-release-status';
 
 function validSecret(supplied: string | undefined, expected: string | undefined): boolean {
   if (!supplied || !expected) return false;
@@ -25,8 +25,8 @@ export class InternalCatalogController {
   }
   @Post('items') async importItems(@Headers('authorization') authorization: string, @Body('items') items: unknown[]) {
     this.authorize(authorization);
-    requireMarketplaceCompliance();
+    requireCatalogSyncEnabled();
     if (!Array.isArray(items)) throw new UnauthorizedException('Lote do worker inválido.');
-    return { imported: await this.catalog.importProviderItems(items) };
+    return this.catalog.importProviderItems(items);
   }
 }

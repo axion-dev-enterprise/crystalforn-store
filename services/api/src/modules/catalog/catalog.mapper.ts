@@ -1,4 +1,4 @@
-export const STORE_CATALOG_GAMES = ['fortnite', 'valorant', 'roblox', 'steam'] as const;
+export const STORE_CATALOG_GAMES = ['fortnite', 'valorant', 'lol', 'roblox', 'steam'] as const;
 export type StoreCatalogGame = typeof STORE_CATALOG_GAMES[number];
 export type Game = StoreCatalogGame | 'lol' | 'other';
 export interface NormalizedProduct {
@@ -52,9 +52,36 @@ function booleanFlag(value: unknown): boolean | null {
 }
 function valorantRankLabel(value: unknown): string | null {
   const rank = numeric(value);
-  if (rank === null) return text(value);
-  const labels = ['Iron 1', 'Iron 2', 'Iron 3', 'Bronze 1', 'Bronze 2', 'Bronze 3', 'Silver 1', 'Silver 2', 'Silver 3', 'Gold 1', 'Gold 2', 'Gold 3', 'Platinum 1', 'Platinum 2', 'Platinum 3', 'Diamond 1', 'Diamond 2', 'Diamond 3', 'Ascendant 1', 'Ascendant 2', 'Ascendant 3', 'Immortal 1', 'Immortal 2', 'Immortal 3', 'Radiant'];
-  return labels[rank - 3] ?? `Elo ${rank}`;
+  const labels = ['Ferro I', 'Ferro II', 'Ferro III', 'Bronze I', 'Bronze II', 'Bronze III', 'Prata I', 'Prata II', 'Prata III', 'Ouro I', 'Ouro II', 'Ouro III', 'Platina I', 'Platina II', 'Platina III', 'Diamante I', 'Diamante II', 'Diamante III', 'Ascendente I', 'Ascendente II', 'Ascendente III', 'Imortal I', 'Imortal II', 'Imortal III', 'Radiante'];
+  if (rank !== null) return labels[rank - 3] ?? null;
+  return localizedRankLabel(value, 'valorant');
+}
+function localizedRankLabel(value: unknown, game: 'lol' | 'valorant'): string | null {
+  const raw = text(value);
+  if (!raw || /[\u0400-\u04FF]/.test(raw)) return null;
+  const normalized = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const aliases: Record<string, string> = {
+    iron: 'Ferro', ferro: 'Ferro', bronze: 'Bronze', silver: 'Prata', prata: 'Prata', gold: 'Ouro', ouro: 'Ouro',
+    platinum: 'Platina', platina: 'Platina', emerald: 'Esmeralda', esmeralda: 'Esmeralda', diamond: 'Diamante', diamante: 'Diamante',
+    ascendant: 'Ascendente', ascendente: 'Ascendente', immortal: 'Imortal', imortal: 'Imortal', radiant: 'Radiante', radiante: 'Radiante',
+    master: 'Mestre', mestre: 'Mestre', grandmaster: 'Grão-mestre', 'grao mestre': 'Grão-mestre', challenger: 'Desafiante', desafiante: 'Desafiante',
+  };
+  const match = normalized.match(/^([a-z ]+?)(?:\s+(iv|iii|ii|i|[1-3]))?$/i);
+  if (!match) return null;
+  const tierKey = match[1].trim();
+  const tier = aliases[tierKey];
+  if (!tier) return null;
+  const division = match[2]?.toUpperCase();
+  if (!division) return tier;
+  if (game === 'valorant') {
+    const validDivisions = ['Ferro', 'Bronze', 'Prata', 'Ouro', 'Platina', 'Diamante', 'Ascendente', 'Imortal'].includes(tier);
+    const roman = division.match(/^[1-3]$/) ? ['I', 'II', 'III'][Number(division) - 1] : division;
+    return validDivisions && ['I', 'II', 'III'].includes(roman) ? `${tier} ${roman}` : null;
+  }
+  const divisionalTiers = ['Ferro', 'Bronze', 'Prata', 'Ouro', 'Platina', 'Esmeralda', 'Diamante'];
+  const roman = division.match(/^[1-4]$/) ? ['I', 'II', 'III', 'IV'][Number(division) - 1] : division;
+  if (divisionalTiers.includes(tier)) return ['I', 'II', 'III', 'IV'].includes(roman) ? `${tier} ${roman}` : null;
+  return ['Mestre', 'Grão-mestre', 'Desafiante'].includes(tier) && !division ? tier : null;
 }
 function list(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -78,9 +105,19 @@ function setArray(target: Record<string, unknown>, key: string, ...values: unkno
   const value = firstArray(...values);
   if (value) target[key] = value;
 }
+function normalizeSteamGames(value: unknown): unknown[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value.map((entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return entry;
+    const game = record(entry);
+    const appid = numeric(game.appid ?? game.app_id);
+    if (appid === null || !Number.isSafeInteger(appid)) return entry;
+    return { ...game, appid };
+  });
+}
 function dynamicTitle(gameLabel: string, details: string[], maxLength = 180): string {
   let title = gameLabel;
-  for (const detail of details.filter(Boolean)) {
+  for (const detail of details.filter((value) => Boolean(value) && !/[\u0400-\u04FF]/.test(value))) {
     const candidate = `${title} | ${detail}`;
     if (candidate.length <= maxLength) title = candidate;
   }
@@ -136,6 +173,11 @@ export function normalizeProduct(item: Record<string, unknown>): NormalizedProdu
   } else if (game === 'lol') {
     inventory.skins_count ??= inventory.lol_smin ?? item.riot_lol_skin_count;
     inventory.rank ??= item.riot_lol_rank;
+    const rank = localizedRankLabel(inventory.rank, 'lol');
+    if (rank) {
+      inventory.rank = rank;
+      if (inventory.lol_rank !== undefined) inventory.lol_rank = rank;
+    }
     inventory.level ??= inventory.lol_level ?? item.riot_lol_level;
     inventory.blue_min ??= item.riot_lol_wallet_blue;
     inventory.region ??= item.lol_region ?? item.riot_lol_region;
@@ -173,9 +215,10 @@ export function normalizeProduct(item: Record<string, unknown>): NormalizedProdu
     inventory.inventory_value ??= item.roblox_inventory_price;
     setArray(inventory, 'items', item.items, item.item, sourceInventory.items);
     setArray(inventory, 'fruits', item.fruits, item.fruit, sourceInventory.fruits);
+    setArray(inventory, 'gamepasses', item.gamepasses, item.gamepass, item.game_passes, sourceInventory.gamepasses, sourceInventory.gamepass, sourceInventory.game_passes);
   } else if (game === 'steam') {
     inventory.level ??= item.steam_level;
-    inventory.games_count ??= item.steam_games_count ?? item.games_count;
+    inventory.games_count ??= item.steam_game_count ?? item.steam_games_count ?? item.totalGameCount ?? item.games_count;
     inventory.inventory_value ??= item.steam_inventory_value ?? item.inventory_value;
     inventory.balance ??= item.steam_balance ?? item.balance;
     inventory.vac_banned ??= item.steam_vac_banned ?? item.vac_banned;
@@ -184,6 +227,15 @@ export function normalizeProduct(item: Record<string, unknown>): NormalizedProdu
     inventory.trade_limited ??= item.steam_trade_limited ?? item.trade_limited ?? item.trade_limit;
     inventory.market_available ??= item.steam_market_available ?? item.market_available ?? item.market;
     inventory.guard_available ??= item.steam_guard_available ?? item.guard_available ?? item.mafile;
+    const fullGames = record(item.steam_full_games);
+    const fullGameList = Object.values(fullGames).flatMap((group) => Object.values(record(group)).flatMap((value) => {
+        const entry = record(value);
+        const title = text(entry.title);
+        return title ? [{ appid: numeric(entry.appid), title, playtime_forever: numeric(entry.playtime_forever) }] : [];
+      }))
+      .slice(0, 500);
+    setArray(inventory, 'games', normalizeSteamGames(item.steam_games), normalizeSteamGames(item.steam_game), normalizeSteamGames(item.games), normalizeSteamGames(item.game), normalizeSteamGames(sourceInventory.games), normalizeSteamGames(fullGameList));
+    setArray(inventory, 'game_names', item.game_names, sourceInventory.game_names, fullGameList.map((entry) => entry.title));
     setArray(inventory, 'gifts', item.gift, item.gifts, sourceInventory.gift, sourceInventory.gifts);
   }
   const platforms = record(item.platforms_linked);
@@ -233,11 +285,9 @@ export function normalizeProduct(item: Record<string, unknown>): NormalizedProdu
       gliders === null ? '' : `${gliders.toLocaleString('pt-BR')} asas-delta`,
     ];
   } else if (game === 'valorant' || game === 'lol') {
-    const rankRaw = inventory.rank ?? inventory.lol_rank;
-    const numericRank = numeric(rankRaw);
-    const rank = numericRank === null
-      ? text(rankRaw)
-      : game === 'valorant' ? valorantRankLabel(rankRaw) : `Elo ${numericRank}`;
+    const rankRaw = inventory.rank ?? inventory.lol_rank ?? (game === 'valorant' ? item.rmin : item.riot_lol_rank);
+    const rank = game === 'valorant' ? valorantRankLabel(rankRaw) : localizedRankLabel(rankRaw, 'lol');
+    if (rank) inventory.rank = rank;
     const balance = numeric(game === 'valorant' ? inventory.vp_min : inventory.blue_min);
     const balanceLabel = game === 'valorant' ? 'VP' : 'Essência azul';
     const count = skins === null ? '' : `${skins} skins/itens`;

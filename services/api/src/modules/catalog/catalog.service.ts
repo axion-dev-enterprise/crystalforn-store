@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import sharp from 'sharp';
 import { DatabaseService } from '../../database/database.service';
 import { integerEnv } from '../../common/config';
 import { normalizeProduct, STORE_CATALOG_GAMES } from './catalog.mapper';
@@ -6,6 +7,13 @@ import { normalizeProduct, STORE_CATALOG_GAMES } from './catalog.mapper';
 type CachedValue = { value: string; expiresAt: number };
 const imageCache = new Map<string, CachedValue>();
 const imagePending = new Map<string, Promise<string>>();
+const imageVariantCache = new Map<string, { value: Buffer; expiresAt: number }>();
+const imageVariantPending = new Map<string, Promise<Buffer>>();
+const INVENTORY_IMAGE_TYPES_BY_GAME: Record<string, readonly string[]> = {
+  fortnite: ['skins', 'pickaxes', 'dances', 'gliders'],
+  valorant: ['weapons', 'agents', 'buddies'],
+  lol: ['skins'],
+};
 const avatarCache = new Map<string, CachedValue>();
 const storeGameSet: ReadonlySet<string> = new Set(STORE_CATALOG_GAMES);
 let providerImageWindowStartedAt = 0;
@@ -121,7 +129,8 @@ export class CatalogService {
     const listed = await this.db.query<{ user_id: string }>(
       `SELECT DISTINCT p.attributes #>> '{inventory,roblox_id}' AS user_id
        FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
-       WHERE p.game='roblox' AND p.status='available' AND b.seller_id IS NULL
+       LEFT JOIN catalog_item_overrides o ON o.product_id=p.id
+       WHERE p.game='roblox' AND p.status='available' AND b.seller_id IS NULL AND COALESCE(o.hidden,false)=false
          AND p.attributes #>> '{inventory,roblox_id}' = ANY($1::text[])`, [ids]);
     const allowedIds = listed.rows.map((row) => row.user_id).filter((id) => id && /^\d{1,20}$/.test(id));
     const now = Date.now();
@@ -162,14 +171,16 @@ export class CatalogService {
     return { avatars };
   }
 
-  async fortniteInventoryImage(productId: string, type: string) {
-    if (!['skins', 'pickaxes', 'dances', 'gliders'].includes(type)) throw new NotFoundException('Prévia de inventário não encontrada.');
-    const result = await this.db.query<{ provider_item_id: string }>(
-      `SELECT p.provider_item_id FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
-       WHERE p.id=$1 AND p.game='fortnite' AND p.status='available' AND b.seller_id IS NULL`, [productId]);
-    const itemId = result.rows[0]?.provider_item_id;
-    if (!itemId || !/^\d+$/.test(itemId)) throw new NotFoundException('Prévia de inventário não encontrada.');
-    const cacheKey = `${itemId}:${type}`;
+  async inventoryImage(productId: string, type: string) {
+    if (!Object.values(INVENTORY_IMAGE_TYPES_BY_GAME).some((types) => types.includes(type))) throw new NotFoundException('Prévia de inventário não encontrada.');
+    const result = await this.db.query<{ provider_item_id: string; game: string }>(
+      `SELECT p.provider_item_id,p.game FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
+       LEFT JOIN catalog_item_overrides o ON o.product_id=p.id
+       WHERE p.id=$1 AND p.status='available' AND b.seller_id IS NULL AND COALESCE(o.hidden,false)=false`, [productId]);
+    const product = result.rows[0];
+    const itemId = product?.provider_item_id;
+    if (!itemId || !/^\d+$/.test(itemId) || !INVENTORY_IMAGE_TYPES_BY_GAME[product.game]?.includes(type)) throw new NotFoundException('Prévia de inventário não encontrada.');
+    const cacheKey = `${product.game}:${itemId}:${type}`;
     const cached = imageCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) return { imageDataUrl: cached.value };
     let request = imagePending.get(cacheKey);
@@ -214,40 +225,138 @@ export class CatalogService {
     finally { if (imagePending.get(cacheKey) === request) imagePending.delete(cacheKey); }
   }
 
-  async list(game?: string, page = 1, pageSize = 24, filters: { minPrice?: number; maxPrice?: number; minDaysOffline?: number } = {}) {
+  async inventoryImageVariant(productId: string, type: string, width: number): Promise<Buffer> {
+    if (![320, 640, 960].includes(width)) throw new NotFoundException('Prévia de inventário não encontrada.');
+    const source = await this.inventoryImage(productId, type);
+    const cacheKey = `${productId}:${type}:${width}`;
+    const cached = imageVariantCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.value;
+    let request = imageVariantPending.get(cacheKey);
+    if (!request) {
+      const base64 = source.imageDataUrl.slice('data:image/png;base64,'.length);
+      request = sharp(Buffer.from(base64, 'base64'), { limitInputPixels: 16_000_000 })
+        .resize({ width, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 78, effort: 4 })
+        .toBuffer()
+        .then((value) => {
+          imageVariantCache.set(cacheKey, { value, expiresAt: Date.now() + 60 * 60_000 });
+          for (const [key, entry] of imageVariantCache) {
+            if (entry.expiresAt <= Date.now()) imageVariantCache.delete(key);
+            if (imageVariantCache.size > 64) imageVariantCache.delete(imageVariantCache.keys().next().value!);
+          }
+          return value;
+        });
+      imageVariantPending.set(cacheKey, request);
+    }
+    try { return await request; }
+    finally { if (imageVariantPending.get(cacheKey) === request) imageVariantPending.delete(cacheKey); }
+  }
+
+  async list(game?: string, page = 1, pageSize = 24, filters: { minPrice?: number; maxPrice?: number; minDaysOffline?: number; skinName?: string; steamGame?: string; rank?: string; minLevel?: number } = {}, sort: 'price_asc' | 'price_desc' | 'title_asc' = 'price_asc') {
     const minPriceCents = filters.minPrice === undefined ? null : Math.round(filters.minPrice * 100);
     const maxPriceCents = filters.maxPrice === undefined ? null : Math.round(filters.maxPrice * 100);
     const minDaysOffline = filters.minDaysOffline ?? null;
+    const skinName = filters.skinName?.trim() || null;
+    const steamGame = filters.steamGame?.trim() || null;
+    const rank = filters.rank?.trim() || null;
+    const minLevel = filters.minLevel ?? null;
+    const orderBy = sort === 'price_desc'
+      ? 'p.price_brl_cents DESC, p.created_at DESC, p.id DESC'
+      : sort === 'title_asc'
+        ? 'lower(p.generated_title) ASC, p.id ASC'
+        : `p.price_brl_cents ASC,
+           CASE WHEN sf.feedback_total > 0 THEN sf.positive_percentage END DESC NULLS LAST,
+           sf.feedback_total DESC NULLS LAST,
+           CASE WHEN p.attributes#>>'{seller_reputation,sold_items_count}' ~ '^[0-9]+$'
+             THEN (p.attributes#>>'{seller_reputation,sold_items_count}')::numeric END DESC NULLS LAST,
+           p.created_at DESC, p.id DESC`;
     const result = await this.db.query(
-      `SELECT p.id,p.provider_item_id,p.game,p.generated_title,p.price_brl_cents,p.attributes,p.synced_at,
+      `SELECT p.id,p.provider_item_id,p.game,p.generated_title,p.price_brl_cents,
+         jsonb_strip_nulls(jsonb_build_object(
+           'days_offline',p.attributes->'days_offline',
+           'seller_reputation',NULLIF(jsonb_strip_nulls(jsonb_build_object(
+             'restore_percent',p.attributes#>'{seller_reputation,restore_percent}',
+             'sold_items_count',p.attributes#>'{seller_reputation,sold_items_count}'
+           )),'{}'::jsonb),
+           'inventory',NULLIF(jsonb_strip_nulls(jsonb_build_object(
+             'games_count',p.attributes#>'{inventory,games_count}',
+             'skins_count',p.attributes#>'{inventory,skins_count}',
+             'lol_rank',p.attributes#>'{inventory,lol_rank}',
+             'rank',p.attributes#>'{inventory,rank}',
+             'vbucks_balance',p.attributes#>'{inventory,vbucks_balance}',
+             'vp_min',p.attributes#>'{inventory,vp_min}',
+             'blue_min',p.attributes#>'{inventory,blue_min}',
+             'robux_balance',p.attributes#>'{inventory,robux_balance}',
+             'level',p.attributes#>'{inventory,level}',
+             'items_count',p.attributes#>'{inventory,items_count}',
+             'fruits_count',p.attributes#>'{inventory,fruits_count}',
+             'pickaxes_count',p.attributes#>'{inventory,pickaxes_count}',
+             'vac_banned',p.attributes#>'{inventory,vac_banned}',
+             'followers_count',p.attributes#>'{inventory,followers_count}',
+             'roblox_id',p.attributes#>'{inventory,roblox_id}',
+             'username',p.attributes#>'{inventory,username}'
+           )),'{}'::jsonb)
+         )) AS attributes,
+         p.synced_at,
          sf.feedback_total AS seller_feedback_total,sf.positive_count AS seller_feedback_positive_count,
          sf.negative_count AS seller_feedback_negative_count,sf.positive_percentage AS seller_feedback_positive_percentage,
          sf.checked_at AS seller_feedback_checked_at
        FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
+       LEFT JOIN catalog_item_overrides o ON o.product_id=p.id
        LEFT JOIN seller_feedback_cache sf ON sf.seller_id=p.seller_id AND sf.checked_at IS NOT NULL
-       WHERE p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL
+       WHERE p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL AND COALESCE(o.hidden,false)=false
          AND ($1::text IS NULL OR p.game=$1)
           AND p.game=ANY($7::text[])
          AND ($4::bigint IS NULL OR p.price_brl_cents >= $4)
          AND ($5::bigint IS NULL OR p.price_brl_cents <= $5)
-         AND ($6::integer IS NULL OR CASE WHEN p.attributes->>'days_offline' ~ '^[0-9]+$' THEN (p.attributes->>'days_offline')::integer ELSE NULL END >= $6)
-      ORDER BY p.price_brl_cents ASC,
-         CASE WHEN sf.feedback_total > 0 THEN sf.positive_percentage END DESC NULLS LAST,
-         sf.feedback_total DESC NULLS LAST,
-         CASE WHEN p.attributes#>>'{seller_reputation,sold_items_count}' ~ '^[0-9]+$'
-           THEN (p.attributes#>>'{seller_reputation,sold_items_count}')::numeric END DESC NULLS LAST,
-         p.created_at DESC LIMIT $2 OFFSET $3`,
-       [game ?? null, pageSize, (page - 1) * pageSize, minPriceCents, maxPriceCents, minDaysOffline, [...STORE_CATALOG_GAMES]]);
+          AND ($6::integer IS NULL OR CASE WHEN p.attributes->>'days_offline' ~ '^[0-9]+$' THEN (p.attributes->>'days_offline')::integer ELSE NULL END >= $6)
+          AND ($8::text IS NULL OR (p.game='fortnite' AND (
+            EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p.attributes#>'{inventory,skins}')='array' THEN p.attributes#>'{inventory,skins}' ELSE '[]'::jsonb END) AS skin(value)
+              WHERE lower(COALESCE(skin.value->>'name',skin.value->>'title',skin.value#>>'{}','')) LIKE '%'||lower($8)||'%')
+            OR EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p.attributes#>'{inventory,featured_skins}')='array' THEN p.attributes#>'{inventory,featured_skins}' ELSE '[]'::jsonb END) AS skin(value)
+              WHERE lower(COALESCE(skin.value->>'name',skin.value->>'title',skin.value#>>'{}','')) LIKE '%'||lower($8)||'%')
+          )))
+          AND ($9::text IS NULL OR (p.game='steam' AND (
+            EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p.attributes#>'{inventory,games}')='array' THEN p.attributes#>'{inventory,games}' ELSE '[]'::jsonb END) AS game_entry(value)
+              WHERE lower(COALESCE(game_entry.value->>'name',game_entry.value->>'title',game_entry.value#>>'{}','')) LIKE '%'||lower($9)||'%')
+            OR EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p.attributes#>'{inventory,game_names}')='array' THEN p.attributes#>'{inventory,game_names}' ELSE '[]'::jsonb END) AS game_entry(value)
+              WHERE lower(COALESCE(game_entry.value->>'name',game_entry.value->>'title',game_entry.value#>>'{}','')) LIKE '%'||lower($9)||'%')
+          )))
+          AND ($10::text IS NULL OR (p.game IN ('valorant','lol') AND (
+            lower(COALESCE(p.attributes#>>'{inventory,rank}',p.attributes#>>'{inventory,lol_rank}','')) = lower($10)
+            OR left(lower(COALESCE(p.attributes#>>'{inventory,rank}',p.attributes#>>'{inventory,lol_rank}','')), length(lower($10)) + 1) = lower($10) || ' '
+          )))
+          AND ($11::integer IS NULL OR p.game IN ('valorant','lol') AND CASE WHEN COALESCE(p.attributes#>>'{inventory,level}',p.attributes#>>'{inventory,lol_level}') ~ '^[0-9]+$' THEN COALESCE(p.attributes#>>'{inventory,level}',p.attributes#>>'{inventory,lol_level}')::integer ELSE NULL END >= $11)
+       ORDER BY ${orderBy} LIMIT $2 OFFSET $3`,
+        [game ?? null, pageSize, (page - 1) * pageSize, minPriceCents, maxPriceCents, minDaysOffline, [...STORE_CATALOG_GAMES], skinName, steamGame, rank, minLevel]);
     const count = await this.db.query<{ total: string }>(
       `SELECT count(*)::text AS total FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
-       WHERE p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL
+       LEFT JOIN catalog_item_overrides o ON o.product_id=p.id
+       WHERE p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL AND COALESCE(o.hidden,false)=false
          AND ($1::text IS NULL OR p.game=$1)
           AND p.game=ANY($5::text[])
          AND ($2::bigint IS NULL OR p.price_brl_cents >= $2)
          AND ($3::bigint IS NULL OR p.price_brl_cents <= $3)
-         AND ($4::integer IS NULL OR CASE WHEN p.attributes->>'days_offline' ~ '^[0-9]+$' THEN (p.attributes->>'days_offline')::integer ELSE NULL END >= $4)`,
-       [game ?? null, minPriceCents, maxPriceCents, minDaysOffline, [...STORE_CATALOG_GAMES]]);
-    return { items: result.rows, page, pageSize, total: Number(count.rows[0]?.total ?? 0), currency: 'BRL' };
+          AND ($4::integer IS NULL OR CASE WHEN p.attributes->>'days_offline' ~ '^[0-9]+$' THEN (p.attributes->>'days_offline')::integer ELSE NULL END >= $4)
+          AND ($6::text IS NULL OR (p.game='fortnite' AND (
+            EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p.attributes#>'{inventory,skins}')='array' THEN p.attributes#>'{inventory,skins}' ELSE '[]'::jsonb END) AS skin(value)
+              WHERE lower(COALESCE(skin.value->>'name',skin.value->>'title',skin.value#>>'{}','')) LIKE '%'||lower($6)||'%')
+            OR EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p.attributes#>'{inventory,featured_skins}')='array' THEN p.attributes#>'{inventory,featured_skins}' ELSE '[]'::jsonb END) AS skin(value)
+              WHERE lower(COALESCE(skin.value->>'name',skin.value->>'title',skin.value#>>'{}','')) LIKE '%'||lower($6)||'%')
+          )))
+          AND ($7::text IS NULL OR (p.game='steam' AND (
+            EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p.attributes#>'{inventory,games}')='array' THEN p.attributes#>'{inventory,games}' ELSE '[]'::jsonb END) AS game_entry(value)
+              WHERE lower(COALESCE(game_entry.value->>'name',game_entry.value->>'title',game_entry.value#>>'{}','')) LIKE '%'||lower($7)||'%')
+            OR EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(p.attributes#>'{inventory,game_names}')='array' THEN p.attributes#>'{inventory,game_names}' ELSE '[]'::jsonb END) AS game_entry(value)
+              WHERE lower(COALESCE(game_entry.value->>'name',game_entry.value->>'title',game_entry.value#>>'{}','')) LIKE '%'||lower($7)||'%')
+          )))
+          AND ($8::text IS NULL OR (p.game IN ('valorant','lol') AND (
+            lower(COALESCE(p.attributes#>>'{inventory,rank}',p.attributes#>>'{inventory,lol_rank}','')) = lower($8)
+            OR left(lower(COALESCE(p.attributes#>>'{inventory,rank}',p.attributes#>>'{inventory,lol_rank}','')), length(lower($8)) + 1) = lower($8) || ' '
+          )))
+          AND ($9::integer IS NULL OR p.game IN ('valorant','lol') AND CASE WHEN COALESCE(p.attributes#>>'{inventory,level}',p.attributes#>>'{inventory,lol_level}') ~ '^[0-9]+$' THEN COALESCE(p.attributes#>>'{inventory,level}',p.attributes#>>'{inventory,lol_level}')::integer ELSE NULL END >= $9)`,
+        [game ?? null, minPriceCents, maxPriceCents, minDaysOffline, [...STORE_CATALOG_GAMES], skinName, steamGame, rank, minLevel]);
+    return { items: result.rows, page, pageSize, total: Number(count.rows[0]?.total ?? 0), currency: 'BRL', sort };
   }
 
   async detail(id: string) {
@@ -257,8 +366,9 @@ export class CatalogService {
          sf.negative_count AS seller_feedback_negative_count,sf.positive_percentage AS seller_feedback_positive_percentage,
          sf.checked_at AS seller_feedback_checked_at
        FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
+       LEFT JOIN catalog_item_overrides o ON o.product_id=p.id
        LEFT JOIN seller_feedback_cache sf ON sf.seller_id=p.seller_id AND sf.checked_at IS NOT NULL
-        WHERE p.id=$1 AND p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL
+        WHERE p.id=$1 AND p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL AND COALESCE(o.hidden,false)=false
           AND p.game=ANY($2::text[])`, [id, [...STORE_CATALOG_GAMES]]);
     return result.rows[0] ?? null;
   }
@@ -273,28 +383,74 @@ export class CatalogService {
       RUB: Number(settings.rub_brl_rate) > 0 ? Number(settings.rub_brl_rate) : null,
       BRL: 1,
     };
-    let count = 0;
+    const rowsByItemId = new Map<string, {
+      provider_item_id: string;
+      seller_id: string | null;
+      game: string;
+      source_title: string | null;
+      generated_title: string;
+      source_price: number;
+      source_currency: string;
+      price_brl_cents: number | null;
+      markup_percent: number;
+      status: string;
+      attributes: Record<string, unknown>;
+      provider_updated_at: null;
+    }>();
     const sellerIds = new Set<string>();
+    const discardedReasons: Record<string, number> = {};
+    const discard = (reason: string) => { discardedReasons[reason] = (discardedReasons[reason] ?? 0) + 1; };
     for (const value of items) {
-      if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
-      const product = normalizeProduct(value as Record<string, unknown>);
-      if (!product || !storeGameSet.has(product.game)) continue;
+      if (!value || typeof value !== 'object' || Array.isArray(value)) { discard('invalid_shape'); continue; }
+      const source = value as Record<string, unknown>;
+      const sourceId = String(source.item_id ?? '').trim();
+      if (!sourceId || sourceId.length > 100) { discard('invalid_identifier'); continue; }
+      if (source.item_origin !== undefined && source.item_origin !== 'personal') { discard('ineligible_origin'); continue; }
+      const product = normalizeProduct(source);
+      if (!product) { discard('invalid_or_incomplete_data'); continue; }
+      if (!storeGameSet.has(product.game)) { discard('unsupported_game'); continue; }
+      if (rowsByItemId.has(product.itemId)) discard('duplicate_item_id');
       if (product.sellerId && /^\d{1,40}$/.test(product.sellerId)) sellerIds.add(product.sellerId);
       const rate = rates[product.currency];
       let priceCents = rate === null ? null : Math.round(product.sourcePrice * rate * (1 + markup / 100) * 100);
       if (priceCents !== null && (!Number.isSafeInteger(priceCents) || priceCents <= 0)) priceCents = null;
+      rowsByItemId.set(product.itemId, {
+        provider_item_id: product.itemId,
+        seller_id: product.sellerId,
+        game: product.game,
+        source_title: product.sourceTitle,
+        generated_title: product.title,
+        source_price: product.sourcePrice,
+        source_currency: product.currency,
+        price_brl_cents: priceCents,
+        markup_percent: markup,
+        status: product.status,
+        attributes: product.attributes,
+        provider_updated_at: null,
+      });
+    }
+    const rows = [...rowsByItemId.values()];
+    if (rows.length) {
       await this.db.query(
-        `INSERT INTO products(provider_item_id,seller_id,game,source_title,generated_title,source_price,source_currency,price_brl_cents,markup_percent,status,attributes,provider_updated_at,synced_at)
-         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12,now())
+        `WITH incoming AS (
+           SELECT DISTINCT ON (provider_item_id) provider_item_id,seller_id,game,source_title,generated_title,
+             source_price,source_currency,price_brl_cents,markup_percent,status,attributes,provider_updated_at
+           FROM jsonb_to_recordset($1::jsonb) AS batch(
+             provider_item_id text,seller_id text,game text,source_title text,generated_title text,
+             source_price numeric,source_currency text,price_brl_cents bigint,markup_percent smallint,
+             status text,attributes jsonb,provider_updated_at timestamptz
+           )
+           ORDER BY provider_item_id
+         )
+         INSERT INTO products(provider_item_id,seller_id,game,source_title,generated_title,source_price,source_currency,price_brl_cents,markup_percent,status,attributes,provider_updated_at,synced_at)
+         SELECT provider_item_id,seller_id,game,source_title,generated_title,source_price,source_currency,price_brl_cents,markup_percent,status,attributes,provider_updated_at,now()
+         FROM incoming
          ON CONFLICT(provider_item_id) DO UPDATE SET seller_id=EXCLUDED.seller_id,game=EXCLUDED.game,source_title=EXCLUDED.source_title,
            generated_title=EXCLUDED.generated_title,source_price=EXCLUDED.source_price,source_currency=EXCLUDED.source_currency,
            price_brl_cents=EXCLUDED.price_brl_cents,markup_percent=EXCLUDED.markup_percent,
            status=CASE WHEN products.status='sold' THEN 'sold' ELSE EXCLUDED.status END,
            attributes=EXCLUDED.attributes,provider_updated_at=EXCLUDED.provider_updated_at,synced_at=now()`,
-        [product.itemId, product.sellerId, product.game, product.sourceTitle, product.title, product.sourcePrice, product.currency,
-          priceCents, markup, product.status,
-          JSON.stringify(product.attributes), null]);
-      count += 1;
+        [JSON.stringify(rows)]);
     }
     if (sellerIds.size) {
       await this.db.query(
@@ -303,7 +459,8 @@ export class CatalogService {
          WHERE seller_id ~ '^[0-9]{1,40}$' ON CONFLICT(seller_id) DO NOTHING`,
         [[...sellerIds]]);
     }
-    return count;
+    const discarded = Object.values(discardedReasons).reduce((total, count) => total + count, 0);
+    return { imported: rows.length, discarded, discardedReasons };
   }
 
   async revalidateProviderItem(itemId: string, expectedGame?: string): Promise<Record<string, unknown> | null> {

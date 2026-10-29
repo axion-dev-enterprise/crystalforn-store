@@ -1,15 +1,15 @@
 # Crystalforn Store
 
-Aplicação demonstrativa de loja digital, construída com Next.js, NestJS e PostgreSQL. O repositório contém a vitrine, API, painel administrativo, área do cliente, migrações, worker e configuração de contêineres.
+Loja de inventário de contas digitais, construída com Next.js, NestJS e PostgreSQL. O repositório contém a vitrine, API, painel administrativo, área do cliente, migrações, worker e configuração de contêineres.
 
-> **Estado desta versão: demonstração visual.** Os cards são fictícios, o catálogo real fica vazio e a API bloqueia compras, recargas, sincronização de estoque, entrega automática e webhooks de pagamento. Credenciais de fornecedor ou gateway não removem essas travas. Não use esta versão para vender produtos.
+> **Estado desta versão: demonstração somente.** A vitrine usa dez exemplos fictícios; a API não publica anúncios reais e o worker não consulta nem sincroniza a LZT. Compras, recargas, entrega automática e webhooks de pagamento estão bloqueados.
 
 ## O que funciona
 
-- Vitrine responsiva em pt-BR com filtros por jogo, faixa de preço e dias sem atividade, paginação e oito exemplos inteiramente fictícios.
+- Vitrine responsiva em pt-BR com filtros por jogo, atributos de conta, faixa de preço, dias sem atividade, ordenação e paginação; o modo demo usa dez exemplos fictícios.
 - Páginas de entrada, detalhes, área do cliente, painel e termos, com estados de carregamento, erro e listas vazias.
 - API NestJS versionada sob `/api/v1`, PostgreSQL com migrações SQL numeradas e worker de sincronização separado.
-- Estrutura de integração para catálogos, pagamentos e entrega, mantida desligada pela política de demonstração publicada no código.
+- API pública em modo `demoOnly`; registros de fornecedor eventualmente presentes no banco não são exibidos pela vitrine.
 - Compose para desenvolvimento e operação em contêineres, com serviços privados em rede interna e portas da loja limitadas a loopback.
 
 Consulte [docs/DEMO_MODE.md](docs/DEMO_MODE.md) para os limites exatos desta versão e [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) para os componentes e fluxos.
@@ -48,7 +48,7 @@ Execute os processos em terminais separados e configure `DATABASE_URL`, `APP_ORI
 npm run migrate --workspace @digital-store/api
 ```
 
-O worker de inventário e o worker de entrega estão desativados no código desta versão. Os comandos `dev:worker` e `dev:fulfillment` não devem ser usados para ativar integração comercial.
+O worker de inventário e o worker de entrega estão desativados no código desta versão. Os comandos `dev:worker` e `dev:fulfillment` não devem ser usados para ativar integração comercial ou consulta à LZT.
 
 ## Mapa do repositório
 
@@ -56,7 +56,7 @@ O worker de inventário e o worker de entrega estão desativados no código dest
 | --- | --- |
 | `apps/web` | Aplicação Next.js, rotas e componentes da interface |
 | `services/api` | API NestJS, módulos, migrações e provisionamento administrativo |
-| `services/sync-worker` | Worker de catálogo e entrega, com início bloqueado em modo demo |
+| `services/sync-worker` | Worker de catálogo e entrega; ambos inativos nesta versão |
 | `infra/nginx` | Exemplo de proxy reverso para uma instalação própria |
 | `docs` | Arquitetura, desenvolvimento, operações, segurança e contratos |
 | `docker-compose.yml` | PostgreSQL, API, web e perfis opcionais desativados por padrão |
@@ -66,7 +66,7 @@ O worker de inventário e o worker de entrega estão desativados no código dest
 - [Arquitetura e fluxos](docs/ARCHITECTURE.md)
 - [Desenvolvimento local](docs/DEVELOPMENT.md)
 - [API HTTP](docs/API.md)
-- [Modo demonstração e limites](docs/DEMO_MODE.md)
+- [Modo de demonstração e limites comerciais](docs/DEMO_MODE.md)
 - [Operação e implantação](docs/OPERATIONS.md)
 - [Segurança e gestão de segredos](docs/SECURITY.md)
 - [Compatibilidade comercial](docs/COMPATIBILIDADE_COMERCIAL.md)
@@ -76,11 +76,13 @@ O worker de inventário e o worker de entrega estão desativados no código dest
 - [Licenciamento](docs/LICENSING.md)
 - [Checklist de release](docs/RELEASE_CHECKLIST.md)
 - [Design responsivo e acessibilidade](docs/DESIGN_RESPONSIVE_REFERENCES.md)
+- [Backlog de requisitos e pendências](docs/BACKLOG.md)
+- [Mapa de filtros e campos do fornecedor](docs/PROVIDER_FIELD_MAP.md)
 
 Cada push para `main` e pull request executa o workflow de build do web, API e workers. O workflow não provisiona segredos ou serviços externos.
 
 ## Estado e próximos passos
 
-O modo demo é uma decisão explícita do produto e uma trava de código, não uma configuração de ambiente. Para qualquer futura oferta real, é necessário rever o modelo comercial, obter as aprovações aplicáveis, substituir e validar os provedores de identidade/pagamento, revisar termos e privacidade, fazer análise de segurança e alterar o gate em uma revisão separada. A integração de catálogo do fornecedor não constitui autorização para comercializar itens.
+O catálogo e o comércio têm gates separados, ambos fechados nesta versão. Qualquer ativação de consulta à LZT, checkout, gateway ou entrega exige outra revisão após validar o modelo comercial, identidade, termos e provedores.
 
 Este repositório não inclui dumps de banco, credenciais, chaves, arquivos `.env`, registros de cliente ou detalhes de uma instalação privada. Nunca coloque esses dados em issues, commits ou logs públicos.
