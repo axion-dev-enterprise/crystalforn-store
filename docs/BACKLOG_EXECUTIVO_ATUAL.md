@@ -9,6 +9,7 @@ Atualizado em 28/10/2026 após nova leitura das mensagens de Mateus Alves Fernan
 - A release atualmente verificada é `085baa6`. API, web e PostgreSQL estavam saudáveis; catálogo em modo demo retornava zero anúncios comerciais, autenticação central sem configuração falhava com `503` seguro e `/api/v1/auth/me` sem sessão retornava `401`. O worker continua desligado.
 - A abertura e os metadados da página inicial identificam a vitrine como prévia e informam que os anúncios são fictícios e não podem ser comprados. O Build `40794964577` passou para a cópia da home; a validação da atualização de metadados aguarda CI e a inspeção visual em produção depende da publicação.
 - Os títulos do detalhe, da home e do catálogo agora usam escala fluida em celulares e quebra balanceada. Build `40795662357` passou para o ajuste do detalhe e Build `40795918894` passou para home/catálogo; falta validar a renderização em viewport móvel publicado.
+- A árvore de acessibilidade em produção nas páginas demonstrativas de Fortnite, Steam, Roblox, Valorant e LoL confirmou avisos de dados fictícios e amostra parcial. Essa leitura não confirma responsividade visual em celular.
 - Permanecem sem autorização/validação: estoque real LZT, sincronização ativa, pagamentos, carteira, compra, entrega de credenciais e reembolsos reais.
 
 ## Limites de produto
