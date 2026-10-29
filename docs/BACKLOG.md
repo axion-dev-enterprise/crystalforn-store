@@ -447,7 +447,7 @@ Consolidar uma interface administrativa útil para acompanhar catálogo, pedidos
 
 ### BL-13 — Completar a área do cliente dentro do modo permitido
 
-**Estado:** Parcial. A UI inclui histórico paginado, carteira, estados de entrega e fluxo central de identidade com consulta de tenant/papéis; login e cadastro locais estão desativados. A rota central falha fechada com HTTP 503 quando a configuração não está disponível; uma resposta genérica de erro foi identificada na produção, e o novo commit preserva apenas o motivo seguro de configuração pendente. `/api/v1/auth/me` sem sessão retorna 401. O callback, a configuração operacional do serviço central, o tenant/papel em runtime e o isolamento de dados continuam sem verificação; nenhuma sessão foi criada. A demonstração bloqueia pagamentos e entrega reais.
+**Estado:** Parcial. A UI inclui histórico paginado, carteira, estados de entrega e fluxo central de identidade com consulta de tenant/papéis; login e cadastro locais estão desativados. Inspeção estática confirmou que o backend da loja implementa callback por código de uso único e valida tenant/papéis, e o serviço Auth Center contém o fluxo de cadastro `crystalforn` e emissão/consumo de código central. Ambos falham fechados quando falta configuração. O schema do Vault requer o segredo compartilhado, mas o arquivo `.env` dessa integração não está configurado neste workspace. Na release anterior, a rota central retornou `503` sem configuração e `/api/v1/auth/me` sem sessão retornou `401`; a release `361a117` não foi revalidada. Nenhuma sessão foi criada. A demonstração bloqueia pagamentos e entrega reais.
 
 Entregar uma área de cliente que exponha apenas a identidade autenticada e registros compatíveis com o ambiente. Para demonstração, usar exemplos fictícios claramente sinalizados; preparar o desenho de pedidos e entrega sem expor credenciais reais.
 
@@ -459,7 +459,7 @@ Entregar uma área de cliente que exponha apenas a identidade autenticada e regi
 - Credenciais reais de contas não são armazenadas ou mostradas até que a operação comercial e o fluxo de entrega estejam aprovados; dados de demonstração são sintéticos e identificados.
 - A interface informa erros e estados vazios de forma acessível, sem usar diálogos nativos do navegador.
 
-**Dependências:** Auth Center, BL-01 e BL-09. A entrega segura de produtos reais continua bloqueada.
+**Dependências:** configuração do segredo compartilhado nos dois runtimes por canal autorizado, callback HTTPS e Auth Center em produção; BL-01 e BL-09. A entrega segura de produtos reais continua bloqueada.
 
 ## Fora deste adendo
 
