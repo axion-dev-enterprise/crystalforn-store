@@ -8,7 +8,7 @@ Os exemplos Steam mostram nomes e tempo de jogo em cartões tipográficos; a dem
 
 O primeiro exemplo Fortnite usa somente a forma dos campos do JSON de referência: duas skins em destaque, contagens de inventário, vinculações e passe de batalha. O detalhe separa os nomes destacados da contagem total e informa quando a amostra não contém nomes individuais. Esses valores são fictícios; não representam uma conta ou anúncio do fornecedor.
 
-Na promoção de 28/10/2026, a web está em `c2185da` e a API em `f8b271b`. Os endpoints públicos de saúde e de estado de liberação confirmaram que catálogo, sincronização e pagamentos continuam desligados.
+Na release `085baa6`, web e API foram atualizadas juntas. A verificação de produção confirmou API/web/PostgreSQL saudáveis, `/api/v1/health` e `/api/v1/legal/terms/status` HTTP 200, catálogo `demoOnly: true` com zero anúncios comerciais e worker desligado. O login central sem configuração aprovada retorna `503` com detalhe seguro; `/api/v1/auth/me` sem sessão retorna `401`.
 
 O backend informa `catalogMode: demo`. A página de detalhes e a vitrine deixam claro que os itens são fictícios. Compra, cobrança Pix, saldo da carteira e entrega automática permanecem desativados.
 

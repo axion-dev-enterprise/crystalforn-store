@@ -2,7 +2,7 @@
 
 > Fila executável consolidada: [BACKLOG_EXECUTIVO_ATUAL.md](BACKLOG_EXECUTIVO_ATUAL.md). Este documento preserva os requisitos detalhados e o histórico das revisões.
 
-## Backlog executivo vigente — 28/10/2026
+## Backlog executivo vigente — revisão de 28/10/2026
 
 Esta seção é o recorte de execução atual, consolidado após ler as mensagens mais recentes de Mateus Alves Fernandes na conversa da Workana. As seções abaixo preservam o histórico e os critérios detalhados; em caso de repetição, este quadro resume a ordem e o estado atual. A opinião do cliente de que a API está “quase lá” define uma expectativa de produto, não comprova aceite técnico.
 
@@ -18,7 +18,7 @@ A versão permanece **demonstração somente**: sem estoque LZT publicado, venda
 | P1 | Normalizar títulos de contas | Parcial: normalização e títulos demonstrativos estão no código; faltam payloads autorizados para comprovar a cobertura real de cada categoria. | Remover texto russo/vago quando houver atributos estruturados. Usar a matriz de ranks/divisões enviada pelo cliente somente em LoL e Valorant; usar título neutro para dados ausentes ou inválidos. |
 | P1 | Tornar inventários transparentes e visuais | Parcial: há detalhes por jogo e amostra Fortnite textual; imagens por item, gamepasses e cobertura de payload não estão confirmados em todas as categorias. | Agrupar somente os dados que a API realmente retorna; apresentar nome e imagem quando a origem for confiável e a exibição estiver autorizada; marcar amostra truncada/parcial e campos não fornecidos. Investigar gamepasses Roblox sem afirmar lista individual se o contrato não a fornecer. |
 | P1 | Revisar identidade e responsividade | Parcial: tema claro/escuro e persistência já foram verificados em uma rota; vitrine e detalhe encerram consultas principais após 15 s e oferecem erro recuperável com retry. Falta inspeção consolidada de catálogo, detalhe, admin e área do cliente nos dois temas e em larguras móveis/desktop. | Validar navegação, hierarquia, estados vazio/erro, contraste, foco e ausência de overflow em rotas representativas. A alternância não pode sugerir que a loja esteja em operação comercial. |
-| P1 | Oferecer entrada de cliente pelo Auth Center | A rota central falha fechada com HTTP 503 e `/api/v1/auth/me` sem sessão retorna 401. O último deploy respondia com detalhe genérico; o novo commit preserva somente mensagens seguras de configuração. Callback, tenant e papel ainda não foram verificados com uma sessão válida. | Concluir login/cadastro somente via OAuth central e confirmar callback, tenant `crystalforn`, papel `store_customer` e isolamento da área do cliente. Sem configuração ou identidade válida, permanecer fechado com erro explícito `503`, sem sessão simulada. |
+| P1 | Oferecer entrada de cliente pelo Auth Center | Na release `085baa6`, a rota central falha fechada com HTTP 503 e motivo seguro de configuração; `/api/v1/auth/me` sem sessão retorna 401. Callback, tenant e papel ainda não foram verificados com uma sessão válida. | Concluir login/cadastro somente via OAuth central e confirmar callback, tenant `crystalforn`, papel `store_customer` e isolamento da área do cliente. Sem configuração ou identidade válida, permanecer fechado com erro explícito `503`, sem sessão simulada. |
 | P2 | Validar paginação em massa e sincronização | Benchmark sintético de 20k/40k existe; não comprova importação LZT, limites do fornecedor ou “tempo real”. O worker permanece desligado na demonstração. | Apurar contrato, cotas, semântica de paginação, memória, duração, retomada e falhas com evidência autorizada. Não reconciliar catálogo após varredura incompleta nem anunciar escala/latência não medidas. |
 | P2 | Especificar indisponibilidade e concorrência | Parcial no desenho/código: existem revalidação antes do pedido e idempotência de crédito; evento instantâneo do fornecedor e fluxo comercial não foram comprovados em runtime. | Definir como impedir entrega obsoleta em corrida, reconciliar timeouts ambíguos e creditar saldo uma única vez após indisponibilidade confirmada. Só prometer remoção imediata se o fornecedor oferecer mecanismo documentado e a latência for medida. |
 | P2 | Completar operações do painel administrativo | Parcial: resumo, catálogo, regras e histórico têm estrutura; métricas e ações autenticadas não foram verificadas nesta revisão. | Priorizar rastreabilidade de sincronização, pedidos, falhas e ações; identificar origem demo/real; validar permissões no servidor e não oferecer controles que abram vendas ou integração real enquanto o gate estiver fechado. |
@@ -54,7 +54,7 @@ Atualizado em 28/10/2026 após nova leitura da conversa de Mateus Alves Fernande
 ## Estado e limites atuais
 
 - A loja permanece em **demonstração somente**, sem catálogo real, cobrança, compra, entrega automática ou integração ativa com gateway. Ver [DEMO_MODE.md](DEMO_MODE.md) e [COMPATIBILIDADE_COMERCIAL.md](COMPATIBILIDADE_COMERCIAL.md).
-- A API e a web do commit `eb9371b` foram publicadas no Hostinger em 29/10/2026. Sondas posteriores confirmaram API/web/Postgres saudáveis, `/api/v1/health` e `/api/v1/legal/terms/status` HTTP 200, catálogo `demoOnly: true` com zero anúncios comerciais e worker parado. As imagens anteriores permanecem etiquetadas para rollback; o registro operacional fica na documentação local de implantação.
+- A API e a web do commit `085baa6` foram publicadas na Hostinger. A verificação confirmou API/web/PostgreSQL saudáveis, `/api/v1/health` e `/api/v1/legal/terms/status` HTTP 200, catálogo `demoOnly: true` com zero anúncios comerciais e worker parado. O login central sem configuração retorna `503` com detalhe seguro; `/api/v1/auth/me` sem sessão retorna `401`. O registro operacional detalhado permanece na documentação local de implantação.
 - Uma inspeção anterior encontrou capas Steam externas nos fixtures; nesta revisão, elas foram removidas até a análise de origem/licença. Os nomes e horas continuam no inventário textual. A observação anterior de respostas HTTP `200 image/jpeg` só demonstra disponibilidade técnica e não é autorização de uso. O detalhe Fortnite ainda não dispõe de imagens individuais do JSON de exemplo.
 - A API pode exibir resultados de integração em ambiente de desenvolvimento, mas isso não comprova capacidade de importar dezenas de milhares de anúncios, consistência de inventário ou prontidão para produção.
 - Toda tarefa que consulte dados reais da LZT, processe pagamentos, entregue credenciais ou movimente saldo depende de revisão própria de contrato, segurança e compatibilidade comercial. Os itens marcados como bloqueados não devem ser liberados por este backlog.
@@ -452,7 +452,7 @@ Entregar uma área de cliente que exponha apenas a identidade autenticada e regi
 - O botão de alternância entre tema claro e escuro e os refinamentos administrativos agora estão registrados em BL-11 e BL-12.
 - Nenhum pedido neste backlog altera a decisão vigente de manter a loja somente em demonstração.
 
-## Atualização — mensagens mais recentes no Brave, 28/10/2026
+## Novo backlog — mensagens mais recentes no Brave, 28/10/2026
 
 Leitura direta da conversa com Mateus Alves Fernandes na guia Workana aberta no Brave. O cliente avaliou a amostra atual como próxima do esperado e reiterou que a etapa da API depende de filtros essenciais, inventários mais transparentes e paginação. Essa avaliação não representa medição independente, aceite formal ou autorização para abrir vendas.
 
@@ -479,3 +479,14 @@ Mateus pediu para ser adicionado como administrador/colaborador na Hostinger e i
 - **Conclusão:** acesso revisado pelo titular e limitado ao escopo aprovado, ou decisão explícita de não conceder; canal SSH estável e identidade do destino verificados antes de qualquer operação autorizada.
 
 Essas mensagens não alteram o limite vigente: a loja permanece em demonstração, sem catálogo real, sincronização LZT ativa, pagamentos, saldo, entrega de credenciais ou reembolsos.
+
+### Próximas ações consolidadas
+
+1. **Concluir o acabamento da demonstração:** revisar catálogo, detalhe, acesso, área do cliente e painel administrativo em celular e desktop, nos temas claro e escuro; registrar problemas de hierarquia, espaçamento, foco, contraste, estados vazios/erro e responsividade.
+2. **Fechar fidelidade dos dados visíveis:** conferir filtros Fortnite/Steam/LoL/Valorant, títulos em pt-BR e grupos de inventário contra o mapa de campos e os payloads de exemplo. Manter contagens/amostras explícitas; imagens individuais e gamepasses só entram quando existirem no payload e a origem de uso estiver revisada.
+3. **Resolver a dependência do Auth Center:** obter configuração aprovada pelo responsável do serviço e validar callback, tenant, papel e isolamento em sessão legítima. Até lá, manter `503` sem sessão simulada.
+4. **Especificar a paginação antes de alegar escala:** registrar limites e semântica da API, cursor/página, rate limit, checkpoint, retomada, memória, duração e reconciliação. Separar resultados sintéticos de qualquer medição autorizada no fornecedor; worker permanece inativo.
+5. **Documentar concorrência e indisponibilidade:** detalhar revalidação, timeout ambíguo, não entrega de produto indisponível e idempotência de eventual reembolso, sem ativar pedido, carteira ou fornecedor real.
+6. **Melhorar operações do painel somente dentro do demo:** priorizar origem dos dados, estado/falhas da sincronização, histórico e permissões. Nenhum controle deve abrir integração ou comércio.
+7. **Aguardar retorno do cliente sobre Hostinger/SSH:** registrar a decisão do titular sobre eventual convite de colaborador com privilégio mínimo e aguardar confirmação de estabilidade do SSH antes de operações remotas.
+8. **Manter checkout e entrega em backlog bloqueado:** gateway, saldo, credenciais e reembolsos só avançam após revisão de compatibilidade comercial e autorização explícita da mudança de escopo.
