@@ -8,6 +8,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 - Identifica a página inicial como prévia demonstrativa já no título e no texto de abertura, antes de apresentar os exemplos fictícios.
 - Atualiza o título e a descrição da página para identificar a prévia como fictícia também na aba do navegador e em metadados.
 - Ajusta o título longo do detalhe com tipografia fluida em telas estreitas e quebra balanceada para reduzir altura e prevenir overflow.
+- Reduz a escala mínima do título da home e do catálogo em celulares, mantendo limites fluidos até 600 px.
 - Explicita a ausência de imagens individuais por grupo no detalhe do produto e substitui iniciais que podiam parecer arte real por um ícone neutro; imagens com origem confiável continuam visíveis, e falhas de carregamento mostram a ausência.
 - Preserva uma explicação segura de configuração ausente na resposta 503 do login central da Crystalforn; respostas internas não relacionadas continuam genéricas.
 - Registra a publicação do commit `eb9371b` no Hostinger com API/web saudáveis, modo demo e worker desligado.
