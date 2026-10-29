@@ -45,10 +45,12 @@ O arquivo `exemplo_apijson (1).txt` representa uma resposta paginada com `status
 
 O exemplo não fornece imagens/ícones por item, inventário detalhado de picaretas/emotes/asas-delta, ranks LoL/Valorant, jogos Steam nem gamepasses Roblox. Também não contém um status de disponibilidade por anúncio. O manual pede filtrar itens inválidos, banidos ou vendidos, mas esses estados não podem ser inferidos deste payload; exigem campo ou endpoint documentado. Esta amostra, portanto, não valida cobertura de todas as categorias nem permite prometer inventário completo ou imagem individual.
 
-## Paginação: divergência que exige nova verificação autorizada
+## Paginação e limites: divergência que exige nova verificação autorizada
 
-As referências de categoria publicam `after` como cursor de próxima página. O registro operacional existente relata que uma leitura com `page=2` retornou página distinta e que o valor testado em `after` repetiu a primeira página; a implementação mantém `page` e checkpoint numérico. Como o schema publicado não explica como obter o valor correto de `after`, não se deve trocar o mecanismo sem uma nova validação factual autorizada. A integração está desligada no modo de demonstração.
+As referências de categoria publicam `after` como cursor de próxima página. O registro operacional existente relata que uma leitura com `page=2` retornou página distinta e que o valor testado em `after` repetiu a primeira página; a implementação mantém `page` e checkpoint numérico. Como o schema consultado não explica como obter o valor correto de `after` na resposta nem informa o tamanho de página, não se deve trocar o mecanismo sem nova validação factual autorizada. A documentação oficial limita métodos de busca por categoria a 20 requisições por minuto (intervalo recomendado de 3 segundos), independentemente dos demais limites base; retornos 429 e metadados de rate limit devem orientar a retomada. A integração está desligada no modo de demonstração.
+
+Sem tamanho de página conhecido, o limite de 20 requisições/minuto não permite estimar o tempo de uma varredura de 20–40 mil itens. O benchmark sintético de lotes locais não mede o número de anúncios retornado por chamada, latência, cotas ou consistência do catálogo LZT.
 
 ## Verificação
 
-Este é um mapeamento estático de documentação pública e código-fonte. Não comprova o formato de cada resposta real, cobertura completa de inventário, listas individuais de gamepasses, resolução de IDs Steam, uso dos filtros do fornecedor pela vitrine nem importação em massa. Essas comprovações permanecem dependentes de payloads autorizados e de uma revisão posterior do gate de demonstração.
+Este é um mapeamento estático de documentação pública e código-fonte. Não comprova o formato de cada resposta real, o cursor de continuação, tamanho de página, cobertura completa de inventário, listas individuais de gamepasses, resolução de IDs Steam, uso dos filtros do fornecedor pela vitrine nem importação em massa. Essas comprovações permanecem dependentes de payloads autorizados e de uma revisão posterior do gate de demonstração.

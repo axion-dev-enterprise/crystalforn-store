@@ -105,6 +105,20 @@ Este recorte acrescenta os pedidos mais recentes de Mateus ao backlog existente.
 
 **Sequência sugerida:** (1) validar visual dos dois temas e filtros da demo; (2) completar e documentar a amostra de inventário por jogo sem inventar dados ou direitos de imagem; (3) medir capacidade sintética e separar claramente o que não foi medido na LZT; (4) documentar o fluxo de concorrência e crédito idempotente sem executar transações; (5) manter a fase comercial bloqueada até revisão independente. O cliente considera estes ajustes o caminho para fechar a etapa da API; isso não constitui aceite formal.
 
+### Atualização técnica do backlog — paginação LZT, 28/10/2026
+
+A documentação pública da [Market API](https://lzt-market.readme.io/reference/information) informa limite de 20 chamadas por minuto para métodos de busca por categoria, com intervalo de 3 segundos, além de expor metadados de rate limit nas respostas. As referências de [Epic Games](https://lzt-market.readme.io/reference/categoryepicgames) e [Steam](https://lzt-market.readme.io/reference/categorysteam) descrevem `after` como cursor da próxima página. A documentação consultada não esclarece o tamanho máximo da página nem o campo da resposta que fornece esse cursor.
+
+O worker atual mantém checkpoint numérico `page`, e o registro técnico anterior descreve uma tentativa empírica em que `page=2` diferiu da primeira página, enquanto um valor de `after` sem contrato confirmado repetiu a primeira. Isto deixa uma divergência entre o parâmetro documentado e o mecanismo implementado; não justifica troca às cegas nem valida o volume solicitado. Com 20 buscas de categoria por minuto e tamanho de página desconhecido, não há base para estimar quantas horas ou chamadas seriam necessárias para 20–40 mil itens.
+
+| Prioridade | Trabalho | Critério de conclusão | Estado / limite |
+| --- | --- | --- | --- |
+| P1 | Confirmar contrato do cursor | Identificar, por documentação completa ou payload de leitura autorizado, o cursor exato retornado e usá-lo para avançar sem repetir/omitir páginas; cobrir fim de catálogo, resposta vazia e retomada. | Ainda não confirmado. Não ativar sincronização nem trocar `page` por `after` até fechar o contrato. |
+| P2 | Recalcular capacidade de varredura | Medir tamanho de página, chamadas efetivas, limites de rate, latência, memória, checkpoint e retomada; reportar separadamente sintético e fornecedor. | 20 chamadas/minuto é documentado; tamanho da página e volume real não. Não prometer “tempo real” ou 20–40 mil até medir. |
+| P2 | Fazer reconciliação segura | Garantir que falha, rate limit, timeout ou cursor repetido não marquem catálogo parcial como completo nem removam anúncios por engano. | Worker inativo no modo demo; validação de produção depende de revisão independente. |
+
+Estas constatações vêm apenas de documentação pública e revisão estática do código; nenhuma consulta autenticada ou sincronização LZT foi executada nesta revisão.
+
 ## Adendo — reanálise solicitada por Mateus hoje, 28/10/2026
 
 Mateus pediu uma nova análise do resultado da API e avaliou a direção atual como agradável e próxima do esperado. Para considerar a etapa da API concluída, ele apontou os itens abaixo. São requisitos e observações do cliente, não validações independentes de runtime nem aceite formal.
