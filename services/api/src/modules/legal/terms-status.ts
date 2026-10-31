@@ -13,6 +13,8 @@ export function purchaseTermsStatus() {
   return {
     enabled: termsEnabled && commerce.marketplaceEnabled,
     termsEnabled,
+    catalogMode: commerce.catalogMode,
+    catalogSyncEnabled: commerce.catalogSyncEnabled,
     marketplaceEnabled: commerce.marketplaceEnabled,
     paymentProviders: commerce.paymentProviders,
     version: termsEnabled ? PUBLISHED_PURCHASE_TERMS_VERSION : null,

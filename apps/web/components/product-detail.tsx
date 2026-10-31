@@ -1,19 +1,60 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
+import { findDemoProduct } from '@/data/demo-products';
 
-type Product = { id: string; provider_item_id: string; game: string; generated_title: string; price_brl_cents: number; attributes: Record<string, unknown>; seller_feedback_total?: number | null; seller_feedback_positive_percentage?: number | null };
+type Product = { id: string; provider_item_id: string; game: string; generated_title: string; price_brl_cents: number; attributes: Record<string, unknown>; synced_at?: string | null; seller_feedback_total?: number | null; seller_feedback_positive_percentage?: number | null; demoOnly?: boolean };
 type CheckoutResult = { order: { id: string; status: string; total_cents: number }; pix?: { copyPaste?: string; qrCodeBase64?: string | null; expiresAt?: string } };
-type InventoryImages = Partial<Record<'skins' | 'pickaxes' | 'dances' | 'gliders' | 'avatar', string>>;
+type InventoryImages = Partial<Record<'skins' | 'pickaxes' | 'dances' | 'gliders' | 'weapons' | 'agents' | 'buddies' | 'avatar', string>>;
 const rarityLabelsPtBr: Record<string, string> = { common: 'Comum', uncommon: 'Incomum', rare: 'Rara', epic: 'Épica', legendary: 'Lendária', mythic: 'Mítica', icon: 'Série Ícones' };
 const orderStatusPtBr: Record<string, string> = { pending_payment: 'Aguardando pagamento', paid: 'Pagamento confirmado', delivery_required: 'Entrega em preparação', delivered: 'Entregue', cancelled: 'Cancelado', refunded: 'Valor devolvido ao saldo da carteira', review: 'Em análise' };
 const money = (cents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100);
+const gameNames: Record<string, string> = { fortnite: 'Fortnite', valorant: 'Valorant', lol: 'League of Legends', roblox: 'Roblox', steam: 'Steam' };
 
-export function ProductDetail({ id }: { id: string }) {
+function gameLabel(game: string): string { return gameNames[game] ?? 'Conta digital'; }
+function inventoryItemName(item: unknown): string | null {
+  if (typeof item === 'string') return item.trim() || null;
+  if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+  const record = item as Record<string, unknown>;
+  const value = record.title ?? record.name ?? record.label;
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function inventoryCountLabel(namedCount: number, total: number, listedCount: number, totalWasReported: boolean): string {
+  const named = namedCount.toLocaleString('pt-BR');
+  const listed = listedCount.toLocaleString('pt-BR');
+  if (totalWasReported) return `${named} ${namedCount === 1 ? 'nome identificado' : 'nomes identificados'} · ${listed} ${listedCount === 1 ? 'registro recebido' : 'registros recebidos'} · total informado: ${total.toLocaleString('pt-BR')}`;
+  if (namedCount === listedCount) return `${listed} ${listedCount === 1 ? 'item listado' : 'itens listados'}`;
+  return `${named} ${namedCount === 1 ? 'nome identificado' : 'nomes identificados'} · ${listed} registros recebidos`;
+}
+function titleHighlights(title: string, game: string): string[] {
+  const gameName = gameLabel(game).toLocaleLowerCase('pt-BR');
+  return title.split(/\s*\|\s*|\s+·\s+/)
+    .map((part) => part.trim())
+    .filter((part) => part && part.toLocaleLowerCase('pt-BR') !== gameName && !/[\u0400-\u04FF]/.test(part))
+    .slice(0, 8);
+}
+
+function syncedAtLabel(value?: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+}
+
+function isStaleSync(value?: string | null): boolean {
+  if (!value) return true;
+  const timestamp = new Date(value).getTime();
+  return !Number.isFinite(timestamp) || Date.now() - timestamp > 24 * 60 * 60 * 1000;
+}
+
+export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; returnTo?: string }) {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [requestAttempt, setRequestAttempt] = useState(0);
   const [coupon, setCoupon] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [method, setMethod] = useState<'pix' | 'wallet'>('pix');
@@ -22,18 +63,65 @@ export function ProductDetail({ id }: { id: string }) {
   const [checkout, setCheckout] = useState<CheckoutResult | null>(null);
   const [copyStatus, setCopyStatus] = useState('');
   const [inventoryImages, setInventoryImages] = useState<InventoryImages>({});
+  const [failedInventoryImageKeys, setFailedInventoryImageKeys] = useState<Set<string>>(new Set());
   const [inventoryImageMessage, setInventoryImageMessage] = useState('');
+  const [inventorySection, setInventorySection] = useState<HTMLElement | null>(null);
+  const [visibleInventoryProductId, setVisibleInventoryProductId] = useState('');
   const [termsEnabled, setTermsEnabled] = useState(false);
+  const [catalogReadOnly, setCatalogReadOnly] = useState(false);
   const [paymentProviderApproval, setPaymentProviderApproval] = useState<Record<'mercadopago' | 'pushinpay', boolean>>({ mercadopago: false, pushinpay: false });
   const [termsStatusLoading, setTermsStatusLoading] = useState(true);
-  useEffect(() => { fetch(`/api/v1/catalog/${encodeURIComponent(id)}`, { cache: 'no-store' }).then(async (response) => { if (!response.ok) throw new Error('Esta conta não está mais disponível.'); setProduct(await response.json() as Product); }).catch((reason) => setError(reason instanceof Error ? reason.message : 'Erro ao carregar o produto.')).finally(() => setLoading(false)); }, [id]);
+  useEffect(() => {
+    let active = true;
+    const demo = findDemoProduct(id);
+    if (demo) {
+      setError('');
+      setProduct({ ...demo, provider_item_id: demo.id, demoOnly: true });
+      setLoading(false);
+      return () => { active = false; };
+    }
+    setLoading(true);
+    setError('');
+    const controller = new AbortController();
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 15_000);
+    fetch(`/api/v1/catalog/${encodeURIComponent(id)}`, { cache: 'no-store', signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Esta conta não está mais disponível.');
+        const body = await response.json() as Product;
+        if (active) setProduct(body);
+      })
+      .catch((reason) => {
+        if (!active || (controller.signal.aborted && !timedOut)) return;
+        setProduct(null);
+        setError(timedOut ? 'A consulta do produto excedeu 15 segundos. Volte ao catálogo e tente novamente.' : reason instanceof Error ? reason.message : 'Erro ao carregar o produto.');
+      })
+      .finally(() => {
+        window.clearTimeout(timeoutId);
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [id, requestAttempt]);
+  useEffect(() => {
+    setInventoryImages({});
+    setInventoryImageMessage('');
+    setFailedInventoryImageKeys(new Set());
+  }, [product?.id]);
   useEffect(() => {
     let active = true;
     fetch('/api/v1/legal/terms/status', { cache: 'no-store' })
-      .then(async (response) => { if (!response.ok) throw new Error(); return response.json() as Promise<{ enabled?: boolean; paymentProviders?: Partial<Record<'mercadopago' | 'pushinpay', boolean>> }>; })
+      .then(async (response) => { if (!response.ok) throw new Error(); return response.json() as Promise<{ enabled?: boolean; catalogMode?: string; paymentProviders?: Partial<Record<'mercadopago' | 'pushinpay', boolean>> }>; })
       .then((body) => { if (active) {
         const approvals = { mercadopago: body.paymentProviders?.mercadopago === true, pushinpay: body.paymentProviders?.pushinpay === true };
         setTermsEnabled(body.enabled === true);
+        setCatalogReadOnly(body.catalogMode === 'live_read_only');
         setPaymentProviderApproval(approvals);
         setGateway((current) => approvals[current] ? current : approvals.mercadopago ? 'mercadopago' : approvals.pushinpay ? 'pushinpay' : current);
       } })
@@ -42,11 +130,28 @@ export function ProductDetail({ id }: { id: string }) {
     return () => { active = false; };
   }, []);
   useEffect(() => {
-    if (product?.game !== 'fortnite') return;
+    if (!product || !inventorySection) return;
+    setVisibleInventoryProductId('');
+    if (!('IntersectionObserver' in window)) { setVisibleInventoryProductId(product.id); return; }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setVisibleInventoryProductId(product.id);
+        observer.disconnect();
+      }
+    }, { rootMargin: '240px' });
+    observer.observe(inventorySection);
+    return () => observer.disconnect();
+  }, [inventorySection, product?.id]);
+  useEffect(() => {
+    if (!product || product.demoOnly || visibleInventoryProductId !== product.id) return;
+    const imageTypes = product.game === 'fortnite' ? ['skins', 'pickaxes', 'dances', 'gliders']
+      : product.game === 'valorant' ? ['weapons', 'agents', 'buddies']
+        : product.game === 'lol' ? ['skins'] : [];
+    if (imageTypes.length === 0) return;
     let active = true;
-    void Promise.all((['skins', 'pickaxes', 'dances', 'gliders'] as const).map(async (type) => {
+    void Promise.all(imageTypes.map(async (type) => {
       try {
-        const response = await fetch(`/api/v1/catalog/${encodeURIComponent(product.id)}/inventory-image?type=${type}`, { cache: 'force-cache' });
+        const response = await fetch(`/api/v1/catalog/${encodeURIComponent(product.id)}/inventory-image?type=${type}`, { cache: 'force-cache', signal: AbortSignal.timeout(15_000) });
         if (!response.ok) throw new Error();
         const body = await response.json() as { imageDataUrl?: string };
         if (!body.imageDataUrl?.startsWith('data:image/png;base64,')) throw new Error();
@@ -56,12 +161,12 @@ export function ProductDetail({ id }: { id: string }) {
       if (!active) return;
       const images = Object.fromEntries(results.filter((entry): entry is NonNullable<typeof entry> => entry !== null)) as InventoryImages;
       setInventoryImages(images);
-      if (Object.keys(images).length === 0) setInventoryImageMessage('As prévias visuais do fornecedor não estão disponíveis agora; os dados completos continuam abaixo.');
+      if (Object.keys(images).length === 0) setInventoryImageMessage('As prévias visuais do fornecedor não estão disponíveis agora; os dados públicos informados continuam abaixo.');
     });
     return () => { active = false; };
-  }, [product]);
+  }, [product, visibleInventoryProductId]);
   useEffect(() => {
-    if (product?.game !== 'roblox') return;
+    if (product?.game !== 'roblox' || product.demoOnly || visibleInventoryProductId !== product.id) return;
     const inventory = product.attributes.inventory as Record<string, unknown> | undefined;
     const userId = inventory?.roblox_id === undefined ? '' : String(inventory.roblox_id);
     if (!/^\d{1,20}$/.test(userId)) return;
@@ -71,7 +176,7 @@ export function ProductDetail({ id }: { id: string }) {
       .then((body) => { if (active && body.avatars?.[userId]) setInventoryImages((current) => ({ ...current, avatar: body.avatars![userId] })); })
       .catch(() => { if (active) setInventoryImageMessage('A miniatura pública do perfil Roblox não está disponível agora.'); });
     return () => { active = false; };
-  }, [product]);
+  }, [product, visibleInventoryProductId]);
   async function buy(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError('');
     if (method === 'pix' && !paymentProviderApproval[gateway]) {
@@ -98,21 +203,25 @@ export function ProductDetail({ id }: { id: string }) {
     }
   }
   if (loading) return <section className="shell page-shell"><div className="detail-skeleton" aria-label="Carregando detalhes" aria-busy="true"><span /><span /><span /></div></section>;
-  if (!product) return <section className="shell page-shell"><div className="state-panel error-state" role="alert"><div><h1>Produto indisponível</h1><p>{error}</p></div><Link className="button-outline" href="/#catalogo">Voltar ao catálogo</Link></div></section>;
+  if (!product) return <section className="shell page-shell"><div className="state-panel error-state" role="alert"><div><h1>Produto indisponível</h1><p>{error}</p></div><div className="state-actions"><button className="button-outline" type="button" onClick={() => { setProduct(null); setError(''); setLoading(true); setRequestAttempt((attempt) => attempt + 1); }}>Tentar novamente</button><Link className="button-outline" href={returnTo}>Voltar ao catálogo</Link></div></div></section>;
+  const highlights = titleHighlights(product.generated_title, product.game);
+  const updatedAt = syncedAtLabel(product.synced_at);
   return <section className="shell page-shell">
-    <Link className="back-link" href="/#catalogo">← Voltar ao catálogo</Link>
+    <Link className="back-link" href={returnTo}>← Voltar ao catálogo</Link>
+    <nav className="detail-section-nav" aria-label="Nesta página"><a href="#product-summary-title">Resumo</a><a href="#inventory-showcase-title">Inventário</a><a href="#other-account-data-title">Outros dados</a></nav>
     <div className="detail-layout">
-      <article className="detail-copy">
-        <p className="eyebrow">{product.game.replace('lol', 'LEAGUE OF LEGENDS').toUpperCase()} · ESTOQUE CONFERIDO NO CHECKOUT</p>
-        <h1>{product.generated_title}</h1>
-        <p className="detail-lede">Veja os atributos sincronizados antes de concluir a compra. O item será validado novamente antes de criar qualquer cobrança.</p>
+      <article className="detail-copy" id="product-summary">
+        <header className="detail-intro">
+          <p className="eyebrow">{product.demoOnly ? 'EXEMPLO FICTÍCIO · PRÉVIA' : `${gameLabel(product.game).toUpperCase()} · ANÚNCIO SINCRONIZADO`}</p>
+          <h1 className="detail-section-nav-target" id="product-summary-title" tabIndex={-1}>{product.generated_title}</h1>
+          <p className="detail-lede">{product.demoOnly ? 'Exemplo demonstrativo para revisar a organização dos dados e do inventário.' : 'Explore os dados públicos do inventário e confira quando o anúncio foi sincronizado.'}</p>
+          {highlights.length > 0 && <ul className="detail-highlights" aria-label="Destaques do anúncio">{highlights.map((highlight, index) => <li key={`${highlight}-${index}`}>{highlight}</li>)}</ul>}
+          {product.demoOnly ? <p className="detail-updated"><span>Demonstração</span><span>Dados fictícios · sem oferta</span></p> : updatedAt ? <p className={`detail-updated${isStaleSync(product.synced_at) ? ' is-stale' : ''}`}><span>{isStaleSync(product.synced_at) ? 'Disponibilidade pode ter mudado' : 'Última sincronização'}</span><time dateTime={product.synced_at ?? undefined}>{updatedAt}</time></p> : <p className="detail-updated is-stale"><span>Data de sincronização indisponível</span><span>Disponibilidade não confirmada</span></p>}
+        </header>
         {typeof product.seller_feedback_total === 'number' && product.seller_feedback_total > 0 && typeof product.seller_feedback_positive_percentage === 'number' && <section className="seller-feedback-summary" aria-label="Reputação do vendedor"><p className="eyebrow">AVALIAÇÕES DO VENDEDOR</p><strong>{product.seller_feedback_positive_percentage}% positivas</strong><p>De {product.seller_feedback_total.toLocaleString('pt-BR')} avaliações agregadas pela API do fornecedor.</p></section>}
-        {inventoryImageMessage && <p className="inventory-image-note" role="status">{inventoryImageMessage}</p>}
-        <InventoryShowcase game={product.game} attributes={product.attributes} images={inventoryImages} />
-        <div className="attributes-panel"><h2>Outros dados da conta</h2><AttributeList attributes={product.attributes} /></div>
       </article>
       <aside className="purchase-panel">
-        <p className="eyebrow">PREÇO EM REAIS</p>
+        <p className="eyebrow">{product.demoOnly ? 'VALOR ILUSTRATIVO' : 'PREÇO EM REAIS'}</p>
         <strong className="detail-price">{money(Number(product.price_brl_cents))}</strong>
         {checkout ? <div className="checkout-result" role="status">
           <h2>{checkout.pix ? 'Pix criado' : 'Pedido registrado'}</h2>
@@ -121,11 +230,11 @@ export function ProductDetail({ id }: { id: string }) {
             <textarea id="pix-code" readOnly value={checkout.pix.copyPaste} rows={4} />
             <button type="button" className="button-outline" onClick={() => void copyPixCode()}>Copiar código Pix</button>
             {copyStatus && <p className="fine-print" role="status" aria-live="polite">{copyStatus}</p>}
-            {checkout.pix.qrCodeBase64 && <img className="qr-image" alt="QR Code Pix para este pedido" src={`data:image/png;base64,${checkout.pix.qrCodeBase64}`} />}
+            {checkout.pix.qrCodeBase64 && <img className="qr-image" alt="QR Code Pix para este pedido" width={180} height={180} src={`data:image/png;base64,${checkout.pix.qrCodeBase64}`} />}
           </>}
           <p>Pedido {checkout.order.id.slice(0, 8)} · {orderStatusPtBr[checkout.order.status] ?? 'Em processamento'}</p>
           <Link className="button-primary button-wide" href="/cliente">Acompanhar pedido</Link>
-        </div> : !termsEnabled ? <div className="terms-blocked" role="status"><h2>{termsStatusLoading ? 'Conferindo condições de compra' : 'Compra temporariamente indisponível'}</h2><p>{termsStatusLoading ? 'Aguarde a confirmação das condições de compra.' : 'O checkout aguarda a aprovação dos Termos de Compra e a liberação documentada do modelo comercial. Nenhuma cobrança ou débito de carteira será iniciado.'}</p><Link className="button-outline" href="/termos">Ver condições de compra</Link></div> : <form className="checkout-form" onSubmit={(event) => void buy(event)}>
+        </div> : product.demoOnly ? <div className="terms-blocked" role="status"><h2>Somente demonstração</h2><p>Este exemplo e o valor exibido são fictícios. Nenhuma compra, cobrança ou entrega está disponível.</p></div> : catalogReadOnly ? <div className="terms-blocked" role="status"><h2>Visualização do catálogo</h2><p>Este anúncio está sincronizado com o fornecedor. Compras, cobranças Pix e débitos da carteira permanecem desativados.</p></div> : !termsEnabled ? <div className="terms-blocked" role="status"><h2>{termsStatusLoading ? 'Conferindo condições de compra' : 'Compra temporariamente indisponível'}</h2><p>{termsStatusLoading ? 'Aguarde a confirmação das condições de compra.' : 'O checkout aguarda a aprovação dos Termos de Compra e a liberação documentada do modelo comercial. Nenhuma cobrança ou débito de carteira será iniciado.'}</p><Link className="button-outline" href="/termos">Ver condições de compra</Link></div> : <form className="checkout-form" onSubmit={(event) => void buy(event)}>
           <label htmlFor="coupon">Cupom de desconto <span>(opcional)</span></label>
           <input id="coupon" value={coupon} onChange={(event) => setCoupon(event.target.value)} autoComplete="off" maxLength={32} />
           <label htmlFor="payment-method">Forma de pagamento</label>
@@ -144,58 +253,112 @@ export function ProductDetail({ id }: { id: string }) {
           <Link className="signin-note" href="/entrar">Entrar ou criar conta</Link>
         </form>}
       </aside>
+      {inventoryImageMessage && <p className="inventory-image-note" role="status">{inventoryImageMessage}</p>}
+      <InventoryShowcase key={product.id} productId={product.id} game={product.game} demoOnly={Boolean(product.demoOnly)} attributes={product.attributes} images={inventoryImages} failedImageKeys={failedInventoryImageKeys} onImageError={(key) => setFailedInventoryImageKeys((current) => current.has(key) ? current : new Set(current).add(key))} sectionRef={setInventorySection} />
+      <div className="attributes-panel" id="other-account-data"><h2 className="detail-section-nav-target" id="other-account-data-title" tabIndex={-1}>Outros dados da conta</h2><AttributeList attributes={product.attributes} /></div>
     </div>
   </section>;
 }
 
-function InventoryShowcase({ game, attributes, images }: { game: string; attributes: Record<string, unknown>; images: InventoryImages }) {
+function InventoryShowcase({ productId, game, demoOnly, attributes, images, failedImageKeys, onImageError, sectionRef }: { productId: string; game: string; demoOnly: boolean; attributes: Record<string, unknown>; images: InventoryImages; failedImageKeys: Set<string>; onImageError: (key: string) => void; sectionRef: (element: HTMLElement | null) => void }) {
   const inventory = attributes.inventory && typeof attributes.inventory === 'object' ? attributes.inventory as Record<string, unknown> : {};
-  const definitions = game === 'fortnite' ? [
-    { key: 'skins', fallback: 'featured_skins', title: 'Personagens e skins', image: images.skins },
-    { key: 'pickaxes', fallback: 'featured_pickaxes', title: 'Picaretas', image: images.pickaxes },
-    { key: 'dances', fallback: 'featured_dances', title: 'Emotes', image: images.dances },
-    { key: 'gliders', fallback: 'featured_gliders', title: 'Asas-delta', image: images.gliders },
+  const [visibleItemCounts, setVisibleItemCounts] = useState<Record<string, number>>({});
+  const definitions: Array<{ key: string; fallback: string; aliases?: string[]; title: string; image?: string; imageType?: string; countKey?: string }> = game === 'fortnite' ? [
+    { key: 'skins', fallback: 'featured_skins', aliases: ['skin_names'], title: 'Personagens e skins', image: images.skins, countKey: 'skins_count' },
+    { key: 'pickaxes', fallback: 'featured_pickaxes', aliases: ['pickaxe_names'], title: 'Picaretas', image: images.pickaxes, countKey: 'pickaxes_count' },
+    { key: 'dances', fallback: 'featured_dances', aliases: ['emote_names'], title: 'Emotes', image: images.dances, countKey: 'dances_count' },
+    { key: 'gliders', fallback: 'featured_gliders', aliases: ['glider_names'], title: 'Asas-delta', image: images.gliders, countKey: 'gliders_count' },
   ] : game === 'valorant' ? [
-    { key: 'weapon_skins', fallback: 'featured_skins', title: 'Skins de armas', image: undefined },
-    { key: 'agents', fallback: 'featured_agents', title: 'Agentes', image: undefined },
-    { key: 'buddies', fallback: 'featured_buddies', title: 'Chaveiros', image: undefined },
+    { key: 'weapon_skins', fallback: 'featured_skins', title: 'Skins de armas', image: images.weapons, imageType: 'weapons', countKey: 'skins_count' },
+    { key: 'agents', fallback: 'featured_agents', title: 'Agentes', image: images.agents, imageType: 'agents' },
+    { key: 'buddies', fallback: 'featured_buddies', title: 'Chaveiros', image: images.buddies, imageType: 'buddies' },
   ] : game === 'lol' ? [
-    { key: 'skins', fallback: 'featured_skins', title: 'Skins', image: undefined },
-    { key: 'champions', fallback: 'featured_champions', title: 'Campeões', image: undefined },
+    { key: 'skins', fallback: 'featured_skins', title: 'Skins', image: images.skins, imageType: 'skins', countKey: 'skins_count' },
+    { key: 'champions', fallback: 'featured_champions', title: 'Campeões', image: undefined, countKey: 'champion_min' },
   ] : game === 'roblox' ? [
-    { key: 'items', fallback: 'featured_items', title: 'Itens', image: undefined },
-    { key: 'fruits', fallback: 'featured_fruits', title: 'Frutas', image: undefined },
+    { key: 'items', fallback: 'featured_items', title: 'Itens', image: undefined, countKey: 'items_count' },
+    { key: 'fruits', fallback: 'featured_fruits', title: 'Frutas', image: undefined, countKey: 'fruits_count' },
+    { key: 'gamepasses', fallback: 'game_passes', aliases: ['gamepass'], title: 'Gamepasses', image: undefined },
   ] : game === 'steam' ? [
+    { key: 'games', fallback: 'game_names', title: 'Jogos na biblioteca', image: undefined, countKey: 'games_count' },
     { key: 'gifts', fallback: 'featured_gifts', title: 'Presentes Steam', image: undefined },
   ] : [];
   const groups = definitions.flatMap((group) => {
-    const items = Array.isArray(inventory[group.key]) ? inventory[group.key] as unknown[]
-      : Array.isArray(inventory[group.fallback]) ? inventory[group.fallback] as unknown[] : [];
-    return items.length ? [{ ...group, items }] : [];
+    const candidates = [group.key, group.fallback, ...(group.aliases ?? [])]
+      .map((key) => inventory[key]).filter((value): value is unknown[] => Array.isArray(value));
+    const items = candidates.find((value) => value.length > 0) ?? candidates[0];
+    const rawCount = group.countKey ? inventory[group.countKey] : undefined;
+    const reportedCount = typeof rawCount === 'number' && Number.isFinite(rawCount) && rawCount >= 0 ? Math.floor(rawCount) : null;
+    const totalWasReported = reportedCount !== null;
+    const itemCount = reportedCount ?? (items?.length ?? 0);
+    const listedItems = items ?? [];
+    const namedItemCount = listedItems.filter((item) => inventoryItemName(item) !== null).length;
+    const hasIndividualImages = (items ?? []).some((item, index) => {
+      const record = item && typeof item === 'object' ? item as Record<string, unknown> : {};
+      const title = inventoryItemName(item) ?? 'Nome não informado pelo fornecedor';
+      const imageUrl = game === 'steam' ? null : safeInventoryImageUrl(record.image_url ?? record.imageUrl ?? record.icon_url ?? record.iconUrl ?? record.thumbnail ?? record.image ?? record.icon);
+      return Boolean(imageUrl && !failedImageKeys.has(`${group.key}-${index}-${title}`));
+    });
+    return items?.length || itemCount > 0 ? [{ ...group, items: listedItems, itemCount, totalWasReported, namedItemCount, hasIndividualImages }] : [];
   });
-  function itemCard(item: unknown, index: number) {
+  const namedItemsTotal = groups.reduce((total, group) => total + group.namedItemCount, 0);
+  const receivedRecordsTotal = groups.reduce((total, group) => total + group.items.length, 0);
+  const inventorySummary = namedItemsTotal === receivedRecordsTotal
+    ? `${receivedRecordsTotal.toLocaleString('pt-BR')} ${receivedRecordsTotal === 1 ? 'item listado' : 'itens listados'}`
+    : `${namedItemsTotal.toLocaleString('pt-BR')} ${namedItemsTotal === 1 ? 'nome identificado' : 'nomes identificados'} · ${receivedRecordsTotal.toLocaleString('pt-BR')} registros recebidos`;
+  function itemCard(item: unknown, index: number, groupKey: string) {
     const record = item && typeof item === 'object' ? item as Record<string, unknown> : {};
-    const title = typeof item === 'string' ? item : String(record.title ?? record.name ?? record.label ?? `Item ${index + 1}`);
+    const title = inventoryItemName(item) ?? 'Nome não informado pelo fornecedor';
+    // Steam artwork stays hidden until its source and display rights are reviewed.
+    const imageUrl = game === 'steam' ? null : safeInventoryImageUrl(record.image_url ?? record.imageUrl ?? record.icon_url ?? record.iconUrl ?? record.thumbnail ?? record.image ?? record.icon);
+    const imageKey = `${groupKey}-${index}-${title}`;
+    const imageFailed = failedImageKeys.has(imageKey);
     const rarity = typeof record.rarity === 'string' ? record.rarity : '';
     const translatedRarity = rarityLabelsPtBr[rarity.toLowerCase()] ?? rarity;
+    const playtimeMinutes = game === 'steam' ? Number(record.playtime_forever ?? record.playtime_minutes) : Number.NaN;
+    const playtimeLabel = Number.isFinite(playtimeMinutes) && playtimeMinutes >= 0
+      ? playtimeMinutes < 60
+        ? `${Math.floor(playtimeMinutes)} min de jogo`
+        : `${Math.floor(playtimeMinutes / 60).toLocaleString('pt-BR')} h jogadas`
+      : '';
     const tone = /mythic|icon/i.test(rarity) ? 'cosmetic-mythic' : /legendary/i.test(rarity) ? 'cosmetic-legendary' : /epic/i.test(rarity) ? 'cosmetic-epic' : 'cosmetic-standard';
-    return <li className="cosmetic-card" key={`${title}-${index}`}><span className={`cosmetic-mark ${tone}`} aria-hidden="true">{title.slice(0, 2).toUpperCase()}</span><span className="cosmetic-copy"><strong>{title}</strong>{translatedRarity && <small>{translatedRarity}</small>}</span></li>;
+    return <li className="cosmetic-card" key={`${title}-${index}`}>{imageUrl && !imageFailed ? <img className="cosmetic-image" src={imageUrl} alt={`Imagem de ${title}`} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => onImageError(imageKey)} /> : <span className={`cosmetic-mark ${tone}`} aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5" /><circle cx="9" cy="9" r="1.5" /><path d="m5 17 5-5 3 3 2.5-2.5L19 16" /></svg></span>}<span className="cosmetic-copy"><strong>{title}</strong>{translatedRarity && <small>{translatedRarity}</small>}{playtimeLabel && <small>{playtimeLabel}</small>}</span></li>;
   }
-  return <section className={`inventory-showcase inventory-${game}`} aria-labelledby="inventory-showcase-title">
-    <div className="inventory-showcase-heading"><div><p className="eyebrow">CONTEÚDO DA CONTA</p><h2 id="inventory-showcase-title">Inventário em detalhe</h2></div><span>{groups.reduce((total, group) => total + group.items.length, 0)} itens listados</span></div>
-    {game === 'roblox' && <RobloxProfile inventory={inventory} avatar={images.avatar} />}
+  return <section ref={sectionRef} id="inventory" className={`inventory-showcase inventory-${game}`} aria-labelledby="inventory-showcase-title">
+      <div className="inventory-showcase-heading"><div><p className="eyebrow">{demoOnly ? 'AMOSTRA FICTÍCIA · ITENS ILUSTRATIVOS' : 'ITENS INFORMADOS PELO FORNECEDOR'}</p><h2 className="detail-section-nav-target" id="inventory-showcase-title" tabIndex={-1}>{demoOnly ? 'Inventário do exemplo' : 'Itens do inventário'}</h2><p className="inventory-coverage-note">{demoOnly ? 'Esta prévia mostra alguns itens fictícios; não representa uma conta real nem um inventário completo.' : 'A lista depende dos campos públicos disponíveis para este anúncio e pode ser parcial.'}</p></div><span>{inventorySummary}</span></div>
+    {game === 'roblox' && <RobloxProfile inventory={inventory} avatar={images.avatar} demoOnly={demoOnly} />}
     {groups.map((group) => <section className="inventory-group" key={group.key}>
-      <div className="inventory-group-heading"><h3>{group.title}</h3><span>{group.items.length}</span></div>
-      {group.image && <img className="inventory-provider-image" src={group.image} alt={`Prévia do fornecedor: ${group.title.toLowerCase()}`} />}
-      <ul className="cosmetic-list">{group.items.slice(0, 36).map(itemCard)}</ul>
-      {group.items.length > 36 && <details className="inventory-more"><summary>Ver os outros {group.items.length - 36} itens</summary><ul className="cosmetic-list">{group.items.slice(36).map((item, index) => itemCard(item, index + 36))}</ul></details>}
+      <div className="inventory-group-heading"><h3>{group.title}</h3><span>{inventoryCountLabel(group.namedItemCount, group.itemCount, group.items.length, group.totalWasReported)}</span></div>
+      {group.items.length > 0 && !group.hasIndividualImages && <p className="inventory-image-note" role="note">{demoOnly ? 'Este exemplo não inclui imagens individuais para estes itens.' : game === 'steam' ? 'As miniaturas de jogos Steam estão ocultas até a origem e os direitos de exibição serem revisados.' : 'O anúncio não forneceu imagens individuais para estes itens.'}</p>}
+      {group.image && <img className="inventory-provider-image" src={failedImageKeys.has(`provider-${group.key}`) ? group.image : `/api/v1/catalog/${encodeURIComponent(productId)}/inventory-image/${group.imageType ?? group.key}/640`} srcSet={failedImageKeys.has(`provider-${group.key}`) ? undefined : imageSrcSet(productId, group.imageType ?? group.key)} sizes="(max-width: 700px) calc(100vw - 32px), 680px" alt={`Prévia visual do fornecedor: ${group.title.toLowerCase()}`} width={680} height={280} loading="lazy" decoding="async" onError={() => onImageError(`provider-${group.key}`)} />}
+      {group.items.length > 0 ? <ul className="cosmetic-list" id={`inventory-list-${group.key}`}>{group.items.slice(0, visibleItemCounts[group.key] ?? 36).map((item, index) => itemCard(item, index, group.key))}</ul> : <p className="inventory-empty">O anúncio informa a quantidade, mas não traz nomes individuais destes itens.</p>}
+      {group.items.length > 36 && <div className="inventory-load-more-controls">
+        {(visibleItemCounts[group.key] ?? 36) < group.items.length && <button className="button-outline inventory-load-more" type="button" aria-controls={`inventory-list-${group.key}`} onClick={() => setVisibleItemCounts((current) => { const visibleCount = current[group.key] ?? 36; return { ...current, [group.key]: Math.min(group.items.length, visibleCount + 36) }; })}>{`Mostrar mais ${Math.min(36, group.items.length - (visibleItemCounts[group.key] ?? 36))} ${group.items.length - (visibleItemCounts[group.key] ?? 36) === 1 ? 'item' : 'itens'}`}</button>}
+        {(visibleItemCounts[group.key] ?? 36) > 36 && <button className="text-link-button" type="button" aria-controls={`inventory-list-${group.key}`} onClick={() => setVisibleItemCounts((current) => ({ ...current, [group.key]: 36 }))}>Mostrar menos itens</button>}
+      </div>}
     </section>)}
-    {groups.length === 0 && <p className="inventory-empty">O fornecedor ainda não informou itens individuais para esta conta.</p>}
+    {game === 'roblox' && !groups.some((group) => group.key === 'gamepasses') && <section className="inventory-group" aria-labelledby="roblox-gamepasses-title"><div className="inventory-group-heading"><h3 id="roblox-gamepasses-title">Gamepasses</h3></div><p className="inventory-empty">{demoOnly ? 'Este exemplo não inclui uma lista de gamepasses.' : 'O anúncio não retornou nomes individuais de gamepasses.'}</p></section>}
+    {groups.length === 0 && <p className="inventory-empty">{demoOnly ? 'Este exemplo não lista itens individuais.' : 'O fornecedor ainda não informou itens individuais para esta conta.'}</p>}
   </section>;
 }
 
-function RobloxProfile({ inventory, avatar }: { inventory: Record<string, unknown>; avatar?: string }) {
-  return <div className="roblox-profile">{avatar ? <img className="roblox-detail-avatar" src={avatar} alt={`Avatar Roblox de ${String(inventory.username ?? 'usuário')}`} /> : <div className="roblox-avatar-fallback" aria-hidden="true">R</div>}<div><p className="eyebrow">PERFIL ROBLOX</p><strong>{typeof inventory.username === 'string' ? inventory.username : 'Avatar da conta'}</strong><span>{typeof inventory.country === 'string' ? inventory.country : 'Miniatura pública do perfil consultada pelo ID Roblox.'}</span></div></div>;
+function safeInventoryImageUrl(value: unknown): string | null {
+  if (typeof value !== 'string' || value.length > 2048) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:' || url.username || url.password) return null;
+    const host = url.hostname.toLowerCase();
+    const trustedHosts = ['epicgames.com', 'epicgames.dev', 'fortnite-api.com', 'rbxcdn.com', 'roblox.com', 'steampowered.com', 'riotgames.com', 'leagueoflegends.com', 'valorant-api.com'];
+    return trustedHosts.some((domain) => host === domain || host.endsWith(`.${domain}`)) ? url.toString() : null;
+  } catch { return null; }
+}
+
+function RobloxProfile({ inventory, avatar, demoOnly }: { inventory: Record<string, unknown>; avatar?: string; demoOnly: boolean }) {
+  return <div className="roblox-profile">{avatar ? <Image className="roblox-detail-avatar" src={avatar} alt={`Avatar Roblox de ${String(inventory.username ?? 'usuário')}`} width={64} height={64} sizes="64px" loading="lazy" /> : <div className="roblox-avatar-fallback" aria-hidden="true">R</div>}<div><p className="eyebrow">PERFIL ROBLOX</p><strong>{typeof inventory.username === 'string' ? inventory.username : 'Avatar da conta'}</strong><span>{demoOnly ? 'Perfil fictício usado apenas nesta demonstração.' : typeof inventory.country === 'string' ? inventory.country : 'Miniatura pública do perfil consultada pelo ID Roblox.'}</span></div></div>;
+}
+
+function imageSrcSet(productId: string, type: string): string {
+  return [320, 640, 960].map((width) => `/api/v1/catalog/${encodeURIComponent(productId)}/inventory-image/${type}/${width} ${width}w`).join(', ');
 }
 
 function AttributeList({ attributes }: { attributes: Record<string, unknown> }) {
@@ -210,7 +373,7 @@ function AttributeList({ attributes }: { attributes: Record<string, unknown> }) 
     username: 'Usuário Roblox', roblox_id: 'ID Roblox', country: 'País da conta', featured_skins: 'Skins em destaque',
     featured_pickaxes: 'Picaretas em destaque', featured_dances: 'Emotes em destaque', featured_gliders: 'Asas-delta em destaque',
     items_count: 'Itens/frutas', fruits_count: 'Frutas',
-    games_count: 'Jogos na biblioteca', vac_banned: 'Banimento VAC', community_banned: 'Banimento da comunidade',
+    games_count: 'Jogos na biblioteca', gamepasses: 'Gamepasses', game_passes: 'Gamepasses', gamepass: 'Gamepasses', vac_banned: 'Banimento VAC', community_banned: 'Banimento da comunidade',
     trade_banned: 'Bloqueio de trocas', trade_limited: 'Limite de trocas', market_available: 'Mercado da comunidade',
     guard_available: 'Steam Guard', balance: 'Saldo Steam',
     battle_pass: 'Passe de Batalha', has_bp: 'Passe ativo', bp_level: 'Nível do passe',
@@ -221,7 +384,7 @@ function AttributeList({ attributes }: { attributes: Record<string, unknown> }) 
     rmax: 'Elo máximo Valorant', knife: 'Possui faca', valorant_knife_min: 'Facas Valorant',
     rp_min: 'Pontos radiantes', fa_min: 'Agentes gratuitos',
   };
-  const inventoryListKeys = new Set(['skins','featured_skins','pickaxes','featured_pickaxes','dances','featured_dances','gliders','featured_gliders','weapon_skins','agents','featured_agents','buddies','featured_buddies','champions','featured_champions','items','featured_items','fruits','featured_fruits','gifts','featured_gifts']);
+  const inventoryListKeys = new Set(['skins','skin_names','featured_skins','pickaxes','pickaxe_names','featured_pickaxes','dances','emote_names','featured_dances','gliders','glider_names','featured_gliders','weapon_skins','agents','featured_agents','buddies','featured_buddies','champions','featured_champions','items','featured_items','fruits','featured_fruits','gamepasses','gamepass','game_passes','games','game_names','gifts','featured_gifts']);
   function displayValue(key: string, value: string | number | boolean): string {
     if (typeof value === 'boolean') return value ? 'Sim' : 'Não';
     if (typeof value !== 'string') return String(value);
