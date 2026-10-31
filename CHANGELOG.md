@@ -4,6 +4,7 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
+- GitHub Actions Build `41154366339` passou no snapshot saneado `f0b9a11`, compilando web, API e workers e executando o benchmark sintético de catálogo; a PR #6 segue em rascunho e sem deploy.
 - Substitui valores não seguros do `.env.example` por `SET_IN_VAULT` para que credenciais e chaves locais sejam configuradas pelo Vault antes da execução.
 
 - Permite selecionar e comparar até três exemplos fictícios diretamente nos cartões do catálogo; o estado informa o limite e a tabela compara os campos disponíveis sem exibir preço. Em viewport móvel, a tabela rola dentro do próprio painel sem criar overflow na página.
