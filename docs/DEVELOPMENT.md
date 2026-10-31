@@ -21,6 +21,10 @@ docker compose up --build -d postgres api web
 
 Abra `http://localhost:3000` e consulte `http://localhost:4000/api/v1/health`. O health endpoint valida conectividade ao banco; não comprova os demais fluxos.
 
+## Aparência
+
+O cabeçalho permite alternar entre os temas claro e escuro. A preferência fica salva no `localStorage` do navegador sob `crystalforn-theme`; o padrão é o tema claro. Essa preferência é local ao navegador e não requer conta ou serviço remoto.
+
 ## Processos separados
 
 Com PostgreSQL acessível em `DATABASE_URL` e as variáveis necessárias definidas no processo:
@@ -40,7 +44,7 @@ Execute API e web em terminais separados. `APP_ORIGIN` deve apontar para a orige
 | `npm run build` | Compila API, worker e web |
 | `npm run dev:api` | Inicia API NestJS em modo desenvolvimento |
 | `npm run dev:web` | Inicia Next.js |
-| `npm run dev:worker` | Comando de inicialização do worker de catálogo; ele termina inativo no modo demo |
+| `npm run dev:worker` | Comando de inicialização do worker de catálogo live-read-only; exige URL, credencial e segredo interno |
 | `npm run dev:fulfillment` | Comando de inicialização do worker de entrega; não habilita processamento comercial |
 | `npm run start:admin-provision` | Provisiona admin em execução explícita com credenciais temporárias |
 

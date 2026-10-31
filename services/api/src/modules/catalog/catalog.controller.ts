@@ -1,7 +1,8 @@
-import { Controller, Get, HttpException, HttpStatus, NotFoundException, Param, Query, Req } from '@nestjs/common';
+import { BadRequestException, Controller, Get, HttpException, HttpStatus, NotFoundException, Param, Query, Req, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { CatalogQueryDto } from './catalog.dto';
 import { CatalogService } from './catalog.service';
-import { PUBLISHED_COMMERCE_MODE, requireMarketplaceCompliance } from '../legal/commerce-release-status';
+import { PUBLISHED_CATALOG_MODE, requireCatalogReadEnabled } from '../legal/commerce-release-status';
 
 type RequestAddress = { ip?: string; socket?: { remoteAddress?: string } };
 
@@ -22,28 +23,41 @@ export class CatalogController {
     if (window.count > limit) throw new HttpException('Muitas consultas de imagem. Tente novamente em instantes.', HttpStatus.TOO_MANY_REQUESTS);
   }
   @Get('roblox-avatars') robloxAvatars(@Req() request: RequestAddress, @Query('userIds') userIds = '') {
-    requireMarketplaceCompliance();
+    requireCatalogReadEnabled();
     this.enforceVisualReadLimit(request, 'roblox-avatar', 30);
     return this.catalog.robloxAvatars(userIds.split(',').slice(0, 24));
   }
   @Get() list(@Query() query: CatalogQueryDto) {
-    if (PUBLISHED_COMMERCE_MODE === 'demo') {
+    if (PUBLISHED_CATALOG_MODE === 'demo') {
       return { items: [], page: query.page, pageSize: query.pageSize, total: 0, totalPages: 0, demoOnly: true, message: 'A Crystalforn está em prévia visual, sem anúncios reais.' };
     }
-    requireMarketplaceCompliance();
+    requireCatalogReadEnabled();
     return this.catalog.list(query.game, query.page, query.pageSize, {
       minPrice: query.minPrice,
       maxPrice: query.maxPrice,
       minDaysOffline: query.minDaysOffline,
-    });
+      skinName: query.skinName,
+      steamGame: query.steamGame,
+      rank: query.rank,
+      minLevel: query.minLevel,
+    }, query.sort).then((catalog) => ({ ...catalog, demoOnly: false, catalogMode: PUBLISHED_CATALOG_MODE }));
   }
-  @Get(':id/inventory-image') async fortniteInventoryImage(@Req() request: RequestAddress, @Param('id') id: string, @Query('type') type = 'skins') {
-    requireMarketplaceCompliance();
-    this.enforceVisualReadLimit(request, 'fortnite-image', 30);
-    return this.catalog.fortniteInventoryImage(id, type);
+  @Get(':id/inventory-image') async inventoryImage(@Req() request: RequestAddress, @Param('id') id: string, @Query('type') type = 'skins') {
+    requireCatalogReadEnabled();
+    this.enforceVisualReadLimit(request, 'inventory-image', 30);
+    return this.catalog.inventoryImage(id, type);
+  }
+  @Get(':id/inventory-image/:type/:width') async inventoryImageVariant(@Req() request: RequestAddress, @Param('id') id: string, @Param('type') type: string, @Param('width') rawWidth: string, @Res({ passthrough: true }) response: Response) {
+    requireCatalogReadEnabled();
+    this.enforceVisualReadLimit(request, 'inventory-image-variant', 30);
+    const width = Number(rawWidth);
+    if (!Number.isInteger(width) || ![320, 640, 960].includes(width)) throw new BadRequestException('Largura de prévia inválida.');
+    const image = await this.catalog.inventoryImageVariant(id, type, width);
+    response.set({ 'Content-Type': 'image/webp', 'Cache-Control': 'public, max-age=3600, stale-while-revalidate=600', 'X-Content-Type-Options': 'nosniff' });
+    return image;
   }
   @Get(':id') async detail(@Param('id') id: string) {
-    requireMarketplaceCompliance();
+    requireCatalogReadEnabled();
     const product = await this.catalog.detail(id);
     if (!product) throw new NotFoundException('Produto indisponível.');
     return product;

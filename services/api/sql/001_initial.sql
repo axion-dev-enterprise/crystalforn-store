@@ -161,6 +161,8 @@ CREATE TABLE IF NOT EXISTS catalog_sync_runs (
   pages_read integer NOT NULL DEFAULT 0,
   items_seen integer NOT NULL DEFAULT 0,
   items_upserted integer NOT NULL DEFAULT 0,
+  items_discarded integer NOT NULL DEFAULT 0,
+  items_discarded_reasons jsonb NOT NULL DEFAULT '{}'::jsonb,
   complete boolean NOT NULL DEFAULT false,
   error_code text
 );
