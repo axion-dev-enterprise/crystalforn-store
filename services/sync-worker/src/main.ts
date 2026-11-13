@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { integerEnv } from './config';
 import { catalogImportBodies } from './catalog-import-batches';
 import { planLztCursorTransition } from './catalog-pagination';
+import { readLztCheckpoint } from './catalog-checkpoint';
 
 // Demo release: never connect to or import from the supplier.
 // Live catalog access needs a separate reviewed release decision.
@@ -234,25 +235,13 @@ async function synchronize(): Promise<void> {
         ? await lockClient.query<{ setting_value: unknown }>('SELECT setting_value FROM store_settings WHERE setting_key=$1', [cursorKey])
         : { rows: [] as { setting_value: unknown }[] };
       const savedCursorValue = savedCursor.rows[0]?.setting_value;
-      const cursorState = savedCursorValue && typeof savedCursorValue === 'object' && !Array.isArray(savedCursorValue)
-        ? savedCursorValue as Record<string, unknown> : null;
-      const structuredPage = cursorState && Number.isSafeInteger(cursorState.nextPage) ? Number(cursorState.nextPage) : null;
-      let lztPage = structuredPage ?? 1;
-      let lztCursor = typeof cursorState?.nextCursor === 'string' && cursorState.nextCursor.length > 0 && cursorState.nextCursor.length <= 4096
-        ? cursorState.nextCursor : null;
-      let lztCursorHashes = Array.isArray(cursorState?.cursorHashes)
-        ? cursorState.cursorHashes.filter((value): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value)).slice(-maxPages)
-        : [];
-      let lztItemsSeen = cursorState && Number.isSafeInteger(cursorState.itemsSeen) && Number(cursorState.itemsSeen) >= 0
-        ? Number(cursorState.itemsSeen) : 0;
-      const hasSavedLztPage = structuredPage !== null && structuredPage > 0;
-      let lztPageFingerprints = Array.isArray(cursorState?.pageFingerprints)
-        ? cursorState.pageFingerprints.filter((value): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value)).slice(-maxPages)
-        : [];
-      if (!Number.isSafeInteger(lztPage) || lztPage < 1 || (lztPage > 1 && lztCursor === null)
-        || (cursorState?.nextCursor !== undefined && lztCursor === null)) {
-        lztPage = 1; lztCursor = null; lztCursorHashes = []; lztItemsSeen = 0; lztPageFingerprints = [];
-      }
+      const checkpoint = readLztCheckpoint(savedCursorValue, maxPages);
+      let lztPage = checkpoint.nextPage;
+      let lztCursor = checkpoint.nextCursor;
+      let lztCursorHashes = checkpoint.cursorHashes;
+      let lztItemsSeen = checkpoint.itemsSeen;
+      const hasSavedLztPage = checkpoint.hasSavedPage;
+      let lztPageFingerprints = checkpoint.pageFingerprints;
       const savedScanStarted = apiProvider === 'lzt-market'
         ? await lockClient.query<{ setting_value: unknown }>('SELECT setting_value FROM store_settings WHERE setting_key=$1', [scanStartedKey])
         : { rows: [] as { setting_value: unknown }[] };

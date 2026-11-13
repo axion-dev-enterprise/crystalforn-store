@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const { createHash } = require('node:crypto');
 const { catalogImportBodies } = require('../dist/catalog-import-batches.js');
 const { planLztCursorTransition } = require('../dist/catalog-pagination.js');
+const { readLztCheckpoint } = require('../dist/catalog-checkpoint.js');
 
 const cursorHash = (cursor) => createHash('sha256').update(cursor).digest('hex');
 
@@ -107,4 +108,51 @@ test('bounds persisted cursor history to the configured scan window', () => {
   assert.equal(fourth.kind, 'continue');
   if (fourth.kind !== 'continue') return;
   assert.deepEqual(fourth.cursorHashes, [cursorHash('cursor-b'), cursorHash('cursor-c')]);
+});
+
+test('restores a valid checkpoint and trims histories to the page limit', () => {
+  const fingerprints = ['a'.repeat(64), 'b'.repeat(64), 'c'.repeat(64)];
+  assert.deepEqual(readLztCheckpoint({
+    nextPage: 8,
+    nextCursor: 'opaque-demo-cursor',
+    cursorHashes: fingerprints,
+    itemsSeen: 1200,
+    pageFingerprints: fingerprints,
+  }, 2), {
+    nextPage: 8,
+    nextCursor: 'opaque-demo-cursor',
+    cursorHashes: fingerprints.slice(-2),
+    itemsSeen: 1200,
+    pageFingerprints: fingerprints.slice(-2),
+    hasSavedPage: true,
+  });
+});
+
+test('resets malformed checkpoints before they can resume from an invalid cursor', () => {
+  assert.deepEqual(readLztCheckpoint({
+    nextPage: 3,
+    nextCursor: '',
+    cursorHashes: ['not-a-hash'],
+    itemsSeen: 99,
+    pageFingerprints: ['also-invalid'],
+  }, 10), {
+    nextPage: 1,
+    nextCursor: null,
+    cursorHashes: [],
+    itemsSeen: 0,
+    pageFingerprints: [],
+    hasSavedPage: true,
+  });
+});
+
+test('ignores non-object checkpoint values and invalid item counts', () => {
+  assert.deepEqual(readLztCheckpoint('invalid fixture', 10), {
+    nextPage: 1,
+    nextCursor: null,
+    cursorHashes: [],
+    itemsSeen: 0,
+    pageFingerprints: [],
+    hasSavedPage: false,
+  });
+  assert.equal(readLztCheckpoint({ nextPage: 2, nextCursor: 'cursor', itemsSeen: -1 }, 10).itemsSeen, 0);
 });
