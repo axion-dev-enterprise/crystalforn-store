@@ -92,6 +92,12 @@ function queryNumber(value: string, integer = false): string {
   return Number.isFinite(number) && number >= 0 && (!integer || Number.isInteger(number)) ? value : '';
 }
 
+function priceInputToCents(value: string): number | null {
+  if (!value) return null;
+  const price = Number(value);
+  return Number.isFinite(price) && price >= 0 ? Math.round(price * 100) : null;
+}
+
 function updatedLabel(value?: string | null): string | null {
   if (!value) return null;
   const date = new Date(value);
@@ -210,6 +216,8 @@ export function Storefront() {
     void load();
     return () => { catalogRequest.current?.abort(); };
   }, [load, restoredFromUrl]);
+  const minPriceCents = priceInputToCents(appliedFilters.minPrice);
+  const maxPriceCents = priceInputToCents(appliedFilters.maxPrice);
   const filteredDemoProducts = DEMO_PRODUCTS.filter((product) => {
     if (!result?.demoOnly) return false;
     const offlineDays = Number(product.attributes.days_offline ?? 0);
@@ -219,8 +227,8 @@ export function Storefront() {
     const rank = typeof inventory?.lol_rank === 'string' ? inventory.lol_rank : typeof inventory?.rank === 'string' ? inventory.rank : '';
     const level = Number(inventory?.level ?? 0);
     return (!game || product.game === game)
-      && (!appliedFilters.minPrice || Number(product.price_brl_cents) >= Number(appliedFilters.minPrice) * 100)
-      && (!appliedFilters.maxPrice || Number(product.price_brl_cents) <= Number(appliedFilters.maxPrice) * 100)
+      && (minPriceCents === null || Number(product.price_brl_cents) >= minPriceCents)
+      && (maxPriceCents === null || Number(product.price_brl_cents) <= maxPriceCents)
       && (!appliedFilters.minDaysOffline || offlineDays >= Number(appliedFilters.minDaysOffline))
       && (!appliedFilters.skinName || (product.game === 'fortnite' && skinNames.some((name) => name.toLocaleLowerCase('pt-BR').includes(appliedFilters.skinName.toLocaleLowerCase('pt-BR')))))
       && (!appliedFilters.steamGame || (product.game === 'steam' && steamGames.some((name) => name.toLocaleLowerCase('pt-BR').includes(appliedFilters.steamGame.toLocaleLowerCase('pt-BR')))))
