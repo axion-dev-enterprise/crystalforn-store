@@ -4,9 +4,9 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
-- O último CI aprovado da PR #6 é o Build `41154504694` no HEAD `8cbd093`; compilou web, API e workers e executou o benchmark sintético. Os commits adicionais deste candidato ainda aguardam CI; a PR permanece em rascunho e sem deploy.
+- O Build `43484764620` passou no HEAD `6e0f2b9`; compilou web, API e workers e executou o benchmark sintético de 20 mil e 40 mil registros. A PR permanece em rascunho, sem revisão visual completa, merge ou deploy.
 - Renderiza os exemplos fictícios no HTML inicial e evita chamada à API quando a vitrine é compilada em modo `demo`; `live_read_only` mantém consulta ao backend e estado de carregamento. Produção ainda não recebeu essa alteração e a revisão visual/runtime do novo HEAD está pendente.
-- Alinha a paginação LZT ao OpenAPI: a consulta inicial não envia `page`, checkpoints antigos sem cursor são reiniciados, e o worker para com segurança se houver mais resultados sem cursor. Registra os limites simultâneos de 20 buscas de categoria/minuto e 120/minuto no bucket compartilhado; tamanho de 40 itens observado no frontend não comprova a página da API. Worker continua desligado; CI e validação de fornecedor pendentes.
+- Alinha a paginação LZT ao OpenAPI: a consulta inicial não envia `page`, checkpoints antigos sem cursor são reiniciados, e o worker para com segurança se houver mais resultados sem cursor. Registra os limites simultâneos de 20 buscas de categoria/minuto e 120/minuto no bucket compartilhado; tamanho de 40 itens observado no frontend não comprova a página da API. A compilação e o benchmark sintético passaram no Build `43484764620`; o worker continua desligado e a validação de fornecedor permanece pendente.
 - Substitui valores não seguros do `.env.example` por `SET_IN_VAULT` para que credenciais e chaves locais sejam configuradas pelo Vault antes da execução.
 
 - Permite selecionar e comparar até três exemplos fictícios diretamente nos cartões do catálogo; o estado informa o limite e a tabela compara os campos disponíveis sem exibir preço. Em viewport móvel, a tabela rola dentro do próprio painel sem criar overflow na página.
