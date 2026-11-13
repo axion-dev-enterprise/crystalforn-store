@@ -3,7 +3,7 @@ import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } fr
 import { HttpException, HttpStatus, Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import type { AuthenticatedUser, StoreRole } from '../../common/auth.types';
-import { requireApprovedStoreAuthentication } from './auth-governance-status';
+import { approvedStoreAuthCenterOrigin } from './auth-governance-status';
 
 const SESSION_COOKIE = 'digital_store_session';
 const SESSION_TTL_HOURS = 12;
@@ -37,25 +37,17 @@ export class AuthService {
   constructor(private readonly db: DatabaseService) {}
 
   centralLoginUrl(client = 'crystalforn'): string {
-    requireApprovedStoreAuthentication();
     if (!['crystalforn', 'crystalforn-admin'].includes(client)) throw new UnauthorizedException('Aplicação de autenticação inválida.');
-    const base = new URL(process.env.STORE_AUTH_CENTER_URL!);
-    if (base.protocol !== 'https:' || base.username || base.password || base.search || base.hash) {
-      throw new ServiceUnavailableException('URL do Auth Center inválida.');
-    }
-    return `${base.origin}/api/auth/google/login?client=${client}`;
+    const centerOrigin = approvedStoreAuthCenterOrigin();
+    return `${centerOrigin}/api/auth/google/login?client=${client}`;
   }
 
   async consumeCentralCode(code: string, response: { setHeader: (name: string, value: string) => void }): Promise<void> {
-    requireApprovedStoreAuthentication();
+    const centerOrigin = approvedStoreAuthCenterOrigin();
     if (!/^[A-Za-z0-9_-]{40,64}$/.test(code)) throw new UnauthorizedException('Código de acesso inválido ou expirado.');
-    const center = new URL(process.env.STORE_AUTH_CENTER_URL!);
-    if (center.protocol !== 'https:' || center.username || center.password || center.search || center.hash) {
-      throw new ServiceUnavailableException('URL do Auth Center inválida.');
-    }
     let exchange: Response;
     try {
-      exchange = await fetch(`${center.origin}/api/store/exchange`, {
+      exchange = await fetch(`${centerOrigin}/api/store/exchange`, {
         method: 'POST', headers: { 'content-type': 'application/json', 'x-crystalforn-auth-secret': process.env.STORE_AUTH_CLIENT_SECRET! },
         body: JSON.stringify({ code }), signal: AbortSignal.timeout(5000), cache: 'no-store',
       });
@@ -200,14 +192,10 @@ export class AuthService {
       || user.dashboard_store_user_id !== user.id || user.dashboard_tenant !== 'crystalforn'
       || user.dashboard_status !== 'ACTIVE' || user.dashboard_roles?.length !== 1
       || user.dashboard_roles[0] !== expectedCentralRole) return null;
-    requireApprovedStoreAuthentication();
-    const center = new URL(process.env.STORE_AUTH_CENTER_URL!);
-    if (center.protocol !== 'https:' || center.username || center.password || center.search || center.hash) {
-      throw new ServiceUnavailableException('URL do Auth Center inválida.');
-    }
+    const centerOrigin = approvedStoreAuthCenterOrigin();
     let verification: Response;
     try {
-      verification = await fetch(`${center.origin}/api/store/introspect`, {
+      verification = await fetch(`${centerOrigin}/api/store/introspect`, {
         method: 'POST', headers: { 'content-type': 'application/json', 'x-crystalforn-auth-secret': process.env.STORE_AUTH_CLIENT_SECRET! },
         body: JSON.stringify({ authUserId: user.auth_user_id }), signal: AbortSignal.timeout(3000), cache: 'no-store',
       });

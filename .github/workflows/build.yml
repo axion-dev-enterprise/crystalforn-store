@@ -29,6 +29,8 @@ jobs:
         run: npm ci
       - name: Build web, API, and workers
         run: npm run build
+      - name: Verify Auth Center URL validation
+        run: npm run test:unit --workspace @digital-store/api
       - name: Verify offline catalog import batching
         run: npm run test:unit --workspace @digital-store/sync-worker
       - name: Measure synthetic catalog batch scaling

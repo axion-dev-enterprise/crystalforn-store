@@ -15,3 +15,14 @@ export function requireApprovedStoreAuthentication(): void {
     throw new ServiceUnavailableException('Autenticação Crystalforn indisponível: integração central não configurada.');
   }
 }
+
+export function approvedStoreAuthCenterOrigin(): string {
+  requireApprovedStoreAuthentication();
+  let center: URL;
+  try { center = new URL(process.env.STORE_AUTH_CENTER_URL?.trim() ?? ''); }
+  catch { throw new ServiceUnavailableException('URL do Auth Center inválida.'); }
+  if (center.protocol !== 'https:' || center.username || center.password || center.search || center.hash) {
+    throw new ServiceUnavailableException('URL do Auth Center inválida.');
+  }
+  return center.origin;
+}

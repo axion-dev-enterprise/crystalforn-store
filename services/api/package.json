@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "test:unit": "node --test test/*.test.cjs",
     "start": "node dist/src/operations/migrate.js && node dist/src/main.js",
     "migrate": "npm run build && node dist/src/operations/migrate.js",
     "start:dev": "ts-node-dev --respawn --transpile-only src/main.ts",

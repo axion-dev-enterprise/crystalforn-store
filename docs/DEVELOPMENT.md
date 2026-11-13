@@ -42,6 +42,7 @@ Execute API e web em terminais separados. `APP_ORIGIN` deve apontar para a orige
 | Comando | Descrição |
 | --- | --- |
 | `npm run build` | Compila API, worker e web |
+| `npm run test:unit --workspace @digital-store/api` | Verifica a validação fail-closed da URL do Auth Center no CI |
 | `npm run dev:api` | Inicia API NestJS em modo desenvolvimento |
 | `npm run dev:web` | Inicia Next.js |
 | `npm run dev:worker` | Comando de inicialização do worker de catálogo live-read-only; exige URL, credencial e segredo interno |
