@@ -51,8 +51,11 @@ function isStaleSync(value?: string | null): boolean {
 }
 
 export function ProductDetail({ id, returnTo = '/#catalogo' }: { id: string; returnTo?: string }) {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [product, setProduct] = useState<Product | null>(() => {
+    const demo = findDemoProduct(id);
+    return demo ? { ...demo, provider_item_id: demo.id, demoOnly: true } : null;
+  });
+  const [loading, setLoading] = useState(() => !findDemoProduct(id));
   const [error, setError] = useState('');
   const [requestAttempt, setRequestAttempt] = useState(0);
   const [coupon, setCoupon] = useState('');

@@ -4,8 +4,8 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
-- O Build `43484764620` passou no HEAD `6e0f2b9`; compilou web, API e workers e executou o benchmark sintético de 20 mil e 40 mil registros. A PR permanece em rascunho, sem revisão visual completa, merge ou deploy.
-- Renderiza os exemplos fictícios no HTML inicial e evita chamada à API quando a vitrine é compilada em modo `demo`; `live_read_only` mantém consulta ao backend e estado de carregamento. Produção ainda não recebeu essa alteração e a revisão visual/runtime do novo HEAD está pendente.
+- O último CI aprovado é o Build `43485312757` no HEAD `4b6794b`; compilou web, API e workers e executou o benchmark sintético de 20 mil e 40 mil registros. A alteração de SSR do detalhe nesta revisão aguarda CI; revisão visual completa, merge e deploy permanecem pendentes.
+- Renderiza os exemplos fictícios da vitrine no HTML inicial e evita chamada à API no modo `demo`; os detalhes demo também exibem item e inventário sem esperar hidratação. `live_read_only` mantém consulta ao backend e estado de carregamento. Revisão visual/runtime completa permanece pendente.
 - Alinha a paginação LZT ao OpenAPI: a consulta inicial não envia `page`, checkpoints antigos sem cursor são reiniciados, e o worker para com segurança se houver mais resultados sem cursor. Registra os limites simultâneos de 20 buscas de categoria/minuto e 120/minuto no bucket compartilhado; tamanho de 40 itens observado no frontend não comprova a página da API. A compilação e o benchmark sintético passaram no Build `43484764620`; o worker continua desligado e a validação de fornecedor permanece pendente.
 - Substitui valores não seguros do `.env.example` por `SET_IN_VAULT` para que credenciais e chaves locais sejam configuradas pelo Vault antes da execução.
 
