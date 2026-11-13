@@ -2,7 +2,11 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { createHash } = require('node:crypto');
 const { catalogImportBodies } = require('../dist/catalog-import-batches.js');
+const { planLztCursorTransition } = require('../dist/catalog-pagination.js');
+
+const cursorHash = (cursor) => createHash('sha256').update(cursor).digest('hex');
 
 test('returns no import request for an empty catalog page', () => {
   assert.deepEqual(catalogImportBodies([], 1024), []);
@@ -42,4 +46,65 @@ test('rejects values that JSON cannot serialize as an item', () => {
     () => catalogImportBodies([undefined], 1024),
     { message: 'catalog_item_not_serializable' },
   );
+});
+
+test('marks a page complete without requiring a next cursor', () => {
+  assert.deepEqual(planLztCursorTransition(false, undefined, 'cursor-a', [], 10), { kind: 'complete' });
+});
+
+test('requires a non-empty bounded cursor when another page exists', () => {
+  assert.deepEqual(planLztCursorTransition(true, '  ', null, [], 10), {
+    kind: 'error',
+    errorCode: 'pagination_cursor_missing',
+  });
+  assert.deepEqual(planLztCursorTransition(true, 'x'.repeat(4097), null, [], 10), {
+    kind: 'error',
+    errorCode: 'pagination_cursor_missing',
+  });
+});
+
+test('rejects an immediate cursor loop', () => {
+  assert.deepEqual(planLztCursorTransition(true, 'cursor-a', 'cursor-a', [], 10), {
+    kind: 'error',
+    errorCode: 'pagination_repeated_cursor',
+  });
+});
+
+test('rejects a cursor seen earlier in the scan', () => {
+  const firstTransition = planLztCursorTransition(true, 'cursor-a', null, [], 10);
+  assert.equal(firstTransition.kind, 'continue');
+  if (firstTransition.kind !== 'continue') return;
+
+  const secondTransition = planLztCursorTransition(true, 'cursor-b', firstTransition.nextCursor, firstTransition.cursorHashes, 10);
+  assert.equal(secondTransition.kind, 'continue');
+  if (secondTransition.kind !== 'continue') return;
+
+  assert.deepEqual(
+    planLztCursorTransition(true, 'cursor-a', secondTransition.nextCursor, secondTransition.cursorHashes, 10),
+    { kind: 'error', errorCode: 'pagination_repeated_cursor' },
+  );
+});
+
+test('bounds persisted cursor history to the configured scan window', () => {
+  const first = planLztCursorTransition(true, 'cursor-a', null, [], 2);
+  assert.equal(first.kind, 'continue');
+  if (first.kind !== 'continue') return;
+  const second = planLztCursorTransition(true, 'cursor-b', first.nextCursor, first.cursorHashes, 2);
+  assert.equal(second.kind, 'continue');
+  if (second.kind !== 'continue') return;
+  const third = planLztCursorTransition(true, 'cursor-c', second.nextCursor, second.cursorHashes, 2);
+  assert.equal(third.kind, 'continue');
+  if (third.kind !== 'continue') return;
+
+  assert.equal(third.cursorHashes.length, 2);
+  assert.deepEqual(third.cursorHashes, [cursorHash('cursor-a'), cursorHash('cursor-b')]);
+  assert.deepEqual(
+    planLztCursorTransition(true, 'cursor-a', third.nextCursor, third.cursorHashes, 2),
+    { kind: 'error', errorCode: 'pagination_repeated_cursor' },
+  );
+
+  const fourth = planLztCursorTransition(true, 'cursor-d', third.nextCursor, third.cursorHashes, 2);
+  assert.equal(fourth.kind, 'continue');
+  if (fourth.kind !== 'continue') return;
+  assert.deepEqual(fourth.cursorHashes, [cursorHash('cursor-b'), cursorHash('cursor-c')]);
 });

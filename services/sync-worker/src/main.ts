@@ -2,6 +2,7 @@ import { Pool, PoolClient } from 'pg';
 import { createHash } from 'node:crypto';
 import { integerEnv } from './config';
 import { catalogImportBodies } from './catalog-import-batches';
+import { planLztCursorTransition } from './catalog-pagination';
 
 // Demo release: never connect to or import from the supplier.
 // Live catalog access needs a separate reviewed release decision.
@@ -50,10 +51,6 @@ function pageFingerprint(items: unknown[]): string | null {
   const ids = items.map(itemId).filter((value): value is string => Boolean(value));
   if (ids.length === 0) return null;
   return createHash('sha256').update([...new Set(ids)].sort().join('\n')).digest('hex');
-}
-
-function cursorFingerprint(cursor: string): string {
-  return createHash('sha256').update(cursor).digest('hex');
 }
 
 function providerRetryDelayMs(value: string | null, now = Date.now()): number {
@@ -432,26 +429,16 @@ async function synchronize(): Promise<void> {
           ? payload.hasNextPage === true || (payload.hasNextPage === undefined && typeof totalItems === 'number' && lztItemsSeen < totalItems)
           : payload.hasNextPage !== false && !(typeof totalItems === 'number' && (totalItems === 0 || genericItemsSeen >= totalItems));
         if (apiProvider === 'lzt-market') {
-          if (hasMore) {
-            const nextCursor = typeof payload.nextCursor === 'string' && payload.nextCursor.trim().length > 0
-              ? payload.nextCursor : null;
-            if (nextCursor === null) {
-              await resetLztPagination();
-              errorCode = 'pagination_cursor_missing';
-              break;
-            }
-            if (nextCursor !== null) {
-              const nextCursorHash = cursorFingerprint(nextCursor);
-              const requestedCursorHash = lztCursor ? cursorFingerprint(lztCursor) : null;
-              if (nextCursor === lztCursor || lztCursorHashes.includes(nextCursorHash)) {
-                await resetLztPagination();
-                errorCode = 'pagination_repeated_cursor';
-                nextRunDelayMs = Math.max(intervalMs, 60_000);
-                break;
-              }
-              if (requestedCursorHash) lztCursorHashes = [...lztCursorHashes, requestedCursorHash].slice(-maxPages);
-              lztCursor = nextCursor;
-            }
+          const transition = planLztCursorTransition(hasMore, payload.nextCursor, lztCursor, lztCursorHashes, maxPages);
+          if (transition.kind === 'error') {
+            await resetLztPagination();
+            errorCode = transition.errorCode;
+            if (transition.errorCode === 'pagination_repeated_cursor') nextRunDelayMs = Math.max(intervalMs, 60_000);
+            break;
+          }
+          if (transition.kind === 'continue') {
+            lztCursorHashes = transition.cursorHashes;
+            lztCursor = transition.nextCursor;
             lztPage += 1;
             if (fingerprint) lztPageFingerprints = [...lztPageFingerprints, fingerprint].slice(-maxPages);
             await lockClient.query(
