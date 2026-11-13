@@ -146,6 +146,13 @@ export function Storefront() {
     setPage(Number.isInteger(initialPage) && initialPage >= 1 && initialPage <= 500 ? initialPage : 1);
     const initialSort = params.get('sort');
     setSort(initialSort === 'price_desc' || initialSort === 'title_asc' ? initialSort : 'price_asc');
+    const initialComparisonIds = storefrontCatalogMode() === 'demo'
+      ? [...new Set((params.get('compare') ?? '').slice(0, 240).split(',').filter(Boolean))]
+        .filter((id) => DEMO_PRODUCTS.some((product) => product.id === id))
+        .slice(0, 3)
+      : [];
+    setComparisonIds(initialComparisonIds);
+    setComparisonOpen(params.get('compareOpen') === '1' && initialComparisonIds.length >= 2);
     setRestoredFromUrl(true);
   }, []);
 
@@ -155,7 +162,10 @@ export function Storefront() {
   if (sort !== 'price_asc') catalogParams.set('sort', sort);
   for (const [key, value] of Object.entries(appliedFilters)) if (value) catalogParams.set(key, value);
   const catalogQuery = catalogParams.toString();
-  const catalogReturnUrl = catalogQuery ? `/?${catalogQuery}#catalogo` : '/#catalogo';
+  const returnParams = new URLSearchParams(catalogQuery);
+  if (comparisonIds.length > 0) returnParams.set('compare', comparisonIds.join(','));
+  if (comparisonOpen && comparisonIds.length >= 2) returnParams.set('compareOpen', '1');
+  const catalogReturnUrl = returnParams.size > 0 ? `/?${returnParams.toString()}#catalogo` : '/#catalogo';
 
   useEffect(() => {
     if (!restoredFromUrl) return;

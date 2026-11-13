@@ -12,5 +12,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="pt-BR" data-theme="dark"><body><a className="skip-link" href="#conteudo">Pular para o conteúdo</a><SiteHeader /><main id="conteudo">{children}</main><footer className="site-footer"><div className="shell footer-row"><Link className="footer-brand" href="/"><Image src="/brand/crystalforn-mark.png" alt="" width={28} height={28} /><span>Crystalforn</span></Link><span>Catálogo para consulta · compras e pagamentos desativados</span><Link href="/termos">Termos da loja</Link></div></footer></body></html>;
+  return <html lang="pt-BR" data-theme="dark" data-scroll-behavior="smooth"><body><a className="skip-link" href="#conteudo">Pular para o conteúdo</a><SiteHeader /><main id="conteudo">{children}</main><footer className="site-footer"><div className="shell footer-row"><Link className="footer-brand" href="/"><Image src="/brand/crystalforn-mark.png" alt="" width={28} height={28} /><span>Crystalforn</span></Link><span>Catálogo para consulta · compras e pagamentos desativados</span><Link href="/termos">Termos da loja</Link></div></footer></body></html>;
 }
