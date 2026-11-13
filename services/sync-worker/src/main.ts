@@ -38,7 +38,7 @@ const lztFeeds = [
   { key: 'roblox', path: 'roblox', params: [] as string[][] },
   { key: 'steam', path: 'steam', params: [] as string[][] },
 ];
-const lztOrderVersion = 'pdate_to_down_cursor_v3';
+const lztOrderVersion = 'pdate_to_down_cursor_v4';
 
 function itemId(item: unknown): string | null {
   if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
@@ -239,10 +239,8 @@ async function synchronize(): Promise<void> {
       const savedCursorValue = savedCursor.rows[0]?.setting_value;
       const cursorState = savedCursorValue && typeof savedCursorValue === 'object' && !Array.isArray(savedCursorValue)
         ? savedCursorValue as Record<string, unknown> : null;
-      const legacyPage = typeof savedCursorValue === 'string' && savedCursorValue.startsWith('page:')
-        ? Number(savedCursorValue.slice(5)) : null;
       const structuredPage = cursorState && Number.isSafeInteger(cursorState.nextPage) ? Number(cursorState.nextPage) : null;
-      let lztPage = structuredPage ?? legacyPage ?? 1;
+      let lztPage = structuredPage ?? 1;
       let lztCursor = typeof cursorState?.nextCursor === 'string' && cursorState.nextCursor.length > 0 && cursorState.nextCursor.length <= 4096
         ? cursorState.nextCursor : null;
       let lztCursorHashes = Array.isArray(cursorState?.cursorHashes)
@@ -250,11 +248,12 @@ async function synchronize(): Promise<void> {
         : [];
       let lztItemsSeen = cursorState && Number.isSafeInteger(cursorState.itemsSeen) && Number(cursorState.itemsSeen) >= 0
         ? Number(cursorState.itemsSeen) : 0;
-      const hasSavedLztPage = (structuredPage !== null && structuredPage > 0) || (legacyPage !== null && legacyPage > 0);
+      const hasSavedLztPage = structuredPage !== null && structuredPage > 0;
       let lztPageFingerprints = Array.isArray(cursorState?.pageFingerprints)
         ? cursorState.pageFingerprints.filter((value): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value)).slice(-maxPages)
         : [];
-      if (!Number.isSafeInteger(lztPage) || lztPage < 1 || (cursorState?.nextCursor !== undefined && lztCursor === null)) {
+      if (!Number.isSafeInteger(lztPage) || lztPage < 1 || (lztPage > 1 && lztCursor === null)
+        || (cursorState?.nextCursor !== undefined && lztCursor === null)) {
         lztPage = 1; lztCursor = null; lztCursorHashes = []; lztItemsSeen = 0; lztPageFingerprints = [];
       }
       const savedScanStarted = apiProvider === 'lzt-market'
@@ -287,7 +286,6 @@ async function synchronize(): Promise<void> {
         const requestUrl = new URL(feed.path, apiRoot);
         if (apiProvider === 'lzt-market') {
           if (lztCursor) requestUrl.searchParams.set('after', lztCursor);
-          else requestUrl.searchParams.set('page', String(lztPage));
           for (const [key, value] of feed.params) requestUrl.searchParams.append(key, value);
           requestUrl.searchParams.set('order_by', 'pdate_to_down');
           requestUrl.searchParams.set('currency', 'rub');
@@ -437,7 +435,7 @@ async function synchronize(): Promise<void> {
           if (hasMore) {
             const nextCursor = typeof payload.nextCursor === 'string' && payload.nextCursor.trim().length > 0
               ? payload.nextCursor : null;
-            if (payload.hasNextPage === true && nextCursor === null) {
+            if (nextCursor === null) {
               await resetLztPagination();
               errorCode = 'pagination_cursor_missing';
               break;

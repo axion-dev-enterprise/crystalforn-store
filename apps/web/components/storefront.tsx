@@ -111,8 +111,10 @@ export function Storefront() {
   const [comparisonIds, setComparisonIds] = useState<string[]>([]);
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const [restoredFromUrl, setRestoredFromUrl] = useState(false);
-  const [result, setResult] = useState<Catalog | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [result, setResult] = useState<Catalog | null>(() => STOREFRONT_CATALOG_MODE === 'demo'
+    ? demoCatalog(1, 'Exemplos locais fictícios para demonstrar filtros e detalhes; nenhum item pode ser comprado.')
+    : null);
+  const [loading, setLoading] = useState(STOREFRONT_CATALOG_MODE !== 'demo');
   const [error, setError] = useState('');
   const catalogRequest = useRef<AbortController | null>(null);
   useEffect(() => {
@@ -152,6 +154,12 @@ export function Storefront() {
   }, [restoredFromUrl, catalogQuery]);
 
   const load = useCallback(async () => {
+    if (STOREFRONT_CATALOG_MODE === 'demo') {
+      setResult(demoCatalog(page, 'Exemplos locais fictícios para demonstrar filtros e detalhes; nenhum item pode ser comprado.'));
+      setLoading(false);
+      setError('');
+      return;
+    }
     catalogRequest.current?.abort();
     const controller = new AbortController();
     catalogRequest.current = controller;

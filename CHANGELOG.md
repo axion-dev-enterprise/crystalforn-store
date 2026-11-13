@@ -4,7 +4,9 @@ O projeto usa versões SemVer. Esta lista registra alterações notáveis e limi
 
 ## Não lançado
 
-- GitHub Actions Build `41154366339` passou no snapshot saneado `f0b9a11`, compilando web, API e workers e executando o benchmark sintético de catálogo; a PR #6 segue em rascunho e sem deploy.
+- O último CI aprovado da PR #6 é o Build `41154504694` no HEAD `8cbd093`; compilou web, API e workers e executou o benchmark sintético. Os commits adicionais deste candidato ainda aguardam CI; a PR permanece em rascunho e sem deploy.
+- Renderiza os exemplos fictícios no HTML inicial e evita chamada à API quando a vitrine é compilada em modo `demo`; `live_read_only` mantém consulta ao backend e estado de carregamento. Produção ainda não recebeu essa alteração e a revisão visual/runtime do novo HEAD está pendente.
+- Alinha a paginação LZT ao OpenAPI: a consulta inicial não envia `page`, checkpoints antigos sem cursor são reiniciados, e o worker para com segurança se houver mais resultados sem cursor. Registra os limites simultâneos de 20 buscas de categoria/minuto e 120/minuto no bucket compartilhado; tamanho de 40 itens observado no frontend não comprova a página da API. Worker continua desligado; CI e validação de fornecedor pendentes.
 - Substitui valores não seguros do `.env.example` por `SET_IN_VAULT` para que credenciais e chaves locais sejam configuradas pelo Vault antes da execução.
 
 - Permite selecionar e comparar até três exemplos fictícios diretamente nos cartões do catálogo; o estado informa o limite e a tabela compara os campos disponíveis sem exibir preço. Em viewport móvel, a tabela rola dentro do próprio painel sem criar overflow na página.
