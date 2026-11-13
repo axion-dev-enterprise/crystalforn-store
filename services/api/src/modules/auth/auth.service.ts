@@ -76,9 +76,10 @@ export class AuthService {
         `INSERT INTO users(email,password_salt,password_hash,role,status,auth_user_id,tenant_id)
          VALUES($1,'central-auth','central-auth',$3,'ACTIVE',$2,'crystalforn')
          ON CONFLICT(auth_user_id) DO NOTHING`, [email, central.id, storeRole]);
-      const row = await client.query<{ id: string; email: string; role: StoreRole; auth_user_id: string; tenant_id: string }>(
-        `SELECT id,email,role,auth_user_id,tenant_id FROM users WHERE auth_user_id=$1 FOR UPDATE`, [central.id]);
-      if (!row.rows[0] || row.rows[0].role !== storeRole || row.rows[0].tenant_id !== 'crystalforn' || row.rows[0].email !== email) {
+      const row = await client.query<{ id: string; email: string; role: StoreRole; status: string; auth_user_id: string; tenant_id: string }>(
+        `SELECT id,email,role,status,auth_user_id,tenant_id FROM users WHERE auth_user_id=$1 FOR UPDATE`, [central.id]);
+      if (!row.rows[0] || row.rows[0].status !== 'ACTIVE' || row.rows[0].role !== storeRole
+        || row.rows[0].tenant_id !== 'crystalforn' || row.rows[0].email !== email) {
         throw new UnauthorizedException('A identidade local não corresponde ao cadastro central.');
       }
       await client.query(
@@ -86,6 +87,17 @@ export class AuthService {
          VALUES($1,$2,$3,'crystalforn',ARRAY[$4]::text[],'ACTIVE',$5)
          ON CONFLICT(auth_user_id) DO NOTHING`,
         [central.id, email, central.name || null, centralRole, row.rows[0].id]);
+      const dashboard = await client.query<{
+        auth_user_id: string; email: string; tenant_id: string; roles: string[]; status: string; store_user_id: string;
+      }>(
+        `SELECT auth_user_id,email,tenant_id,roles,status,store_user_id
+         FROM dashboard_users WHERE auth_user_id=$1 FOR UPDATE`, [central.id]);
+      const dashboardUser = dashboard.rows[0];
+      if (!dashboardUser || dashboardUser.email !== email || dashboardUser.tenant_id !== 'crystalforn'
+        || dashboardUser.status !== 'ACTIVE' || dashboardUser.roles.length !== 1
+        || dashboardUser.roles[0] !== centralRole || dashboardUser.store_user_id !== row.rows[0].id) {
+        throw new UnauthorizedException('O perfil local da Crystalforn não corresponde à identidade central.');
+      }
       if (storeRole === 'client') await client.query('INSERT INTO wallet_accounts(user_id,balance_cents) VALUES($1,0) ON CONFLICT(user_id) DO NOTHING', [row.rows[0].id]);
       return row.rows[0];
     });
@@ -215,21 +227,29 @@ export class AuthService {
     const digest = sessionDigest(token);
     const result = await this.db.query<{
       id: string; email: string; role: StoreRole; auth_user_id: string | null; tenant_id: string | null;
-      dashboard_auth_user_id: string | null; dashboard_tenant: string | null; dashboard_roles: string[] | null; dashboard_status: string | null;
+      dashboard_auth_user_id: string | null; dashboard_email: string | null; dashboard_tenant: string | null;
+      dashboard_roles: string[] | null; dashboard_status: string | null; dashboard_store_user_id: string | null;
     }>(
       `SELECT u.id,u.email,u.role,u.auth_user_id,u.tenant_id,d.auth_user_id AS dashboard_auth_user_id,
-              d.tenant_id AS dashboard_tenant,d.roles AS dashboard_roles,d.status AS dashboard_status
+              d.email AS dashboard_email,d.tenant_id AS dashboard_tenant,d.roles AS dashboard_roles,
+              d.status AS dashboard_status,d.store_user_id AS dashboard_store_user_id
        FROM sessions s JOIN users u ON u.id=s.user_id LEFT JOIN dashboard_users d ON d.store_user_id=u.id
        WHERE s.token_hash=$1 AND s.expires_at > now() AND u.status='ACTIVE'`, [digest]);
     const user = result.rows[0];
     if (!user) return null;
     if (user.role === 'admin' && user.auth_user_id === null && user.tenant_id === 'crystalforn'
       && user.dashboard_auth_user_id === `store-admin:${user.id}` && user.dashboard_tenant === 'crystalforn'
+      && user.dashboard_email === user.email && user.dashboard_store_user_id === user.id
       && user.dashboard_status === 'ACTIVE' && user.dashboard_roles?.length === 1 && user.dashboard_roles[0] === 'store_admin') {
       return { id: user.id, email: user.email, role: 'admin' };
     }
-    requireApprovedStoreAuthentication();
     if (!['client', 'admin'].includes(user.role) || !user.auth_user_id || user.tenant_id !== 'crystalforn') return null;
+    const expectedCentralRole = user.role === 'admin' ? 'store_admin' : 'store_customer';
+    if (user.dashboard_auth_user_id !== user.auth_user_id || user.dashboard_email !== user.email
+      || user.dashboard_store_user_id !== user.id || user.dashboard_tenant !== 'crystalforn'
+      || user.dashboard_status !== 'ACTIVE' || user.dashboard_roles?.length !== 1
+      || user.dashboard_roles[0] !== expectedCentralRole) return null;
+    requireApprovedStoreAuthentication();
     const center = new URL(process.env.STORE_AUTH_CENTER_URL!);
     if (center.protocol !== 'https:' || center.username || center.password || center.search || center.hash) {
       throw new ServiceUnavailableException('URL do Auth Center inválida.');
@@ -244,7 +264,6 @@ export class AuthService {
     if (verification.status === 401) return null;
     if (!verification.ok) throw new ServiceUnavailableException('Validação da identidade central indisponível.');
     const identity = await verification.json().catch(() => null) as { authenticated?: boolean; user?: { id?: string; email?: string; tenant?: string; roles?: string[] } } | null;
-    const expectedCentralRole = user.role === 'admin' ? 'store_admin' : 'store_customer';
     if (!identity?.authenticated || identity.user?.id !== user.auth_user_id || normalizeEmail(identity.user.email || '') !== user.email
       || identity.user.tenant !== 'crystalforn' || !Array.isArray(identity.user.roles)
       || identity.user.roles.length !== 1 || identity.user.roles[0] !== expectedCentralRole) return null;
