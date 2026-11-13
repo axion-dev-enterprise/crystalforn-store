@@ -43,6 +43,7 @@ Execute API e web em terminais separados. `APP_ORIGIN` deve apontar para a orige
 | --- | --- |
 | `npm run build` | Compila API, worker e web |
 | `npm run test:unit --workspace @digital-store/api` | Verifica a validação fail-closed da URL do Auth Center no CI |
+| `npm run test:unit --workspace @digital-store/sync-worker` | Verifica paginação, checkpoint, deduplicação, lotes e backoff com fixtures offline |
 | `npm run dev:api` | Inicia API NestJS em modo desenvolvimento |
 | `npm run dev:web` | Inicia Next.js |
 | `npm run dev:worker` | Comando de inicialização do worker de catálogo live-read-only; exige URL, credencial e segredo interno |
@@ -61,4 +62,4 @@ Adicione uma nova migração SQL numerada em `services/api/sql/`. Migrações de
 
 ## Verificação
 
-Após alterar código, execute `npm run build`. Revise também o diff e o comportamento de erro afetado. O projeto não declara cobertura de testes automatizados como condição desta versão; verifique os scripts existentes antes de afirmar que um fluxo foi testado.
+O workflow `.github/workflows/build.yml` executa `npm ci`, build da API/worker/web, as suítes unitárias offline da API e do worker e benchmarks sintéticos de 20 mil e 40 mil itens. Para validar uma alteração, confira a conclusão do workflow no commit ou PR exatos; um CI verde de outro HEAD não valida o código atual. A revisão estática e `git diff --check` não substituem compilação ou testes de runtime.
