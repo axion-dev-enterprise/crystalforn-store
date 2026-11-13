@@ -5,6 +5,7 @@ import { planLztCursorTransition } from './catalog-pagination';
 import { readLztCheckpoint } from './catalog-checkpoint';
 import { inspectCatalogPageProgress } from './catalog-page-progress';
 import { validateLztPagePayload } from './lzt-page-contract';
+import { providerRetryDelayMs } from './provider-retry';
 
 // Demo release: never connect to or import from the supplier.
 // Live catalog access needs a separate reviewed release decision.
@@ -42,19 +43,6 @@ const lztFeeds = [
   { key: 'steam', path: 'steam', params: [] as string[][] },
 ];
 const lztOrderVersion = 'pdate_to_down_cursor_v4';
-
-function providerRetryDelayMs(value: string | null, now = Date.now()): number {
-  const fallback = Math.max(intervalMs, 60_000);
-  if (!value?.trim()) return fallback;
-  const retryAfter = value.trim();
-  const deltaSeconds = /^\d+$/.test(retryAfter) ? Number(retryAfter) : Number.NaN;
-  const retryAt = Number.isSafeInteger(deltaSeconds) && deltaSeconds >= 0
-    ? now + deltaSeconds * 1000
-    : Date.parse(retryAfter);
-  const delay = retryAt - now;
-  if (!Number.isFinite(delay) || delay <= 0) return fallback;
-  return Math.max(intervalMs, Math.min(Math.ceil(delay), 2_147_483_647));
-}
 
 async function refreshOneSellerFeedback(): Promise<void> {
   const claimed = await pool.query<{ seller_id: string }>(
@@ -278,7 +266,7 @@ async function synchronize(): Promise<void> {
           signal: AbortSignal.timeout(timeoutMs),
         });
         if (response.status === 429) {
-          nextRunDelayMs = providerRetryDelayMs(response.headers.get('retry-after'));
+          nextRunDelayMs = providerRetryDelayMs(response.headers.get('retry-after'), intervalMs);
           errorCode = 'provider_rate_limited';
           break;
         }

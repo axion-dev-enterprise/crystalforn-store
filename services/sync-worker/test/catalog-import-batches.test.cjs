@@ -8,6 +8,7 @@ const { planLztCursorTransition } = require('../dist/catalog-pagination.js');
 const { readLztCheckpoint } = require('../dist/catalog-checkpoint.js');
 const { inspectCatalogPageProgress } = require('../dist/catalog-page-progress.js');
 const { validateLztPagePayload } = require('../dist/lzt-page-contract.js');
+const { providerRetryDelayMs } = require('../dist/provider-retry.js');
 
 const cursorHash = (cursor) => createHash('sha256').update(cursor).digest('hex');
 
@@ -234,4 +235,20 @@ test('rejects category payloads with missing or malformed pagination metadata', 
 test('requires explicit continuation state after resuming beyond the first page', () => {
   assert.equal(validateLztPagePayload({ items: [], totalItems: 10 }, 2), 'invalid_contract');
   assert.equal(validateLztPagePayload({ items: [], totalItems: 10, hasNextPage: false }, 2), null);
+});
+
+test('honors numeric and HTTP-date Retry-After values without going below the local interval', () => {
+  const now = Date.parse('2026-11-13T12:00:00Z');
+  assert.equal(providerRetryDelayMs('5', 30_000, now), 30_000);
+  assert.equal(providerRetryDelayMs('120', 30_000, now), 120_000);
+  assert.equal(providerRetryDelayMs(new Date(now + 90_000).toUTCString(), 30_000, now), 90_000);
+});
+
+test('uses a safe backoff for missing, malformed, expired, and excessively large Retry-After values', () => {
+  const now = Date.parse('2026-11-13T12:00:00Z');
+  const fallback = 60_000;
+  assert.equal(providerRetryDelayMs(null, 30_000, now), fallback);
+  assert.equal(providerRetryDelayMs('not-a-date', 30_000, now), fallback);
+  assert.equal(providerRetryDelayMs(new Date(now - 1000).toUTCString(), 30_000, now), fallback);
+  assert.equal(providerRetryDelayMs('999999999999', 30_000, now), 2_147_483_647);
 });
