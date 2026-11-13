@@ -1,9 +1,9 @@
 import { Pool, PoolClient } from 'pg';
-import { createHash } from 'node:crypto';
 import { integerEnv } from './config';
 import { catalogImportBodies } from './catalog-import-batches';
 import { planLztCursorTransition } from './catalog-pagination';
 import { readLztCheckpoint } from './catalog-checkpoint';
+import { inspectCatalogPageProgress } from './catalog-page-progress';
 
 // Demo release: never connect to or import from the supplier.
 // Live catalog access needs a separate reviewed release decision.
@@ -41,18 +41,6 @@ const lztFeeds = [
   { key: 'steam', path: 'steam', params: [] as string[][] },
 ];
 const lztOrderVersion = 'pdate_to_down_cursor_v4';
-
-function itemId(item: unknown): string | null {
-  if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
-  const id = String((item as Record<string, unknown>).item_id ?? '').trim();
-  return id && id.length <= 100 ? id : null;
-}
-
-function pageFingerprint(items: unknown[]): string | null {
-  const ids = items.map(itemId).filter((value): value is string => Boolean(value));
-  if (ids.length === 0) return null;
-  return createHash('sha256').update([...new Set(ids)].sort().join('\n')).digest('hex');
-}
 
 function providerRetryDelayMs(value: string | null, now = Date.now()): number {
   const fallback = Math.max(intervalMs, 60_000);
@@ -361,22 +349,21 @@ async function synchronize(): Promise<void> {
           }
           break;
         }
-        const fingerprint = apiProvider === 'lzt-market' ? pageFingerprint(payload.items) : null;
-        if (fingerprint && lztPageFingerprints.includes(fingerprint)) {
+        const pageProgress = inspectCatalogPageProgress(payload.items, feedPage, seen, lztPageFingerprints, apiProvider === 'lzt-market');
+        const fingerprint = pageProgress.fingerprint;
+        if (apiProvider === 'lzt-market' && pageProgress.repeatedPage) {
           await resetLztPagination();
           errorCode = 'pagination_repeated_page';
           nextRunDelayMs = Math.max(intervalMs, 60_000);
           break;
         }
-        const pageIds = payload.items.map(itemId).filter((value): value is string => Boolean(value));
-        const newIds = pageIds.filter((id) => !seen.has(id));
-        if (feedPage > 1 && newIds.length === 0) {
+        if (pageProgress.stalled) {
           if (apiProvider === 'lzt-market') await resetLztPagination();
           else await resetGenericScan();
           errorCode = 'pagination_stalled';
           break;
         }
-        pageIds.forEach((id) => seen.add(id));
+        pageProgress.pageIds.forEach((id) => seen.add(id));
         itemsSeen += payload.items.length;
         const importItems = apiProvider === 'lzt-market' && feed.key !== 'generic'
           ? payload.items.map((item) => item && typeof item === 'object' && !Array.isArray(item)

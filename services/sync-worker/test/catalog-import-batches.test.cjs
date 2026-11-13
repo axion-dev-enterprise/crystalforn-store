@@ -6,6 +6,7 @@ const { createHash } = require('node:crypto');
 const { catalogImportBodies } = require('../dist/catalog-import-batches.js');
 const { planLztCursorTransition } = require('../dist/catalog-pagination.js');
 const { readLztCheckpoint } = require('../dist/catalog-checkpoint.js');
+const { inspectCatalogPageProgress } = require('../dist/catalog-page-progress.js');
 
 const cursorHash = (cursor) => createHash('sha256').update(cursor).digest('hex');
 
@@ -155,4 +156,36 @@ test('ignores non-object checkpoint values and invalid item counts', () => {
     hasSavedPage: false,
   });
   assert.equal(readLztCheckpoint({ nextPage: 2, nextCursor: 'cursor', itemsSeen: -1 }, 10).itemsSeen, 0);
+});
+
+test('detects the same page even when item order changes', () => {
+  const firstPage = inspectCatalogPageProgress([{ item_id: 'demo-a' }, { item_id: 'demo-b' }], 1, new Set(), []);
+  assert.ok(firstPage.fingerprint);
+
+  const reorderedPage = inspectCatalogPageProgress(
+    [{ item_id: 'demo-b' }, { item_id: 'demo-a' }],
+    2,
+    new Set(firstPage.pageIds),
+    [firstPage.fingerprint],
+  );
+  assert.equal(reorderedPage.repeatedPage, true);
+  assert.equal(reorderedPage.stalled, true);
+});
+
+test('allows a page with overlapping records when at least one new item advances the scan', () => {
+  const progress = inspectCatalogPageProgress(
+    [{ item_id: 'demo-a' }, { item_id: 'demo-b' }, { item_id: 'demo-c' }],
+    2,
+    new Set(['demo-a', 'demo-b']),
+    [],
+  );
+  assert.deepEqual(progress.newIds, ['demo-c']);
+  assert.equal(progress.stalled, false);
+});
+
+test('marks a later page without usable or new item IDs as stalled', () => {
+  assert.equal(inspectCatalogPageProgress([{}, null], 1, new Set(), []).stalled, false);
+  const progress = inspectCatalogPageProgress([{}, { item_id: ' demo-a ' }], 3, new Set(['demo-a']), []);
+  assert.equal(progress.fingerprint, cursorHash('demo-a'));
+  assert.equal(progress.stalled, true);
 });
