@@ -29,6 +29,8 @@ jobs:
         run: npm ci
       - name: Build web, API, and workers
         run: npm run build
+      - name: Verify offline catalog import batching
+        run: npm run test:unit --workspace @digital-store/sync-worker
       - name: Measure synthetic catalog batch scaling
         run: |
           node --expose-gc scripts/benchmark_catalog_batches.cjs --count=20000
