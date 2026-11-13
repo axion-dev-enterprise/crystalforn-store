@@ -1,6 +1,6 @@
 import * as crypto from 'node:crypto';
 import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
-import { ConflictException, HttpException, HttpStatus, Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import type { AuthenticatedUser, StoreRole } from '../../common/auth.types';
 import { requireApprovedStoreAuthentication } from './auth-governance-status';
@@ -162,55 +162,6 @@ export class AuthService {
       await client.query('DELETE FROM auth_attempts WHERE attempted_at < now() - interval \'1 day\'');
     });
     return bucket;
-  }
-
-  async register(email: string, password: string, remoteAddress: string, response: { setHeader: (name: string, value: string) => void }): Promise<{ id: string; email: string }> {
-    requireApprovedStoreAuthentication();
-    const normalized = normalizeEmail(email);
-    const bucket = await this.enforceRateLimit(normalized, remoteAddress);
-    const salt = randomBytes(16).toString('hex');
-    const hash = await passwordDigest(password, salt);
-    try {
-      const result = await this.db.transaction(async (client) => {
-        const user = await client.query<{ id: string; email: string }>(
-          `INSERT INTO users(email,password_salt,password_hash,role) VALUES($1,$2,$3,'client') RETURNING id,email`, [normalized, `argon2id$${salt}`, hash.toString('hex')]);
-        await client.query('INSERT INTO wallet_accounts(user_id,balance_cents) VALUES($1,0)', [user.rows[0].id]);
-        return user.rows[0];
-      });
-      await this.db.query('DELETE FROM auth_attempts WHERE bucket_hash=$1', [bucket]);
-      await this.createSession(result.id, response);
-      return result;
-    } catch (error) {
-      if ((error as { code?: string }).code === '23505') throw new ConflictException('Este e-mail já está cadastrado.');
-      throw error;
-    }
-  }
-
-  async login(email: string, password: string, remoteAddress: string, response: { setHeader: (name: string, value: string) => void }): Promise<{ id: string; email: string }> {
-    requireApprovedStoreAuthentication();
-    const bucket = await this.enforceRateLimit(email, remoteAddress);
-    const result = await this.db.query<{ id: string; email: string; password_salt: string; password_hash: string; status: string }>(
-      'SELECT id,email,password_salt,password_hash,status FROM users WHERE email=$1', [normalizeEmail(email)]);
-    const row = result.rows[0];
-    const storedSalt = row?.password_salt ?? '';
-    const isArgon2 = storedSalt.startsWith('argon2id$');
-    const salt = isArgon2 ? storedSalt.slice('argon2id$'.length) : storedSalt;
-    const actual = isArgon2 || !row
-      ? await passwordDigest(password, /^[a-f\d]{32}$/i.test(salt) ? salt : '00'.repeat(16))
-      : await legacyScryptDigest(password, /^[a-f\d]{32}$/i.test(salt) ? salt : '00'.repeat(16));
-    const expected = Buffer.from(row?.password_hash ?? (isArgon2 ? '00'.repeat(32) : '00'.repeat(64)), 'hex');
-    if (!row || row.status !== 'ACTIVE' || actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
-      throw new UnauthorizedException('E-mail ou senha inválidos.');
-    }
-    if (!isArgon2) {
-      const newSalt = randomBytes(16).toString('hex');
-      const newHash = await passwordDigest(password, newSalt);
-      await this.db.query('UPDATE users SET password_salt=$2,password_hash=$3 WHERE id=$1 AND password_salt=$4 AND password_hash=$5',
-        [row.id, `argon2id$${newSalt}`, newHash.toString('hex'), storedSalt, row.password_hash]);
-    }
-    await this.db.query('DELETE FROM auth_attempts WHERE bucket_hash=$1', [bucket]);
-    await this.createSession(row.id, response);
-    return { id: row.id, email: row.email };
   }
 
   private async createSession(userId: string, response: { setHeader: (name: string, value: string) => void }): Promise<void> {
