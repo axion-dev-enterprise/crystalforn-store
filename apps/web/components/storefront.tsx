@@ -9,7 +9,10 @@ type Catalog = { items: StoreProduct[]; page: number; pageSize: number; total: n
 type Filters = { minPrice: string; maxPrice: string; minDaysOffline: string; skinName: string; steamGame: string; rank: string; minLevel: string };
 type CatalogSort = 'price_asc' | 'price_desc' | 'title_asc';
 const EMPTY_FILTERS: Filters = { minPrice: '', maxPrice: '', minDaysOffline: '', skinName: '', steamGame: '', rank: '', minLevel: '' };
-const STOREFRONT_CATALOG_MODE = process.env.NEXT_PUBLIC_STORE_CATALOG_MODE === 'live_read_only' ? 'live_read_only' : 'demo';
+type StorefrontCatalogMode = 'demo' | 'live_read_only';
+function storefrontCatalogMode(): StorefrontCatalogMode {
+  return process.env.NEXT_PUBLIC_STORE_CATALOG_MODE === 'live_read_only' ? 'live_read_only' : 'demo';
+}
 const games = [{ id: '', label: 'Todos' }, { id: 'fortnite', label: 'Fortnite' }, { id: 'steam', label: 'Steam' }, { id: 'roblox', label: 'Roblox' }, { id: 'valorant', label: 'Valorant' }, { id: 'lol', label: 'League of Legends' }];
 const DEMO_LOL_RANKS = ['Ferro', 'Bronze', 'Prata', 'Ouro', 'Platina', 'Esmeralda'].flatMap((tier) => ['IV', 'III', 'II', 'I'].map((division) => `${tier} ${division}`));
 const DEMO_VALORANT_RANKS = [
@@ -111,10 +114,10 @@ export function Storefront() {
   const [comparisonIds, setComparisonIds] = useState<string[]>([]);
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const [restoredFromUrl, setRestoredFromUrl] = useState(false);
-  const [result, setResult] = useState<Catalog | null>(() => STOREFRONT_CATALOG_MODE === 'demo'
+  const [result, setResult] = useState<Catalog | null>(() => storefrontCatalogMode() === 'demo'
     ? demoCatalog(1, 'Exemplos locais fictícios para demonstrar filtros e detalhes; nenhum item pode ser comprado.')
     : null);
-  const [loading, setLoading] = useState(STOREFRONT_CATALOG_MODE !== 'demo');
+  const [loading, setLoading] = useState(storefrontCatalogMode() !== 'demo');
   const [error, setError] = useState('');
   const catalogRequest = useRef<AbortController | null>(null);
   useEffect(() => {
@@ -154,7 +157,7 @@ export function Storefront() {
   }, [restoredFromUrl, catalogQuery]);
 
   const load = useCallback(async () => {
-    if (STOREFRONT_CATALOG_MODE === 'demo') {
+    if (storefrontCatalogMode() === 'demo') {
       setResult(demoCatalog(page, 'Exemplos locais fictícios para demonstrar filtros e detalhes; nenhum item pode ser comprado.'));
       setLoading(false);
       setError('');
@@ -181,12 +184,12 @@ export function Storefront() {
       const response = await fetch(`/api/v1/catalog?${params}`, { cache: 'no-store', signal: controller.signal });
       if (!response.ok) throw new Error('Não foi possível carregar o catálogo agora.');
       const catalog = await response.json() as Catalog;
-      const demoOnly = STOREFRONT_CATALOG_MODE === 'demo' || catalog.demoOnly;
+      const demoOnly = storefrontCatalogMode() === 'demo' || catalog.demoOnly;
       setResult(demoOnly ? demoCatalog(page, 'Itens e preços fictícios para demonstrar a navegação. Não são anúncios reais e não podem ser comprados.') : catalog);
     } catch (reason) {
       if (!controller.signal.aborted || timedOut) {
         const detail = timedOut ? 'A consulta do catálogo excedeu 15 segundos.' : reason instanceof Error ? reason.message : 'Erro ao carregar o catálogo.';
-        if (STOREFRONT_CATALOG_MODE === 'demo') {
+        if (storefrontCatalogMode() === 'demo') {
           setResult(demoCatalog(page, 'A API não respondeu. A vitrine continua usando apenas exemplos locais fictícios.'));
           setError(`${detail} Os exemplos abaixo não representam anúncios reais.`);
         } else {
