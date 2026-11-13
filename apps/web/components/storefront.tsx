@@ -83,7 +83,8 @@ function displayTitle(product: StoreProduct): string {
   const gameName = product.game === 'lol' ? 'league of legends' : product.game;
   const nonCountHighlight = titleParts.find((part) => part.toLocaleLowerCase('pt-BR') !== gameName && !/^[\d.,]+\s+(?:skins?|itens?|jogos?|picaretas?|emotes?|asas-delta)\b/i.test(part));
   const fallbackHighlight = titleParts.find((part) => part.toLocaleLowerCase('pt-BR') !== gameName);
-  return inventoryHighlights[product.game]?.[0] || nonCountHighlight || fallbackHighlight || `Conta ${product.game === 'lol' ? 'League of Legends' : product.game[0].toUpperCase() + product.game.slice(1)}`;
+  const localizedInventoryHighlight = inventoryHighlights[product.game]?.find((highlight) => !/[\u0400-\u04FF]/.test(highlight));
+  return localizedInventoryHighlight || nonCountHighlight || fallbackHighlight || `Conta ${product.game === 'lol' ? 'League of Legends' : product.game[0].toUpperCase() + product.game.slice(1)}`;
 }
 
 function queryNumber(value: string, integer = false): string {
