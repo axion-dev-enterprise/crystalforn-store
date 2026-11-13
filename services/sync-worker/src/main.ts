@@ -4,6 +4,7 @@ import { catalogImportBodies } from './catalog-import-batches';
 import { planLztCursorTransition } from './catalog-pagination';
 import { readLztCheckpoint } from './catalog-checkpoint';
 import { inspectCatalogPageProgress } from './catalog-page-progress';
+import { validateLztPagePayload } from './lzt-page-contract';
 
 // Demo release: never connect to or import from the supplier.
 // Live catalog access needs a separate reviewed release decision.
@@ -288,31 +289,30 @@ async function synchronize(): Promise<void> {
           } else errorCode = `provider_http_${response.status}`;
           break;
         }
-        let payload: { status?: unknown; items?: unknown[]; total_items?: number; totalItems?: number; hasNextPage?: unknown; nextCursor?: unknown; page?: unknown; perPage?: unknown };
-        try { payload = await response.json() as { status?: unknown; items?: unknown[]; total_items?: number; totalItems?: number; hasNextPage?: unknown; nextCursor?: unknown; page?: unknown; perPage?: unknown }; }
+        let rawPayload: unknown;
+        try { rawPayload = await response.json(); }
         catch {
           if (apiProvider === 'lzt-market') await resetLztPagination();
           errorCode = 'invalid_json';
           break;
         }
+        if (!rawPayload || typeof rawPayload !== 'object' || Array.isArray(rawPayload)) {
+          if (apiProvider === 'lzt-market') await resetLztPagination();
+          errorCode = 'invalid_contract';
+          break;
+        }
+        const payload = rawPayload as { status?: unknown; items?: unknown[]; total_items?: number; totalItems?: number; hasNextPage?: unknown; nextCursor?: unknown; page?: unknown; perPage?: unknown };
         if (apiProvider === 'generic' && payload.status !== undefined
           && (typeof payload.status !== 'string' || payload.status.trim().toLowerCase() !== 'success')) {
           errorCode = 'provider_status_not_success';
           break;
         }
         const totalItems = payload.totalItems ?? payload.total_items;
-        if (!Array.isArray(payload.items) || (totalItems !== undefined && (!Number.isSafeInteger(totalItems) || totalItems < 0))
-          || (apiProvider === 'lzt-market' && (
-            (payload.hasNextPage !== undefined && typeof payload.hasNextPage !== 'boolean')
-            || (payload.nextCursor !== undefined && typeof payload.nextCursor !== 'string')
-            || (payload.hasNextPage === true && (typeof payload.nextCursor !== 'string' || payload.nextCursor.trim().length === 0 || payload.nextCursor.length > 4096))
-            || (lztCursor !== null && payload.hasNextPage === undefined)
-            || (payload.page !== undefined && (typeof payload.page !== 'number' || !Number.isSafeInteger(payload.page) || payload.page !== lztPage))
-            || (payload.perPage !== undefined && (typeof payload.perPage !== 'number' || !Number.isSafeInteger(payload.perPage) || payload.perPage < 1))
-            || (payload.hasNextPage === undefined && typeof totalItems !== 'number')
-          ))) {
+        const lztContractError = apiProvider === 'lzt-market' ? validateLztPagePayload(payload, lztPage) : null;
+        if (!Array.isArray(payload.items) || (totalItems !== undefined && (!Number.isSafeInteger(totalItems) || Number(totalItems) < 0))
+          || lztContractError !== null) {
           if (apiProvider === 'lzt-market') await resetLztPagination();
-          errorCode = 'invalid_contract';
+          errorCode = lztContractError ?? 'invalid_contract';
           break;
         }
         pages += 1;

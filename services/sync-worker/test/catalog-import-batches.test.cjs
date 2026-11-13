@@ -7,6 +7,7 @@ const { catalogImportBodies } = require('../dist/catalog-import-batches.js');
 const { planLztCursorTransition } = require('../dist/catalog-pagination.js');
 const { readLztCheckpoint } = require('../dist/catalog-checkpoint.js');
 const { inspectCatalogPageProgress } = require('../dist/catalog-page-progress.js');
+const { validateLztPagePayload } = require('../dist/lzt-page-contract.js');
 
 const cursorHash = (cursor) => createHash('sha256').update(cursor).digest('hex');
 
@@ -188,4 +189,49 @@ test('marks a later page without usable or new item IDs as stalled', () => {
   const progress = inspectCatalogPageProgress([{}, { item_id: ' demo-a ' }], 3, new Set(['demo-a']), []);
   assert.equal(progress.fingerprint, cursorHash('demo-a'));
   assert.equal(progress.stalled, true);
+});
+
+test('accepts documented category response fields for first and subsequent pages', () => {
+  assert.equal(validateLztPagePayload({
+    items: [{ item_id: 'demo-a' }],
+    totalItems: 120,
+    hasNextPage: true,
+    nextCursor: 'opaque-fixture-cursor',
+    perPage: 40,
+    page: 1,
+  }, 1), null);
+  assert.equal(validateLztPagePayload({
+    items: [{ item_id: 'demo-b' }],
+    totalItems: 120,
+    hasNextPage: true,
+    nextCursor: 'opaque-fixture-cursor-2',
+    perPage: 40,
+    page: 2,
+  }, 2), null);
+  assert.equal(validateLztPagePayload({ items: [], totalItems: 120, hasNextPage: false, page: 3 }, 3), null);
+});
+
+test('rejects category payloads with missing or malformed pagination metadata', () => {
+  const invalidPayloads = [
+    null,
+    [],
+    { items: [], totalItems: 3, hasNextPage: 'true' },
+    { items: [], totalItems: 3, hasNextPage: true },
+    { items: [], totalItems: 3, hasNextPage: true, nextCursor: ' '.repeat(2) },
+    { items: [], totalItems: 3, hasNextPage: true, nextCursor: 'x'.repeat(4097) },
+    { items: [], totalItems: 3, hasNextPage: true, nextCursor: 'cursor', page: 2 },
+    { items: [], totalItems: -1, hasNextPage: false },
+    { items: [], totalItems: 3, perPage: 0 },
+    { items: [], nextCursor: 'cursor' },
+    { totalItems: 3, hasNextPage: false },
+  ];
+
+  for (const payload of invalidPayloads) {
+    assert.equal(validateLztPagePayload(payload, 1), 'invalid_contract');
+  }
+});
+
+test('requires explicit continuation state after resuming beyond the first page', () => {
+  assert.equal(validateLztPagePayload({ items: [], totalItems: 10 }, 2), 'invalid_contract');
+  assert.equal(validateLztPagePayload({ items: [], totalItems: 10, hasNextPage: false }, 2), null);
 });
