@@ -8,6 +8,7 @@ Revisado em 13/11/2026. Este documento é a fila de trabalho para o próximo cic
 - **Autenticação:** sem login simulado ou bypass. A área do cliente depende do Auth Center, sessão válida, tenant e papel conferidos no servidor.
 - **Fornecedor:** relatos do cliente sobre paginação, volume e atualização em tempo real são metas, não garantias medidas. Não afirmar escala ou remoção instantânea sem evidência de runtime.
 - **Validação acordada:** em 13/11, o cliente confirmou seguir o contrato da documentação oficial e preparar a estrutura de testes com dados fictícios nos dias 15 e 16. Isso mantém o worker e as operações reais desligados; não é autorização para consultar o fornecedor ou ativar comércio.
+- **Extensão Workana:** em 13/11, o cliente aprovou formalizar um adicional pela plataforma. A proposta foi criada com escopo de validar a API pela documentação, testar paginação/checkpoint/deduplicação/falhas com fixtures e benchmark sintético, mantendo a demo sem comércio real. Status: aguarda aprovação final e depósito em garantia do cliente.
 - **Hospedagem:** após o endereço da conta ter sido informado na conversa, o cliente disse que enviou o convite de colaborador. O aceite, as permissões concedidas e o acesso funcional ainda não foram verificados; nenhum diagnóstico ou operação remota ocorreu.
 
 ## Prazo comunicado ao cliente — 30/10/2026
