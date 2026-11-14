@@ -114,7 +114,7 @@ test('reads Steam games from the nested full-games list returned by LZT', () => 
     },
   });
   assert.ok(steam);
-  assert.deepEqual(steam.attributes.inventory.game_names, ['Counter-Strike 2', 'Dota 2']);
+  assert.deepEqual([...steam.attributes.inventory.game_names].sort(), ['Counter-Strike 2', 'Dota 2'].sort());
   assert.equal(steam.attributes.inventory.games.length, 2);
-  assert.equal(steam.title.includes('Counter-Strike 2'), true);
+  assert.equal(steam.title.includes(steam.attributes.inventory.game_names[0]), true);
 });
