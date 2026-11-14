@@ -9,7 +9,7 @@ Revisado em 13/11/2026. Este documento é a fila de trabalho para o próximo cic
 - **Fornecedor:** relatos do cliente sobre paginação, volume e atualização em tempo real são metas, não garantias medidas. Não afirmar escala ou remoção instantânea sem evidência de runtime.
 - **Validação acordada:** em 13/11, o cliente confirmou seguir o contrato da documentação oficial e preparar a estrutura de testes com dados fictícios nos dias 15 e 16. Isso mantém o worker e as operações reais desligados; não é autorização para consultar o fornecedor ou ativar comércio.
 - **Extensão Workana:** em 13/11, o cliente aprovou formalizar um adicional pela plataforma. A proposta foi criada com escopo de validar a API pela documentação, testar paginação/checkpoint/deduplicação/falhas com fixtures e benchmark sintético, mantendo a demo sem comércio real. Status: aguarda aprovação final e depósito em garantia do cliente.
-- **Hospedagem:** em 13/11, acesso ao console Hostinger confirmou a VPS correta e as fingerprints SSH foram comparadas com a chave observada pela rede. O preflight `whoami` confirmou `root@srv2099633` e Ubuntu 22.04.5. A prévia demo foi publicada; não registrar IP, fingerprint ou detalhes do Vault neste repositório público.
+- **Hospedagem:** em 13/11, acesso ao console Hostinger confirmou a VPS correta e as fingerprints SSH foram comparadas com a chave observada pela rede. A conexão autenticada confirmou Ubuntu 22.04.5 e permitiu publicar e validar a prévia demo. Não registrar IP, fingerprint, nome do host, usuário de sistema ou detalhes do Vault neste repositório público.
 
 ## Prazo comunicado ao cliente — 30/10/2026
 
