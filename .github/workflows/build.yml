@@ -9,18 +9,31 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       - name: Check out source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Set up Node.js
-        uses: actions/setup-node@v7.1.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
+          node-version: 24.15.0
           cache: npm
       - name: Install locked dependencies
         run: npm ci
       - name: Build web, API, and workers
         run: npm run build
+      - name: Verify Auth Center URL validation
+        run: npm run test:unit --workspace @digital-store/api
+      - name: Verify offline catalog import batching
+        run: npm run test:unit --workspace @digital-store/sync-worker
+      - name: Measure synthetic catalog batch scaling
+        run: |
+          node --expose-gc scripts/benchmark_catalog_batches.cjs --count=20000
+          node --expose-gc scripts/benchmark_catalog_batches.cjs --count=40000

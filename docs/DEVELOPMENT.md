@@ -21,6 +21,10 @@ docker compose up --build -d postgres api web
 
 Abra `http://localhost:3000` e consulte `http://localhost:4000/api/v1/health`. O health endpoint valida conectividade ao banco; não comprova os demais fluxos.
 
+## Aparência
+
+O cabeçalho permite alternar entre os temas claro e escuro. A preferência fica salva no `localStorage` do navegador sob `crystalforn-theme`; o padrão é o tema claro. Essa preferência é local ao navegador e não requer conta ou serviço remoto.
+
 ## Processos separados
 
 Com PostgreSQL acessível em `DATABASE_URL` e as variáveis necessárias definidas no processo:
@@ -38,9 +42,11 @@ Execute API e web em terminais separados. `APP_ORIGIN` deve apontar para a orige
 | Comando | Descrição |
 | --- | --- |
 | `npm run build` | Compila API, worker e web |
+| `npm run test:unit --workspace @digital-store/api` | Verifica a validação fail-closed da URL do Auth Center no CI |
+| `npm run test:unit --workspace @digital-store/sync-worker` | Verifica paginação, checkpoint, deduplicação, lotes e backoff com fixtures offline |
 | `npm run dev:api` | Inicia API NestJS em modo desenvolvimento |
 | `npm run dev:web` | Inicia Next.js |
-| `npm run dev:worker` | Comando de inicialização do worker de catálogo; ele termina inativo no modo demo |
+| `npm run dev:worker` | Comando de inicialização do worker de catálogo live-read-only; exige URL, credencial e segredo interno |
 | `npm run dev:fulfillment` | Comando de inicialização do worker de entrega; não habilita processamento comercial |
 | `npm run start:admin-provision` | Provisiona admin em execução explícita com credenciais temporárias |
 
@@ -56,4 +62,4 @@ Adicione uma nova migração SQL numerada em `services/api/sql/`. Migrações de
 
 ## Verificação
 
-Após alterar código, execute `npm run build`. Revise também o diff e o comportamento de erro afetado. O projeto não declara cobertura de testes automatizados como condição desta versão; verifique os scripts existentes antes de afirmar que um fluxo foi testado.
+O workflow `.github/workflows/build.yml` executa `npm ci`, build da API/worker/web, as suítes unitárias offline da API e do worker e benchmarks sintéticos de 20 mil e 40 mil itens. Para validar uma alteração, confira a conclusão do workflow no commit ou PR exatos; um CI verde de outro HEAD não valida o código atual. A revisão estática e `git diff --check` não substituem compilação ou testes de runtime.

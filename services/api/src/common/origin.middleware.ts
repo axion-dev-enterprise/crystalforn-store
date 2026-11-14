@@ -6,7 +6,11 @@ const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 @Injectable()
 export class OriginMiddleware implements NestMiddleware {
   use(request: Request, _response: Response, next: NextFunction): void {
-    if (!MUTATING_METHODS.has(request.method) || request.path.startsWith('/api/v1/webhooks/') || request.path.startsWith('/api/v1/internal/')) {
+    const fullPath = request.originalUrl.split('?')[0];
+    const internalRoute = request.path.startsWith('/api/v1/internal/')
+      || request.path.startsWith('/internal/')
+      || fullPath.startsWith('/api/v1/internal/');
+    if (!MUTATING_METHODS.has(request.method) || request.path.startsWith('/api/v1/webhooks/') || internalRoute) {
       next();
       return;
     }

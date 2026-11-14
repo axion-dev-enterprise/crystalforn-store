@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "test:unit": "node --test test/*.test.cjs",
     "start": "node dist/src/operations/migrate.js && node dist/src/main.js",
     "migrate": "npm run build && node dist/src/operations/migrate.js",
     "start:dev": "ts-node-dev --respawn --transpile-only src/main.ts",
@@ -17,7 +18,8 @@
     "class-validator": "0.15.1",
     "pg": "8.23.1",
     "reflect-metadata": "0.2.2",
-    "rxjs": "7.8.2"
+    "rxjs": "7.8.2",
+    "sharp": "0.35.5"
   },
   "devDependencies": {
     "@types/express": "5.0.0",

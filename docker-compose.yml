@@ -86,6 +86,8 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        STOREFRONT_CATALOG_MODE: ${STOREFRONT_CATALOG_MODE:-demo}
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-production}

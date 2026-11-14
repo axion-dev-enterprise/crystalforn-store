@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
-import type { AdminOrdersQueryDto, CouponDto, StoreSettingsDto } from './admin.dto';
+import type { AdminCatalogQueryDto, AdminOrdersQueryDto, AdminPageQueryDto, CouponDto, PricingPreviewQueryDto, StoreSettingsDto } from './admin.dto';
 import type { CancellationRequestReviewDto } from '../commerce/commerce.dto';
 
 const syncErrorMessage: Record<string, string> = {
@@ -25,6 +25,55 @@ const syncErrorMessage: Record<string, string> = {
   worker_error: 'O processo de sincronização encontrou uma falha interna.',
 };
 
+const sensitiveAuditKey = /admin.?response|customer.?message|password|secret|token|cookie|credential|authorization|api.?key|private.?key/i;
+
+function redactAuditDetails(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(redactAuditDetails);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, nested]) => [
+    key,
+    sensitiveAuditKey.test(key) ? '[redigido]' : redactAuditDetails(nested),
+  ]));
+}
+
+type CatalogAdminRow = {
+  id: string;
+  provider_item_id: string;
+  seller_id: string | null;
+  game: string;
+  source_title: string | null;
+  generated_title: string;
+  source_currency: string;
+  source_price: string;
+  price_brl_cents: string | null;
+  status: string;
+  attributes: Record<string, unknown>;
+  synced_at: Date;
+  seller_hidden: boolean;
+  item_hidden: boolean;
+  seller_feedback_total: string | null;
+  seller_feedback_positive_percentage: number | null;
+};
+
+function catalogQualityFlags(product: Pick<CatalogAdminRow, 'game' | 'source_title' | 'generated_title' | 'attributes' | 'price_brl_cents' | 'synced_at'>): string[] {
+  const flags: string[] = [];
+  if (product.source_title && /\p{Script=Cyrillic}/u.test(product.source_title)) flags.push('source_title_cyrillic');
+  const title = product.generated_title.trim().toLocaleLowerCase('pt-BR');
+  if (title.length < 14 || title === product.game) flags.push('generic_title');
+  const inventory = product.attributes?.inventory;
+  if (!inventory || typeof inventory !== 'object' || Array.isArray(inventory) || Object.keys(inventory).length === 0) {
+    flags.push('missing_inventory');
+  }
+  if (!product.price_brl_cents || Number(product.price_brl_cents) <= 0) flags.push('price_unavailable');
+  if (Date.now() - product.synced_at.getTime() > 24 * 60 * 60 * 1000) flags.push('stale');
+  return flags;
+}
+
+function syncErrorText(errorCode: string | null): string | null {
+  if (!errorCode) return null;
+  return syncErrorMessage[errorCode] ?? 'A sincronização encontrou um erro. Consulte os logs operacionais protegidos.';
+}
+
 @Injectable()
 export class AdminService {
   constructor(private readonly db: DatabaseService) {}
@@ -35,16 +84,24 @@ export class AdminService {
       this.db.query<{ seller_id: string }>('SELECT seller_id FROM seller_blocklist ORDER BY seller_id'),
     ]);
     const values = Object.fromEntries(settings.rows.map((row) => [row.setting_key, row.setting_value])) as Record<string, unknown>;
+    const usdBrlRate = Number(values.usd_brl_rate);
+    const rubBrlRate = Number(values.rub_brl_rate);
     return {
       markupPercent: Number(values.markup_percent ?? 55),
-      usdBrlRate: values.usd_brl_rate ?? null,
-      rubBrlRate: values.rub_brl_rate ?? null,
+      usdBrlRate: Number.isFinite(usdBrlRate) && usdBrlRate > 0 ? usdBrlRate : null,
+      rubBrlRate: Number.isFinite(rubBrlRate) && rubBrlRate > 0 ? rubBrlRate : null,
       blockedSellerIds: sellers.rows.map((row) => row.seller_id),
     };
   }
 
-  async setSettings(input: StoreSettingsDto) {
+  async setSettings(input: StoreSettingsDto, adminId: string) {
     await this.db.transaction(async (client) => {
+      const previousSettings = await client.query<{ setting_key: string; setting_value: unknown }>(
+        "SELECT setting_key,setting_value FROM store_settings WHERE setting_key IN ('markup_percent','usd_brl_rate','rub_brl_rate')",
+      );
+      const previousSellers = await client.query<{ seller_id: string }>('SELECT seller_id FROM seller_blocklist ORDER BY seller_id');
+      const before = Object.fromEntries(previousSettings.rows.map((row) => [row.setting_key, row.setting_value]));
+      const beforeSellerIds = previousSellers.rows.map((row) => row.seller_id);
       for (const [key, value] of [['markup_percent', input.markupPercent], ['usd_brl_rate', input.usdBrlRate ?? null], ['rub_brl_rate', input.rubBrlRate ?? null]] as const) {
         await client.query(`INSERT INTO store_settings(setting_key,setting_value) VALUES($1,$2::jsonb)
           ON CONFLICT(setting_key) DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=now()`, [key, JSON.stringify(value)]);
@@ -66,8 +123,197 @@ export class AdminService {
       `, [input.markupPercent, input.usdBrlRate ?? null, input.rubBrlRate ?? null]);
       await client.query('DELETE FROM seller_blocklist');
       for (const sellerId of [...new Set(input.blockedSellerIds)]) await client.query('INSERT INTO seller_blocklist(seller_id) VALUES($1)', [sellerId]);
+      await client.query(
+        "INSERT INTO admin_audit(actor_id,action,target_id,details) VALUES($1,'store_settings_updated','store_settings',$2::jsonb)",
+        [adminId, JSON.stringify({
+          before: { markupPercent: before.markup_percent ?? 55, usdBrlRate: before.usd_brl_rate ?? null, rubBrlRate: before.rub_brl_rate ?? null, blockedSellerIds: beforeSellerIds },
+          after: { markupPercent: input.markupPercent, usdBrlRate: input.usdBrlRate ?? null, rubBrlRate: input.rubBrlRate ?? null, blockedSellerIds: [...new Set(input.blockedSellerIds)] },
+        })],
+      );
     });
     return this.getSettings();
+  }
+
+  async listCatalog(query: AdminCatalogQueryDto) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+    const search = query.search?.trim() || null;
+    const minPrice = query.minPrice === undefined ? null : Math.round(query.minPrice * 100);
+    const maxPrice = query.maxPrice === undefined ? null : Math.round(query.maxPrice * 100);
+    if (minPrice !== null && maxPrice !== null && minPrice > maxPrice) {
+      throw new BadRequestException('O preço mínimo não pode superar o preço máximo.');
+    }
+    const fromWhere = `
+      FROM products p
+      LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
+      LEFT JOIN catalog_item_overrides o ON o.product_id=p.id
+      LEFT JOIN seller_feedback_cache sf ON sf.seller_id=p.seller_id AND sf.checked_at IS NOT NULL
+      WHERE ($1::text IS NULL OR p.id::text ILIKE '%'||$1||'%' OR p.provider_item_id ILIKE '%'||$1||'%'
+        OR COALESCE(p.source_title,'') ILIKE '%'||$1||'%' OR p.generated_title ILIKE '%'||$1||'%')
+        AND ($2::text IS NULL OR p.game=$2)
+        AND ($3::text IS NULL OR p.seller_id=$3)
+        AND ($4::text IS NULL OR p.status=$4 OR ($4='hidden' AND (b.seller_id IS NOT NULL OR o.hidden=true)))
+        AND ($5::text='all' OR ($5='visible' AND b.seller_id IS NULL AND COALESCE(o.hidden,false)=false)
+          OR ($5='hidden' AND (b.seller_id IS NOT NULL OR o.hidden=true OR p.status='hidden')))
+        AND ($6::text='all' OR (
+          (COALESCE(p.source_title,'') ~ '[А-Яа-яЁё]')
+          OR length(trim(p.generated_title)) < 14
+          OR lower(trim(p.generated_title))=p.game
+          OR p.attributes->'inventory' IS NULL
+          OR jsonb_typeof(p.attributes->'inventory') <> 'object'
+          OR p.attributes->'inventory'='{}'::jsonb
+          OR p.price_brl_cents IS NULL OR p.price_brl_cents <= 0
+        ))
+        AND ($7::text='all' OR ($7='stale' AND p.synced_at < now()-interval '24 hours')
+          OR ($7='fresh' AND p.synced_at >= now()-interval '24 hours'))
+        AND ($8::bigint IS NULL OR p.price_brl_cents >= $8)
+        AND ($9::bigint IS NULL OR p.price_brl_cents <= $9)`;
+    const values = [search, query.game ?? null, query.sellerId ?? null, query.status ?? null,
+      query.visibility ?? 'all', query.quality ?? 'all', query.freshness ?? 'all', minPrice, maxPrice];
+    const [rows, count] = await Promise.all([
+      this.db.query<CatalogAdminRow>(
+        `SELECT p.id,p.provider_item_id,p.seller_id,p.game,p.source_title,p.generated_title,p.source_currency,
+          p.source_price::text,p.price_brl_cents::text,p.status,p.attributes,p.synced_at,
+          sf.feedback_total::text AS seller_feedback_total,sf.positive_percentage AS seller_feedback_positive_percentage,
+          (b.seller_id IS NOT NULL) AS seller_hidden,COALESCE(o.hidden,false) AS item_hidden
+         ${fromWhere}
+         ORDER BY p.synced_at DESC,p.id DESC LIMIT $10 OFFSET $11`,
+        [...values, pageSize, (page - 1) * pageSize],
+      ),
+      this.db.query<{ total: string }>(`SELECT count(*)::text AS total ${fromWhere}`, values),
+    ]);
+    return {
+      items: rows.rows.map((row) => ({ ...row, hidden: row.seller_hidden || row.item_hidden || row.status === 'hidden', qualityFlags: catalogQualityFlags(row) })),
+      page,
+      pageSize,
+      total: Number(count.rows[0]?.total ?? 0),
+      totalPages: Math.ceil(Number(count.rows[0]?.total ?? 0) / pageSize),
+    };
+  }
+
+  async listCatalogSyncRuns(query: AdminPageQueryDto) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+    const search = query.search?.trim() || null;
+    const status = query.status && query.status !== 'all' ? query.status : null;
+    const where = `WHERE ($1::text IS NULL OR COALESCE(error_code,'') ILIKE '%'||$1||'%')
+      AND ($2::text IS NULL OR ($2='running' AND finished_at IS NULL)
+        OR ($2='complete' AND finished_at IS NOT NULL AND complete=true)
+        OR ($2='failed' AND finished_at IS NOT NULL AND complete=false))`;
+    const filters = [search, status];
+    const [rows, count] = await Promise.all([
+      this.db.query<{
+        id: string; started_at: Date; finished_at: Date | null; pages_read: number; items_seen: number;
+        items_upserted: number; items_discarded: number; items_discarded_reasons: Record<string, number>; complete: boolean; error_code: string | null; duration_ms: string | null;
+      }>(
+        `SELECT id,started_at,finished_at,pages_read,items_seen,items_upserted,items_discarded,items_discarded_reasons,complete,error_code,
+          CASE WHEN finished_at IS NULL THEN NULL ELSE GREATEST(0,(extract(epoch FROM finished_at-started_at)*1000)::bigint)::text END AS duration_ms
+         FROM catalog_sync_runs ${where} ORDER BY started_at DESC,id DESC LIMIT $3 OFFSET $4`,
+        [...filters, pageSize, (page - 1) * pageSize],
+      ),
+      this.db.query<{ total: string }>(`SELECT count(*)::text AS total FROM catalog_sync_runs ${where}`, filters),
+    ]);
+    const total = Number(count.rows[0]?.total ?? 0);
+    return {
+      items: rows.rows.map((row) => ({
+        ...row,
+        status: row.finished_at ? (row.complete ? 'complete' : 'failed') : 'running',
+        errorMessage: syncErrorText(row.error_code),
+      })),
+      page,
+      pageSize,
+      total,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  async listAudit(query: AdminPageQueryDto) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+    const search = query.search?.trim() || null;
+    const action = query.action?.trim() || null;
+    const where = `WHERE ($1::text IS NULL OR u.email ILIKE '%'||$1||'%' OR a.action ILIKE '%'||$1||'%' OR a.target_id ILIKE '%'||$1||'%')
+      AND ($2::text IS NULL OR a.action=$2)`;
+    const filters = [search, action];
+    const [rows, count] = await Promise.all([
+      this.db.query(
+        `SELECT a.id,a.actor_id,u.email AS actor_email,a.action,a.target_id,a.details,a.created_at
+         FROM admin_audit a JOIN users u ON u.id=a.actor_id
+         ${where} ORDER BY a.created_at DESC,a.id DESC LIMIT $3 OFFSET $4`,
+        [...filters, pageSize, (page - 1) * pageSize],
+      ),
+      this.db.query<{ total: string }>(`SELECT count(*)::text AS total FROM admin_audit a JOIN users u ON u.id=a.actor_id ${where}`, filters),
+    ]);
+    const total = Number(count.rows[0]?.total ?? 0);
+    const items = rows.rows.map((row) => ({ ...row, details: redactAuditDetails(row.details) }));
+    return { items, page, pageSize, total, totalPages: Math.ceil(total / pageSize) };
+  }
+
+  async pricePreview(query: PricingPreviewQueryDto) {
+    const settings = await this.getSettings();
+    const products = await this.db.query<{
+      id: string; game: string; generated_title: string; source_price: string; source_currency: string; price_brl_cents: string;
+    }>(
+      `SELECT p.id,p.game,p.generated_title,p.source_price::text,p.source_currency,p.price_brl_cents::text
+       FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
+       LEFT JOIN catalog_item_overrides o ON o.product_id=p.id
+       WHERE p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL AND COALESCE(o.hidden,false)=false
+       ORDER BY p.synced_at DESC,p.id DESC LIMIT $1`,
+      [query.sampleSize ?? 10],
+    );
+    const rates: Record<string, number | null> = { BRL: 1, USD: settings.usdBrlRate, RUB: settings.rubBrlRate };
+    const items = products.rows.map((product) => {
+      const rate = rates[product.source_currency] ?? null;
+      const rawCostCents = rate === null ? Number.NaN : Number(product.source_price) * rate * 100;
+      const costCents = Number.isSafeInteger(Math.round(rawCostCents)) && rawCostCents >= 0 ? Math.round(rawCostCents) : null;
+      const rawSimulatedPrice = costCents === null ? Number.NaN : costCents * (1 + (query.markupPercent ?? 55) / 100);
+      const simulatedPriceCents = Number.isSafeInteger(Math.round(rawSimulatedPrice)) ? Math.round(rawSimulatedPrice) : null;
+      const afterCouponCents = simulatedPriceCents === null || query.couponPercent === undefined
+        ? simulatedPriceCents : Math.round(simulatedPriceCents * (1 - query.couponPercent / 100));
+      return {
+        id: product.id,
+        game: product.game,
+        title: product.generated_title,
+        sourceCurrency: product.source_currency,
+        currentPriceCents: Number(product.price_brl_cents),
+        costCents,
+        simulatedPriceCents,
+        afterCouponCents,
+      };
+    });
+    return { markupPercent: query.markupPercent ?? 55, couponPercent: query.couponPercent ?? null, sampleSize: items.length, items };
+  }
+
+  async setCatalogItemVisibility(id: string, hidden: boolean, adminId: string) {
+    return this.db.transaction(async (client) => {
+      const product = await client.query<{ id: string; provider_item_id: string; hidden: boolean }>(
+        `SELECT p.id,p.provider_item_id,COALESCE(o.hidden,false) AS hidden
+         FROM products p LEFT JOIN catalog_item_overrides o ON o.product_id=p.id WHERE p.id=$1 FOR UPDATE OF p`, [id]);
+      const current = product.rows[0];
+      if (!current) throw new NotFoundException('Anúncio não encontrado.');
+      await client.query(
+        `INSERT INTO catalog_item_overrides(product_id,hidden,updated_by,updated_at) VALUES($1,$2,$3,now())
+         ON CONFLICT(product_id) DO UPDATE SET hidden=EXCLUDED.hidden,updated_by=EXCLUDED.updated_by,updated_at=now()`,
+        [id, hidden, adminId]);
+      await client.query(
+        "INSERT INTO admin_audit(actor_id,action,target_id,details) VALUES($1,'catalog_item_visibility_changed',$2,$3::jsonb)",
+        [adminId, current.provider_item_id, JSON.stringify({ before: { hidden: current.hidden }, after: { hidden } })]);
+      return { id, hidden };
+    });
+  }
+
+  async setSellerVisibility(sellerId: string, hidden: boolean, adminId: string) {
+    if (!/^[0-9]{1,40}$/.test(sellerId)) throw new BadRequestException('ID de vendedor inválido.');
+    return this.db.transaction(async (client) => {
+      const existing = await client.query<{ seller_id: string }>('SELECT seller_id FROM seller_blocklist WHERE seller_id=$1 FOR UPDATE', [sellerId]);
+      const wasHidden = Boolean(existing.rows[0]);
+      if (hidden) await client.query('INSERT INTO seller_blocklist(seller_id) VALUES($1) ON CONFLICT(seller_id) DO NOTHING', [sellerId]);
+      else await client.query('DELETE FROM seller_blocklist WHERE seller_id=$1', [sellerId]);
+      await client.query(
+        "INSERT INTO admin_audit(actor_id,action,target_id,details) VALUES($1,'seller_visibility_changed',$2,$3::jsonb)",
+        [adminId, sellerId, JSON.stringify({ before: { hidden: wasHidden }, after: { hidden } })]);
+      return { sellerId, hidden };
+    });
   }
 
   async listCoupons() {
@@ -75,23 +321,48 @@ export class AdminService {
     return result.rows;
   }
 
-  async createCoupon(input: CouponDto) {
+  async createCoupon(input: CouponDto, adminId: string) {
     const code = input.code.trim().toUpperCase();
-    const result = await this.db.query(
-      `INSERT INTO coupons(code,discount_percent,max_redemptions) VALUES($1,$2,$3)
-       ON CONFLICT(code) DO UPDATE SET discount_percent=EXCLUDED.discount_percent,active=true,max_redemptions=EXCLUDED.max_redemptions
-       RETURNING code,discount_percent,active,max_redemptions,redemption_count`, [code, input.discountPercent, input.maxRedemptions ?? null]);
-    return result.rows[0];
+    return this.db.transaction(async (client) => {
+      const previous = await client.query<{ code: string; discount_percent: number; active: boolean; max_redemptions: number | null }>(
+        'SELECT code,discount_percent,active,max_redemptions FROM coupons WHERE code=$1 FOR UPDATE', [code]);
+      const result = await client.query(
+        `INSERT INTO coupons(code,discount_percent,max_redemptions) VALUES($1,$2,$3)
+         ON CONFLICT(code) DO UPDATE SET discount_percent=EXCLUDED.discount_percent,active=true,max_redemptions=EXCLUDED.max_redemptions
+         RETURNING code,discount_percent,active,max_redemptions,redemption_count`, [code, input.discountPercent, input.maxRedemptions ?? null]);
+      await client.query(
+        "INSERT INTO admin_audit(actor_id,action,target_id,details) VALUES($1,'coupon_saved',$2,$3::jsonb)",
+        [adminId, code, JSON.stringify({ before: previous.rows[0] ?? null, after: result.rows[0] })]);
+      return result.rows[0];
+    });
   }
 
   async dashboard() {
-    const [result, sync] = await Promise.all([
+    const [result, sync, inventory, latestSuccess] = await Promise.all([
       this.db.query<{ status: string; count: string; revenue_cents: string }>(
       `SELECT status,count(*)::text AS count,COALESCE(sum(total_cents) FILTER (WHERE status IN ('paid','delivery_required','delivered')),0)::text AS revenue_cents
        FROM orders GROUP BY status`),
-      this.db.query<{ started_at: Date; finished_at: Date | null; pages_read: number; items_seen: number; items_upserted: number; complete: boolean; error_code: string | null }>(
-        `SELECT started_at,finished_at,pages_read,items_seen,items_upserted,complete,error_code
+      this.db.query<{ started_at: Date; finished_at: Date | null; pages_read: number; items_seen: number; items_upserted: number; items_discarded: number; items_discarded_reasons: Record<string, number>; complete: boolean; error_code: string | null }>(
+        `SELECT started_at,finished_at,pages_read,items_seen,items_upserted,items_discarded,items_discarded_reasons,complete,error_code
          FROM catalog_sync_runs ORDER BY started_at DESC LIMIT 1`),
+      this.db.query<{ total: string; visible: string; hidden: string; unavailable: string; needs_review: string; waiting_sync: string; last_product_synced_at: Date | null }>(
+        `SELECT count(*)::text AS total,
+          max(p.synced_at) AS last_product_synced_at,
+          count(*) FILTER (WHERE p.status='available' AND p.price_brl_cents > 0 AND b.seller_id IS NULL
+            AND COALESCE(o.hidden,false)=false)::text AS visible,
+          count(*) FILTER (WHERE b.seller_id IS NOT NULL OR o.hidden=true OR p.status='hidden')::text AS hidden,
+          count(*) FILTER (WHERE p.status<>'available' OR p.price_brl_cents IS NULL OR p.price_brl_cents<=0)::text AS unavailable,
+          count(*) FILTER (WHERE COALESCE(p.source_title,'') ~ '[А-Яа-яЁё]' OR length(trim(p.generated_title))<14
+            OR lower(trim(p.generated_title))=p.game OR p.attributes->'inventory' IS NULL
+            OR jsonb_typeof(p.attributes->'inventory')<>'object' OR p.attributes->'inventory'='{}'::jsonb)::text AS needs_review,
+          count(*) FILTER (WHERE p.status='available' AND p.synced_at < COALESCE(
+            (SELECT started_at FROM catalog_sync_runs WHERE finished_at IS NULL ORDER BY started_at DESC LIMIT 1),
+            'epoch'::timestamptz))::text AS waiting_sync
+         FROM products p LEFT JOIN seller_blocklist b ON b.seller_id=p.seller_id
+         LEFT JOIN catalog_item_overrides o ON o.product_id=p.id`),
+      this.db.query<{ finished_at: Date }>(
+        "SELECT finished_at FROM catalog_sync_runs WHERE complete=true AND finished_at IS NOT NULL ORDER BY finished_at DESC LIMIT 1",
+      ),
     ]);
     const latestSync = sync.rows[0];
     return {
@@ -104,8 +375,21 @@ export class AdminService {
         pagesRead: latestSync.pages_read,
         itemsSeen: latestSync.items_seen,
         itemsUpserted: latestSync.items_upserted,
-        errorMessage: latestSync.error_code ? syncErrorMessage[latestSync.error_code] ?? 'A sincronização encontrou um erro. Consulte os logs operacionais protegidos.' : null,
+        itemsDiscarded: latestSync.items_discarded,
+        itemsDiscardedReasons: latestSync.items_discarded_reasons,
+        durationMs: latestSync.finished_at ? Math.max(0, latestSync.finished_at.getTime() - latestSync.started_at.getTime()) : null,
+        lastSuccessAt: latestSuccess.rows[0]?.finished_at ?? null,
+        errorMessage: syncErrorText(latestSync.error_code),
       } : null,
+      inventoryAvailability: {
+        total: Number(inventory.rows[0]?.total ?? 0),
+        visible: Number(inventory.rows[0]?.visible ?? 0),
+        hidden: Number(inventory.rows[0]?.hidden ?? 0),
+        unavailable: Number(inventory.rows[0]?.unavailable ?? 0),
+        needsReview: Number(inventory.rows[0]?.needs_review ?? 0),
+        waitingSync: Number(inventory.rows[0]?.waiting_sync ?? 0),
+        lastProductSyncedAt: inventory.rows[0]?.last_product_synced_at ?? null,
+      },
     };
   }
 
@@ -173,6 +457,9 @@ export class AdminService {
       throw new BadRequestException('Informe uma resposta antes de concluir a solicitação.');
     }
     return this.db.transaction(async (client) => {
+      const previous = await client.query<{ order_id: string; status: string; admin_response: string | null }>(
+        'SELECT order_id,status,admin_response FROM customer_cancellation_requests WHERE order_id=$1 FOR UPDATE', [orderId]);
+      if (!previous.rows[0]) throw new NotFoundException('Solicitação de cancelamento não encontrada.');
       const updated = await client.query(
         `UPDATE customer_cancellation_requests
          SET status=$2,admin_response=COALESCE($3,admin_response),reviewed_by=$4,updated_at=now()
@@ -180,15 +467,29 @@ export class AdminService {
          RETURNING order_id,status,customer_message,admin_response,created_at,updated_at`,
         [orderId, input.status, input.adminResponse?.trim() || null, adminId]);
       if (!updated.rows[0]) throw new NotFoundException('Solicitação de cancelamento não encontrada.');
-      await client.query(`INSERT INTO admin_audit(actor_id,action,target_id) VALUES($1,'cancellation_request_reviewed',$2)`, [adminId, orderId]);
+      await client.query(
+        `INSERT INTO admin_audit(actor_id,action,target_id,details) VALUES($1,'cancellation_request_reviewed',$2,$3::jsonb)`,
+        [adminId, orderId, JSON.stringify({
+          before: { status: previous.rows[0].status, responseProvided: Boolean(previous.rows[0].admin_response) },
+          after: { status: updated.rows[0].status, responseProvided: Boolean(updated.rows[0].admin_response) },
+        })],
+      );
       return updated.rows[0];
     });
   }
 
-  async setCouponActive(code: string, active: boolean) {
-    const result = await this.db.query('UPDATE coupons SET active=$2 WHERE code=$1 RETURNING code,discount_percent,active,max_redemptions,redemption_count', [code.toUpperCase(), active]);
-    if (!result.rows[0]) throw new NotFoundException('Cupom não encontrado.');
-    return result.rows[0];
+  async setCouponActive(code: string, active: boolean, adminId: string) {
+    return this.db.transaction(async (client) => {
+      const previous = await client.query<{ code: string; discount_percent: number; active: boolean; max_redemptions: number | null }>(
+        'SELECT code,discount_percent,active,max_redemptions FROM coupons WHERE code=$1 FOR UPDATE', [code.toUpperCase()]);
+      if (!previous.rows[0]) throw new NotFoundException('Cupom não encontrado.');
+      const result = await client.query(
+        'UPDATE coupons SET active=$2 WHERE code=$1 RETURNING code,discount_percent,active,max_redemptions,redemption_count', [code.toUpperCase(), active]);
+      await client.query(
+        "INSERT INTO admin_audit(actor_id,action,target_id,details) VALUES($1,'coupon_active_changed',$2,$3::jsonb)",
+        [adminId, code.toUpperCase(), JSON.stringify({ before: { active: previous.rows[0].active }, after: { active } })]);
+      return result.rows[0];
+    });
   }
 
   async orderForDelivery(id: string) {

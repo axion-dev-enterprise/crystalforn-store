@@ -1,9 +1,9 @@
 import * as crypto from 'node:crypto';
 import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
-import { ConflictException, HttpException, HttpStatus, Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import type { AuthenticatedUser, StoreRole } from '../../common/auth.types';
-import { requireApprovedStoreAuthentication } from './auth-governance-status';
+import { approvedStoreAuthCenterOrigin } from './auth-governance-status';
 
 const SESSION_COOKIE = 'digital_store_session';
 const SESSION_TTL_HOURS = 12;
@@ -37,25 +37,17 @@ export class AuthService {
   constructor(private readonly db: DatabaseService) {}
 
   centralLoginUrl(client = 'crystalforn'): string {
-    requireApprovedStoreAuthentication();
     if (!['crystalforn', 'crystalforn-admin'].includes(client)) throw new UnauthorizedException('Aplicação de autenticação inválida.');
-    const base = new URL(process.env.STORE_AUTH_CENTER_URL!);
-    if (base.protocol !== 'https:' || base.username || base.password || base.search || base.hash) {
-      throw new ServiceUnavailableException('URL do Auth Center inválida.');
-    }
-    return `${base.origin}/api/auth/google/login?client=${client}`;
+    const centerOrigin = approvedStoreAuthCenterOrigin();
+    return `${centerOrigin}/api/auth/google/login?client=${client}`;
   }
 
   async consumeCentralCode(code: string, response: { setHeader: (name: string, value: string) => void }): Promise<void> {
-    requireApprovedStoreAuthentication();
+    const centerOrigin = approvedStoreAuthCenterOrigin();
     if (!/^[A-Za-z0-9_-]{40,64}$/.test(code)) throw new UnauthorizedException('Código de acesso inválido ou expirado.');
-    const center = new URL(process.env.STORE_AUTH_CENTER_URL!);
-    if (center.protocol !== 'https:' || center.username || center.password || center.search || center.hash) {
-      throw new ServiceUnavailableException('URL do Auth Center inválida.');
-    }
     let exchange: Response;
     try {
-      exchange = await fetch(`${center.origin}/api/store/exchange`, {
+      exchange = await fetch(`${centerOrigin}/api/store/exchange`, {
         method: 'POST', headers: { 'content-type': 'application/json', 'x-crystalforn-auth-secret': process.env.STORE_AUTH_CLIENT_SECRET! },
         body: JSON.stringify({ code }), signal: AbortSignal.timeout(5000), cache: 'no-store',
       });
@@ -76,9 +68,10 @@ export class AuthService {
         `INSERT INTO users(email,password_salt,password_hash,role,status,auth_user_id,tenant_id)
          VALUES($1,'central-auth','central-auth',$3,'ACTIVE',$2,'crystalforn')
          ON CONFLICT(auth_user_id) DO NOTHING`, [email, central.id, storeRole]);
-      const row = await client.query<{ id: string; email: string; role: StoreRole; auth_user_id: string; tenant_id: string }>(
-        `SELECT id,email,role,auth_user_id,tenant_id FROM users WHERE auth_user_id=$1 FOR UPDATE`, [central.id]);
-      if (!row.rows[0] || row.rows[0].role !== storeRole || row.rows[0].tenant_id !== 'crystalforn' || row.rows[0].email !== email) {
+      const row = await client.query<{ id: string; email: string; role: StoreRole; status: string; auth_user_id: string; tenant_id: string }>(
+        `SELECT id,email,role,status,auth_user_id,tenant_id FROM users WHERE auth_user_id=$1 FOR UPDATE`, [central.id]);
+      if (!row.rows[0] || row.rows[0].status !== 'ACTIVE' || row.rows[0].role !== storeRole
+        || row.rows[0].tenant_id !== 'crystalforn' || row.rows[0].email !== email) {
         throw new UnauthorizedException('A identidade local não corresponde ao cadastro central.');
       }
       await client.query(
@@ -86,6 +79,17 @@ export class AuthService {
          VALUES($1,$2,$3,'crystalforn',ARRAY[$4]::text[],'ACTIVE',$5)
          ON CONFLICT(auth_user_id) DO NOTHING`,
         [central.id, email, central.name || null, centralRole, row.rows[0].id]);
+      const dashboard = await client.query<{
+        auth_user_id: string; email: string; tenant_id: string; roles: string[]; status: string; store_user_id: string;
+      }>(
+        `SELECT auth_user_id,email,tenant_id,roles,status,store_user_id
+         FROM dashboard_users WHERE auth_user_id=$1 FOR UPDATE`, [central.id]);
+      const dashboardUser = dashboard.rows[0];
+      if (!dashboardUser || dashboardUser.email !== email || dashboardUser.tenant_id !== 'crystalforn'
+        || dashboardUser.status !== 'ACTIVE' || dashboardUser.roles.length !== 1
+        || dashboardUser.roles[0] !== centralRole || dashboardUser.store_user_id !== row.rows[0].id) {
+        throw new UnauthorizedException('O perfil local da Crystalforn não corresponde à identidade central.');
+      }
       if (storeRole === 'client') await client.query('INSERT INTO wallet_accounts(user_id,balance_cents) VALUES($1,0) ON CONFLICT(user_id) DO NOTHING', [row.rows[0].id]);
       return row.rows[0];
     });
@@ -152,55 +156,6 @@ export class AuthService {
     return bucket;
   }
 
-  async register(email: string, password: string, remoteAddress: string, response: { setHeader: (name: string, value: string) => void }): Promise<{ id: string; email: string }> {
-    requireApprovedStoreAuthentication();
-    const normalized = normalizeEmail(email);
-    const bucket = await this.enforceRateLimit(normalized, remoteAddress);
-    const salt = randomBytes(16).toString('hex');
-    const hash = await passwordDigest(password, salt);
-    try {
-      const result = await this.db.transaction(async (client) => {
-        const user = await client.query<{ id: string; email: string }>(
-          `INSERT INTO users(email,password_salt,password_hash,role) VALUES($1,$2,$3,'client') RETURNING id,email`, [normalized, `argon2id$${salt}`, hash.toString('hex')]);
-        await client.query('INSERT INTO wallet_accounts(user_id,balance_cents) VALUES($1,0)', [user.rows[0].id]);
-        return user.rows[0];
-      });
-      await this.db.query('DELETE FROM auth_attempts WHERE bucket_hash=$1', [bucket]);
-      await this.createSession(result.id, response);
-      return result;
-    } catch (error) {
-      if ((error as { code?: string }).code === '23505') throw new ConflictException('Este e-mail já está cadastrado.');
-      throw error;
-    }
-  }
-
-  async login(email: string, password: string, remoteAddress: string, response: { setHeader: (name: string, value: string) => void }): Promise<{ id: string; email: string }> {
-    requireApprovedStoreAuthentication();
-    const bucket = await this.enforceRateLimit(email, remoteAddress);
-    const result = await this.db.query<{ id: string; email: string; password_salt: string; password_hash: string; status: string }>(
-      'SELECT id,email,password_salt,password_hash,status FROM users WHERE email=$1', [normalizeEmail(email)]);
-    const row = result.rows[0];
-    const storedSalt = row?.password_salt ?? '';
-    const isArgon2 = storedSalt.startsWith('argon2id$');
-    const salt = isArgon2 ? storedSalt.slice('argon2id$'.length) : storedSalt;
-    const actual = isArgon2 || !row
-      ? await passwordDigest(password, /^[a-f\d]{32}$/i.test(salt) ? salt : '00'.repeat(16))
-      : await legacyScryptDigest(password, /^[a-f\d]{32}$/i.test(salt) ? salt : '00'.repeat(16));
-    const expected = Buffer.from(row?.password_hash ?? (isArgon2 ? '00'.repeat(32) : '00'.repeat(64)), 'hex');
-    if (!row || row.status !== 'ACTIVE' || actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
-      throw new UnauthorizedException('E-mail ou senha inválidos.');
-    }
-    if (!isArgon2) {
-      const newSalt = randomBytes(16).toString('hex');
-      const newHash = await passwordDigest(password, newSalt);
-      await this.db.query('UPDATE users SET password_salt=$2,password_hash=$3 WHERE id=$1 AND password_salt=$4 AND password_hash=$5',
-        [row.id, `argon2id$${newSalt}`, newHash.toString('hex'), storedSalt, row.password_hash]);
-    }
-    await this.db.query('DELETE FROM auth_attempts WHERE bucket_hash=$1', [bucket]);
-    await this.createSession(row.id, response);
-    return { id: row.id, email: row.email };
-  }
-
   private async createSession(userId: string, response: { setHeader: (name: string, value: string) => void }): Promise<void> {
     const token = randomBytes(32).toString('base64url');
     const digest = sessionDigest(token);
@@ -215,28 +170,32 @@ export class AuthService {
     const digest = sessionDigest(token);
     const result = await this.db.query<{
       id: string; email: string; role: StoreRole; auth_user_id: string | null; tenant_id: string | null;
-      dashboard_auth_user_id: string | null; dashboard_tenant: string | null; dashboard_roles: string[] | null; dashboard_status: string | null;
+      dashboard_auth_user_id: string | null; dashboard_email: string | null; dashboard_tenant: string | null;
+      dashboard_roles: string[] | null; dashboard_status: string | null; dashboard_store_user_id: string | null;
     }>(
       `SELECT u.id,u.email,u.role,u.auth_user_id,u.tenant_id,d.auth_user_id AS dashboard_auth_user_id,
-              d.tenant_id AS dashboard_tenant,d.roles AS dashboard_roles,d.status AS dashboard_status
+              d.email AS dashboard_email,d.tenant_id AS dashboard_tenant,d.roles AS dashboard_roles,
+              d.status AS dashboard_status,d.store_user_id AS dashboard_store_user_id
        FROM sessions s JOIN users u ON u.id=s.user_id LEFT JOIN dashboard_users d ON d.store_user_id=u.id
        WHERE s.token_hash=$1 AND s.expires_at > now() AND u.status='ACTIVE'`, [digest]);
     const user = result.rows[0];
     if (!user) return null;
     if (user.role === 'admin' && user.auth_user_id === null && user.tenant_id === 'crystalforn'
       && user.dashboard_auth_user_id === `store-admin:${user.id}` && user.dashboard_tenant === 'crystalforn'
+      && user.dashboard_email === user.email && user.dashboard_store_user_id === user.id
       && user.dashboard_status === 'ACTIVE' && user.dashboard_roles?.length === 1 && user.dashboard_roles[0] === 'store_admin') {
       return { id: user.id, email: user.email, role: 'admin' };
     }
-    requireApprovedStoreAuthentication();
     if (!['client', 'admin'].includes(user.role) || !user.auth_user_id || user.tenant_id !== 'crystalforn') return null;
-    const center = new URL(process.env.STORE_AUTH_CENTER_URL!);
-    if (center.protocol !== 'https:' || center.username || center.password || center.search || center.hash) {
-      throw new ServiceUnavailableException('URL do Auth Center inválida.');
-    }
+    const expectedCentralRole = user.role === 'admin' ? 'store_admin' : 'store_customer';
+    if (user.dashboard_auth_user_id !== user.auth_user_id || user.dashboard_email !== user.email
+      || user.dashboard_store_user_id !== user.id || user.dashboard_tenant !== 'crystalforn'
+      || user.dashboard_status !== 'ACTIVE' || user.dashboard_roles?.length !== 1
+      || user.dashboard_roles[0] !== expectedCentralRole) return null;
+    const centerOrigin = approvedStoreAuthCenterOrigin();
     let verification: Response;
     try {
-      verification = await fetch(`${center.origin}/api/store/introspect`, {
+      verification = await fetch(`${centerOrigin}/api/store/introspect`, {
         method: 'POST', headers: { 'content-type': 'application/json', 'x-crystalforn-auth-secret': process.env.STORE_AUTH_CLIENT_SECRET! },
         body: JSON.stringify({ authUserId: user.auth_user_id }), signal: AbortSignal.timeout(3000), cache: 'no-store',
       });
@@ -244,7 +203,6 @@ export class AuthService {
     if (verification.status === 401) return null;
     if (!verification.ok) throw new ServiceUnavailableException('Validação da identidade central indisponível.');
     const identity = await verification.json().catch(() => null) as { authenticated?: boolean; user?: { id?: string; email?: string; tenant?: string; roles?: string[] } } | null;
-    const expectedCentralRole = user.role === 'admin' ? 'store_admin' : 'store_customer';
     if (!identity?.authenticated || identity.user?.id !== user.auth_user_id || normalizeEmail(identity.user.email || '') !== user.email
       || identity.user.tenant !== 'crystalforn' || !Array.isArray(identity.user.roles)
       || identity.user.roles.length !== 1 || identity.user.roles[0] !== expectedCentralRole) return null;

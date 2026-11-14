@@ -40,7 +40,23 @@ export function writeProblemDetails(response: Response, status: number, detail: 
   return traceId;
 }
 
-function getSafeDetail(exception: unknown, status: number): string {
+const safeCentralAuthConfigurationDetails = new Set([
+  'Autenticação da loja indisponível até a aprovação da arquitetura de identidade.',
+  'Autenticação Crystalforn indisponível: integração central não configurada.',
+  'URL do Auth Center inválida.',
+]);
+
+function getSafeDetail(exception: unknown, status: number, instance: string): string {
+  if (status === HttpStatus.SERVICE_UNAVAILABLE && instance === '/api/v1/auth/central/login' && exception instanceof HttpException) {
+    const response = exception.getResponse();
+    const detail = typeof response === 'string'
+      ? response
+      : response && typeof response === 'object' && !Array.isArray(response)
+        ? (response as Record<string, unknown>).message
+        : null;
+    if (typeof detail === 'string' && safeCentralAuthConfigurationDetails.has(detail)) return detail;
+  }
+
   if (status >= HttpStatus.INTERNAL_SERVER_ERROR || !(exception instanceof HttpException)) {
     return 'Ocorreu um erro inesperado. Tente novamente mais tarde.';
   }
@@ -70,7 +86,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
     const traceId = randomUUID();
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) this.logger.error(`request_failed traceId=${traceId} status=${status}`);
-    const detail = getSafeDetail(exception, status);
+    const detail = getSafeDetail(exception, status, request.path);
     writeProblemDetails(response, status, detail, request.path, traceId);
   }
 }

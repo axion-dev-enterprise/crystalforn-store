@@ -46,7 +46,7 @@ export function LoginForm() {
       {error && <p className="inline-error" role="alert">{error}</p>}
       <button className="button-primary button-wide" type="submit" disabled={busy}>{busy ? 'Validando acesso…' : 'Entrar no painel'}</button>
     </form>
-    <div className="terms-blocked" role="note"><h2>Área de clientes</h2><p>O cadastro e o acesso de clientes serão liberados quando a identidade da loja estiver configurada.</p></div>
+    <div className="terms-blocked customer-auth-entry" role="group" aria-labelledby="customer-auth-heading"><h2 id="customer-auth-heading">Área de clientes</h2><p>Entre ou crie sua conta pela identidade central da Crystalforn. O acesso só é liberado depois que o Auth Center validar sua identidade e o papel de cliente.</p><a className="button-outline button-wide" href="/api/v1/auth/central/login?client=crystalforn">Entrar ou criar conta</a><p className="fine-print">Se o serviço central não estiver configurado ou disponível, nenhum acesso é concedido.</p></div>
     <Link className="button-outline button-wide auth-back-link" href="/">Voltar à prévia</Link>
   </div></section>;
 }
