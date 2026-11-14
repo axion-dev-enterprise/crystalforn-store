@@ -19,8 +19,11 @@ export function validateLztPagePayload(value: unknown, requestedPage: number): s
     || (payload.hasNextPage === true && (typeof payload.nextCursor !== 'string'
       || payload.nextCursor.trim().length === 0 || payload.nextCursor.length > 4096))
     || (requestedPage > 1 && payload.hasNextPage === undefined)
+    // `after` is the authoritative continuation for this endpoint. A live
+    // two-page probe returned `page: 1` on both responses, so this field is
+    // informational and cannot be compared with the worker checkpoint.
     || (payload.page !== undefined && (typeof payload.page !== 'number'
-      || !Number.isSafeInteger(payload.page) || payload.page !== requestedPage))
+      || !Number.isSafeInteger(payload.page) || payload.page < 1))
     || (payload.perPage !== undefined && (typeof payload.perPage !== 'number'
       || !Number.isSafeInteger(payload.perPage) || payload.perPage < 1))
     || (payload.hasNextPage === undefined && typeof totalItems !== 'number')) {

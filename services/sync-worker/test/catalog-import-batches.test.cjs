@@ -192,7 +192,7 @@ test('marks a later page without usable or new item IDs as stalled', () => {
   assert.equal(progress.stalled, true);
 });
 
-test('accepts documented category response fields for first and subsequent pages', () => {
+test('accepts cursor continuation when the provider page counter stays at one', () => {
   assert.equal(validateLztPagePayload({
     items: [{ item_id: 'demo-a' }],
     totalItems: 120,
@@ -207,7 +207,7 @@ test('accepts documented category response fields for first and subsequent pages
     hasNextPage: true,
     nextCursor: 'opaque-fixture-cursor-2',
     perPage: 40,
-    page: 2,
+    page: 1,
   }, 2), null);
   assert.equal(validateLztPagePayload({ items: [], totalItems: 120, hasNextPage: false, page: 3 }, 3), null);
 });
@@ -221,6 +221,7 @@ test('rejects category payloads with missing or malformed pagination metadata', 
     { items: [], totalItems: 3, hasNextPage: true, nextCursor: ' '.repeat(2) },
     { items: [], totalItems: 3, hasNextPage: true, nextCursor: 'x'.repeat(4097) },
     { items: [], totalItems: 3, hasNextPage: true, nextCursor: 'cursor', page: 2 },
+    { items: [], totalItems: 3, hasNextPage: false, page: 0 },
     { items: [], totalItems: -1, hasNextPage: false },
     { items: [], totalItems: 3, perPage: 0 },
     { items: [], nextCursor: 'cursor' },
