@@ -2,9 +2,15 @@
 
 O projeto usa versões SemVer. Esta lista registra alterações notáveis e limites conhecidos; commits contêm as mudanças completas.
 
+## Prévia demo publicada — 13/11/2026
+
+- Publicado o commit `77ce77c2faed789881f17925463c462da9c2d772` em modo demonstrativo, após aprovação do Build `43521753542`. API e web ficaram saudáveis; health, termos, catálogo e rotas principais responderam HTTP 200. O banco conectou corretamente, o catálogo continuou com `demoOnly: true` e zero anúncios reais, e pagamentos e workers permaneceram desligados. A PR #6 segue em rascunho, sem merge em `main`.
+- O backup pré-release foi restaurado com sucesso em um contêiner descartável e isolado; as imagens anteriores foram preservadas para rollback. As rotas `/cliente` e `/admin` ainda precisam de revisão com sessão legítima; resposta HTTP 200, sem sessão, não comprova autorização nem fluxo de autenticação.
+- O release é uma prévia visual com dados fictícios. Não habilita sincronização real com LZT, catálogo comercial, checkout, pagamentos, carteira, entrega de credenciais ou reembolsos.
+
 ## Não lançado
 
-- O Build `43489346226` passou no HEAD `ef91de7`; compilou web, API e workers e executou benchmark sintético de 20 mil e 40 mil registros. O código foi publicado na VPS em modo demo; a PR segue em rascunho e o merge permanece pendente.
+- Os itens abaixo descrevem mudanças incorporadas ao branch de release; o commit publicado e o resultado de CI correspondentes estão registrados na seção “Prévia demo publicada”.
 - Renderiza exemplos fictícios da vitrine e detalhes demo no HTML inicial, sem chamada à API ou skeleton no modo `demo`; `live_read_only` mantém consulta ao backend. A conferência HTTP pós-publicação confirmou título e inventário demo, aviso de compra desativada e ausência de formulário de checkout. Revisão visual manual no navegador permanece pendente.
 - Alinha a paginação LZT ao OpenAPI: a consulta inicial não envia `page`, checkpoints antigos sem cursor são reiniciados, e o worker para com segurança se houver mais resultados sem cursor. Registra os limites simultâneos de 20 buscas de categoria/minuto e 120/minuto no bucket compartilhado; tamanho de 40 itens observado no frontend não comprova a página da API. A compilação e o benchmark sintético passaram no Build `43484764620`; o worker continua desligado e a validação de fornecedor permanece pendente.
 - Substitui valores não seguros do `.env.example` por `SET_IN_VAULT` para que credenciais e chaves locais sejam configuradas pelo Vault antes da execução.
