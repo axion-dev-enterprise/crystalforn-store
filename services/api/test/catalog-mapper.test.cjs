@@ -51,3 +51,70 @@ test('rejects LZT listings outside the personal origin before catalog mapping', 
     title: 'Fortnite',
   }), null);
 });
+
+test('maps Riot inventory arrays nested in the live API response', () => {
+  const valorant = normalizeProduct({
+    item_id: 'synthetic-personal-valorant-001',
+    item_origin: 'personal',
+    catalog_game_hint: 'valorant',
+    price: 1500,
+    price_currency: 'RUB',
+    riot_valorant_level: 84,
+    riot_valorant_skin_count: 31,
+    valorantRankTitle: 'Gold 2',
+    valorantInventory: {
+      WeaponSkins: ['Prime Vandal', 'Reaver Sheriff'],
+      Agent: ['Jett', 'Sova'],
+      Buddy: ['Exemplo de chaveiro'],
+    },
+  });
+  assert.ok(valorant);
+  assert.deepEqual(valorant.attributes.inventory.weapon_skins, ['Prime Vandal', 'Reaver Sheriff']);
+  assert.deepEqual(valorant.attributes.inventory.agents, ['Jett', 'Sova']);
+  assert.deepEqual(valorant.attributes.inventory.buddies, ['Exemplo de chaveiro']);
+  assert.equal(valorant.attributes.inventory.level, 84);
+  assert.equal(valorant.attributes.inventory.rank, 'Ouro II');
+
+  const lol = normalizeProduct({
+    item_id: 'synthetic-personal-lol-001',
+    item_origin: 'personal',
+    catalog_game_hint: 'lol',
+    price: 900,
+    price_currency: 'RUB',
+    riot_lol_level: 172,
+    riot_lol_skin_count: 65,
+    riot_lol_rank: 'Silver II',
+    lolInventory: {
+      Champion: ['Lux', 'Ahri', 'Jinx'],
+      Skin: { 'synthetic-champion-id': 2 },
+    },
+  });
+  assert.ok(lol);
+  assert.deepEqual(lol.attributes.inventory.champions, ['Lux', 'Ahri', 'Jinx']);
+  assert.equal(lol.attributes.inventory.skins, undefined);
+  assert.equal(lol.attributes.inventory.level, 172);
+  assert.equal(lol.attributes.inventory.rank, 'Prata II');
+});
+
+test('reads Steam games from the nested full-games list returned by LZT', () => {
+  const steam = normalizeProduct({
+    item_id: 'synthetic-personal-steam-001',
+    item_origin: 'personal',
+    catalog_game_hint: 'steam',
+    price: 1200,
+    price_currency: 'RUB',
+    steam_level: 25,
+    steam_game_count: 3,
+    steam_full_games: {
+      list: {
+        '730': { appid: 730, title: 'Counter-Strike 2', playtime_forever: 600 },
+        '570': { appid: 570, title: 'Dota 2', playtime_forever: 120 },
+      },
+      total: 3,
+    },
+  });
+  assert.ok(steam);
+  assert.deepEqual(steam.attributes.inventory.game_names, ['Counter-Strike 2', 'Dota 2']);
+  assert.equal(steam.attributes.inventory.games.length, 2);
+  assert.equal(steam.title.includes('Counter-Strike 2'), true);
+});

@@ -165,6 +165,7 @@ export function normalizeProduct(item: Record<string, unknown>): NormalizedProdu
   const sourceInventory = record(item.inventory);
   const inventory: Record<string, unknown> = { ...sourceInventory };
   if (game === 'valorant') {
+    const valorantSourceInventory = record(item.valorantInventory);
     inventory.skins_count ??= inventory.valorant_smin ?? item.riot_valorant_skin_count;
     const rankCandidates = [inventory.rank, item.valorantRankTitle, item.riot_valorant_rank, inventory.rmin, item.rmin];
     const normalizedRank = rankCandidates
@@ -176,10 +177,11 @@ export function normalizeProduct(item: Record<string, unknown>): NormalizedProdu
     inventory.level ??= inventory.valorant_level_min ?? item.riot_valorant_level;
     inventory.vp_min ??= item.riot_valorant_wallet_vp;
     inventory.region ??= item.valorant_region ?? item.riot_valorant_region;
-    setArray(inventory, 'weapon_skins', item.weaponSkin, item.weapon_skins, sourceInventory.weaponSkin, sourceInventory.weapon_skins);
-    setArray(inventory, 'agents', item.agent, item.agents, sourceInventory.agent, sourceInventory.agents);
-    setArray(inventory, 'buddies', item.buddy, item.buddies, sourceInventory.buddy, sourceInventory.buddies);
+    setArray(inventory, 'weapon_skins', item.weaponSkin, item.weapon_skins, valorantSourceInventory.WeaponSkins, sourceInventory.weaponSkin, sourceInventory.weapon_skins);
+    setArray(inventory, 'agents', item.agent, item.agents, valorantSourceInventory.Agent, sourceInventory.agent, sourceInventory.agents);
+    setArray(inventory, 'buddies', item.buddy, item.buddies, valorantSourceInventory.Buddy, sourceInventory.buddy, sourceInventory.buddies);
   } else if (game === 'lol') {
+    const lolSourceInventory = record(item.lolInventory);
     inventory.skins_count ??= inventory.lol_smin ?? item.riot_lol_skin_count;
     const rankCandidates = [inventory.lol_rank, inventory.rank, item.riot_lol_rank];
     const normalizedRank = rankCandidates
@@ -197,8 +199,8 @@ export function normalizeProduct(item: Record<string, unknown>): NormalizedProdu
     inventory.level ??= inventory.lol_level ?? item.riot_lol_level;
     inventory.blue_min ??= item.riot_lol_wallet_blue;
     inventory.region ??= item.lol_region ?? item.riot_lol_region;
-    setArray(inventory, 'skins', item.skin, item.skins, sourceInventory.skin, sourceInventory.skins);
-    setArray(inventory, 'champions', item.champion, item.champions, sourceInventory.champion, sourceInventory.champions);
+    setArray(inventory, 'skins', item.skin, item.skins, lolSourceInventory.Skin, sourceInventory.skin, sourceInventory.skins);
+    setArray(inventory, 'champions', item.champion, item.champions, lolSourceInventory.Champion, sourceInventory.champion, sourceInventory.champions);
   } else if (game === 'fortnite') {
     inventory.skins_count ??= item.epicgames_fortnite_skin_count;
     inventory.pickaxes_count ??= item.epicgames_fortnite_pickaxe_count;
